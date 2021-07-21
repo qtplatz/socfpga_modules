@@ -4,7 +4,7 @@ cmake_policy( SET CMP0020 NEW )
 cmake_policy( SET CMP0042 NEW )
 cmake_policy( SET CMP0053 NEW )
 
-project ( infitof-fpga-tools )
+project ( socfpga )
 
 set ( CMAKE_EXPORT_COMPILE_COMMANDS ON )
 set ( CMAKE_INSTALL_PREFIX /usr/local )
@@ -67,11 +67,11 @@ set ( DKMS_PACKAGE_PREFIX "dkms-" )
 add_subdirectory ( src )
 
 include( CPackComponent )
-cpack_add_component( infitof-fpga  DISPLAY_NAME "infitof-fpga" GROUP tools )
+cpack_add_component( socfpga  DISPLAY_NAME "socfpga" GROUP tools )
 cpack_add_component_group( tools )
 
 set( CPACK_DEB_COMPONENT_INSTALL 1 )
-set( CPACK_PACKAGE_NAME infitof-fpga )
+set( CPACK_PACKAGE_NAME socfpga_modules )
 set( CPACK_PACKAGE_VENDOR "MS-Cheminformatics LLC" )
 set( CPACK_PACKAGE_VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}.${VERSION_TWEAK} )
 set( CPACK_PACKAGE_VERSION_MAJOR ${VERSION_MAJOR} )

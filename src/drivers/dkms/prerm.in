@@ -1,0 +1,2 @@
+dkms remove -m @PROJECT_NAME@ -v @PACKAGE_VERSION@ --all || true
+update-rc.d @MODNAME@ remove

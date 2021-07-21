@@ -1,0 +1,10 @@
+#!/bin/sh
+set -x
+dkms add -m @MODNAME@ -v @PACKAGE_VERSION@
+dkms build -m @MODNAME@ -v @PACKAGE_VERSION@ && dkms install -m @MODNAME@ -v @PACKAGE_VERSION@ || true
+
+if [ "$1" = "configure" ]; then
+    chmod 755 /etc/init.d/@MODNAME@
+    update-rc.d @MODNAME@ defaults
+    /etc/init.d/@MODNAME@ start
+fi

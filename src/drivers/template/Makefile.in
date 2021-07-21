@@ -1,0 +1,41 @@
+#
+KBUILD_CFLAGS += -std=gnu99 -O2
+ARCH := $(shell arch)
+ccflags-y := -std=gnu99 -O2 -Wno-declaration-after-statement
+
+VERSION = @PACKAGE_VERSION@
+KERNELRELEASE = @KERNELRELEASE@
+
+ifeq (${ARCH}, x86_64)
+	KERNEL_SRC = ../../../../linux-${KERNELRELEASE}
+else
+	KERNELRELEASE = $(shell uname -r)
+	KERNEL_SRC = /usr/src/linux-${KERNELRELEASE}
+endif
+
+ifeq (${M},)
+	M=$(shell pwd)
+endif
+
+obj-m += @OBJM@
+ccflags-y += -DMOD_VERSION=\"${VERSION}\" @CCFLAGS-Y@
+
+all:
+	${MAKE} ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- -C ${KERNEL_SRC} M=${PWD} VERSION=\"${VERSION}\" modules
+
+clean:
+	-rm -f *.o *.mod.* *~
+
+install: /lib/modules/${KERNELRELEASE}/extra
+	cp -p @MODNAME@.ko /lib/modules/${KERNELRELEASE}/extra/
+	/sbin/depmod -a
+
+install-init.d:
+	install -m 755 init.d-@MODNAME@.sh /etc/init.d/@MODNAME@
+	if test -e /usr/sbin/update-rc.d ; then update-rc.d @MODNAME@ defaults 98 02 ; fi
+
+start:
+	sudo insmod @MODNAME@.ko
+
+stop:
+	sudo rmmod @MODNAME@

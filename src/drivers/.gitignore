@@ -1,0 +1,6 @@
+Makefile
+*.cmd
+*.ko
+*.mod.c
+Module.symvers
+modules.order

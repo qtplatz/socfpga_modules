@@ -1,0 +1,21 @@
+# Makefile for building @MODNAME@ kernel module
+# Author: Toshinobu Hondo, Ph.D, partner of MS-Cheminformatics LLC, Mie Japan
+#
+KBUILD_CFLAGS += -std=gnu99 -O2
+ccflags-y := -std=gnu99 -O2 -Wno-declaration-after-statement
+ccflags-y += -DMOD_VERSION=\"@PACKAGE_VERSION@\"
+KERNELRELEASE ?= $(shell uname -r)
+
+obj-m := @OBJM@
+
+all:
+	${MAKE} -C /lib/modules/${KERNELRELEASE}/build M=$$PWD modules
+
+install: all
+	${MAKE} -C /lib/modules/${KERNELRELEASE}/build M=$$PWD modules_install
+
+uninstall:
+	rm -f /lib/modules/${KERNELRELEASE}/extra/@MODNAME@.ko
+
+clean:
+	${MAKE} -C /lib/modules/${KERNELRELEASE}/build M=$$PWD clean

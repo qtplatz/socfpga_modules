@@ -128,6 +128,7 @@ dgmod_proc_open( struct inode * inode, struct file * file )
     return single_open( file, dgmod_proc_read, NULL );
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,10,0)  // not sure, which version is relevant though
 static const struct proc_ops dgmod_proc_file_fops = {
     .proc_open    = dgmod_proc_open,
     .proc_read    = seq_read,
@@ -135,6 +136,16 @@ static const struct proc_ops dgmod_proc_file_fops = {
     .proc_lseek   = seq_lseek,
     .proc_release = single_release,
 };
+#else
+static const struct file_operations dgmod_proc_file_fops = {
+    .owner   = THIS_MODULE,
+    .open    = dgmod_proc_open,
+    .read    = seq_read,
+    .write   = dgmod_proc_write,
+    .llseek  = seq_lseek,
+    .release = single_release,
+};
+#endif
 
 /////////////////////////////////
 /////////////////////////////////

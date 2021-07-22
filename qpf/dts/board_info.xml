@@ -1,0 +1,25 @@
+<BoardInfo>
+
+  <DTAppend name="label" type="string" parentlabel="button_pio" val="button_pio"/>
+  <DTAppend name="gpios" parentlabel="button_pio">
+    <val type="number">416</val>
+    <val type="number">2</val>
+  </DTAppend>
+
+  <DTAppend name="label" type="string" parentlabel="dipsw_pio"  val="dipsw_pio"/>
+  <DTAppend name="gpios" parentlabel="dipsw_pio">
+    <val type="number">448</val>
+    <val type="number">4</val>
+  </DTAppend>
+
+  <DTAppend name="label" type="string" parentlabel="led_pio"    val="led_pio"/>
+  <DTAppend name="gpios" parentlabel="led_pio">
+    <val type="number">480</val>
+    <val type="number">2</val>
+  </DTAppend>
+
+  <DTAppend name="gpio" parentlabel="led_hps0">
+    <val type="number">262</val>
+  </DTAppend>
+
+</BoardInfo>

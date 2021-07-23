@@ -52,79 +52,111 @@
 #define ILC_BASE		HPS_0_ARM_A9_0_HPS_0_ARM_GIC_0_BASE // HPS_0_ARM_A9_0_ILC_BASE
 #define ILC_SPAN		HPS_0_ARM_A9_0_HPS_0_ARM_GIC_0_SPAN // HPS_0_ARM_A9_0_ILC_SPAN
 
+#define PIO_OUT_BASE            HPS_0_PIO_OUT_BASE
+#define PIO_OUT_SPAN            HPS_0_PIO_OUT_SPAN
+
+#define PIO_IN_BASE             HPS_0_PIO_IN_BASE
+#define PIO_IN_SPAN             HPS_0_PIO_IN_SPAN
+#define PIO_IN_IRQ              HPS_0_PIO_IN_IRQ
+
 / {
-soc {
+        soc {
 
-base-fpga-region {
+                base-fpga-region {
 
-	external-fpga-config;
+	                external-fpga-config;
 
-	#address-cells = <0x2>;
-	#size-cells = <0x1>;
+	                #address-cells = <0x2>;
+	                #size-cells = <0x1>;
 
-	ranges = <
-		JTAG_UART_BASE	0	JTAG_UART_BASE	JTAG_UART_SPAN
-		SYSID_QSYS_BASE	0	SYSID_QSYS_BASE	SYSID_QSYS_SPAN
-		LED_PIO_BASE	0	LED_PIO_BASE	LED_PIO_SPAN
-		DIPSW_PIO_BASE	0	DIPSW_PIO_BASE	DIPSW_PIO_SPAN
-		BUTTON_PIO_BASE	0	BUTTON_PIO_BASE	BUTTON_PIO_SPAN
-		ILC_BASE	0	ILC_BASE	ILC_SPAN
-		>;
+	                ranges = <
+		        JTAG_UART_BASE	0	JTAG_UART_BASE	JTAG_UART_SPAN
+		        SYSID_QSYS_BASE	0	SYSID_QSYS_BASE	SYSID_QSYS_SPAN
+		        LED_PIO_BASE	0	LED_PIO_BASE	LED_PIO_SPAN
+		        DIPSW_PIO_BASE	0	DIPSW_PIO_BASE	DIPSW_PIO_SPAN
+		        BUTTON_PIO_BASE	0	BUTTON_PIO_BASE	BUTTON_PIO_SPAN
+                        PIO_OUT_BASE    0       PIO_OUT_BASE    PIO_OUT_SPAN
+                        PIO_IN_BASE     0       PIO_IN_BASE     PIO_IN_SPAN
+		        ILC_BASE	0	ILC_BASE	ILC_SPAN
+		        >;
 
-	jtag_uart: jtag_uart@JTAG_UART_BASE,0 {
-		compatible = "altr,juart-1.0";
-		reg = <JTAG_UART_BASE 0 JTAG_UART_SPAN>;
-		interrupts = <0 JTAG_UART_IRQ IRQ_TYPE_LEVEL_HIGH>;
-	};
+	                jtag_uart: jtag_uart@JTAG_UART_BASE,0 {
+		                compatible = "altr,juart-1.0";
+		                reg = <JTAG_UART_BASE 0 JTAG_UART_SPAN>;
+		                interrupts = <0 JTAG_UART_IRQ IRQ_TYPE_LEVEL_HIGH>;
+	                };
 
-	sysid_qsys: sysid_qsys@SYSID_QSYS_BASE,0 {
-		compatible = "altr,sysid-1.0";
-		reg = <SYSID_QSYS_BASE 0 SYSID_QSYS_SPAN>;
-	};
+	                sysid_qsys: sysid_qsys@SYSID_QSYS_BASE,0 {
+		                compatible = "altr,sysid-1.0";
+		                reg = <SYSID_QSYS_BASE 0 SYSID_QSYS_SPAN>;
+	                };
 
-        led_pio: led_pio@LED_PIO_BASE,0 {
-		compatible = "altr,pio-1.0";
-		reg = <LED_PIO_BASE 0 LED_PIO_SPAN>;
-		altr,ngpio = <LED_PIO_WIDTH>;
-		#gpio-cells = <2>;
-		gpio-controller;
-	};
+                        led_pio: led_pio@LED_PIO_BASE,0 {
+		                compatible = "altr,pio-1.0";
+		                reg = <LED_PIO_BASE 0 LED_PIO_SPAN>;
+		                altr,ngpio = <LED_PIO_WIDTH>;
+		                #gpio-cells = <2>;
+		                gpio-controller;
+	                };
 
-	dipsw_pio: dipsw_pio@DIPSW_PIO_BASE,0 {
-		compatible = "altr,pio-1.0";
-		reg = <DIPSW_PIO_BASE 0 DIPSW_PIO_SPAN>;
-		interrupts = <0 DIPSW_PIO_IRQ IRQ_TYPE_LEVEL_HIGH>;
-		altr,ngpio = <DIPSW_PIO_WIDTH>;
-		#gpio-cells = <2>;
-		gpio-controller;
-		#interrupt-cells = <1>;
-		interrupt-controller;
-		altr,interrupt-type = <IRQ_TYPE_EDGE_BOTH>;
-	};
+	                dipsw_pio: dipsw_pio@DIPSW_PIO_BASE,0 {
+		                compatible = "altr,pio-1.0";
+		                reg = <DIPSW_PIO_BASE 0 DIPSW_PIO_SPAN>;
+		                interrupts = <0 DIPSW_PIO_IRQ IRQ_TYPE_LEVEL_HIGH>;
+		                altr,ngpio = <DIPSW_PIO_WIDTH>;
+		                #gpio-cells = <2>;
+		                gpio-controller;
+		                #interrupt-cells = <1>;
+		                interrupt-controller;
+		                altr,interrupt-type = <IRQ_TYPE_EDGE_BOTH>;
+	                };
 
-	button_pio: button_pio@BUTTON_PIO_BASE,0 {
-		compatible = "altr,pio-1.0";
-		reg = <BUTTON_PIO_BASE 0 BUTTON_PIO_SPAN>;
-		interrupts = <0 BUTTON_PIO_IRQ IRQ_TYPE_LEVEL_HIGH>;
-		altr,ngpio = <BUTTON_PIO_WIDTH>;
-		#gpio-cells = <2>;
-		gpio-controller;
-		#interrupt-cells = <1>;
-		interrupt-controller;
-		altr,interrupt-type = <IRQ_TYPE_EDGE_FALLING>;
-	};
-	ilc: ilc@ILC_BASE,0 {
-		compatible = "altr,ilc-1.0";
-		reg = <ILC_BASE 0 ILC_SPAN>;
-		interrupt-parent = <&intc>;
-		interrupts = <
-			0	DIPSW_PIO_IRQ	IRQ_TYPE_LEVEL_HIGH
-			0	BUTTON_PIO_IRQ	IRQ_TYPE_LEVEL_HIGH
-			0	JTAG_UART_IRQ	IRQ_TYPE_LEVEL_HIGH
-			>;
-		altr,sw-fifo-depth = <32>;
-	};
-};
+	                button_pio: button_pio@BUTTON_PIO_BASE,0 {
+		                compatible = "altr,pio-1.0";
+		                reg = <BUTTON_PIO_BASE 0 BUTTON_PIO_SPAN>;
+		                interrupts = <0 BUTTON_PIO_IRQ IRQ_TYPE_LEVEL_HIGH>;
+		                altr,ngpio = <BUTTON_PIO_WIDTH>;
+		                #gpio-cells = <2>;
+		                gpio-controller;
+		                #interrupt-cells = <1>;
+		                interrupt-controller;
+		                altr,interrupt-type = <IRQ_TYPE_EDGE_FALLING>;
+	                };
+                        /*
+                        pio_out: pio_out@HPS_0_PIO_OUT_BASE {
+		                compatible = "altr,pio-1.0";
+		                reg = <HPS_0_PIO_OUT_BASE 0 HPS_0_PIO_OUT_SPAN>;
+		                altr,ngpio = <HPS_0_PIO_OUT_DATA_WIDTH>;
+		                #gpio-cells = <2>;
+		                gpio-controller;
+                        };
 
-}; // soc
+                        pio_in: pio_in@HPS_0_PIO_IN_BASE {
+		                compatible = "altr,pio-1.0";
+		                reg = <HPS_0_PIO_IN_BASE 0 HPS_0_PIO_IN_SPAN>;
+		                interrupts = <0 HPS_0_PIO_IN_IRQ IRQ_TYPE_LEVEL_LOW>;
+		                altr,ngpio = <HPS_0_PIO_IN_DATA_WIDTH>;
+		                #gpio-cells = <2>;
+		                gpio-controller;
+		                #interrupt-cells = <1>;
+		                interrupt-controller;
+		                altr,interrupt-type = <IRQ_TYPE_EDGE_FALLING>;
+                        };
+                        */
+                        /*
+	                ilc: ilc@ILC_BASE,0 {
+		                compatible = "altr,ilc-1.0";
+		                reg = <ILC_BASE 0 ILC_SPAN>;
+		                interrupt-parent = <&intc>;
+		                interrupts = <
+			        0	DIPSW_PIO_IRQ	IRQ_TYPE_LEVEL_HIGH
+			        0	BUTTON_PIO_IRQ	IRQ_TYPE_LEVEL_HIGH
+			        0	JTAG_UART_IRQ	IRQ_TYPE_LEVEL_HIGH
+			        >;
+		                altr,sw-fifo-depth = <32>;
+	                };
+                        */
+                };
+
+        }; // soc
 }; // /

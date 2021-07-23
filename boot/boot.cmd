@@ -15,6 +15,7 @@ fpga load 0 ${rbf_addr_r} ${rbf_size}
 bridge enable
 
 fatload mmc 0 ${kernel_addr_r} zImage
-fatload mmc 0 ${fdt_addr_r} u-boot.dtb
+#fatload mmc 0 ${fdt_addr_r} u-boot.dtb
+fatload mmc 0 ${fdt_addr_r} soc_system.dtb
 
 bootz ${kernel_addr_r} - ${fdt_addr_r}

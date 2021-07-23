@@ -1,5 +1,5 @@
 boot.scr
-tmp/
+soc_system/
 *.dts
 *.dtb
 *.rbf

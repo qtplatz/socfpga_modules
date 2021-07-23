@@ -4,7 +4,7 @@
  */
 
 #include "socfpga_cyclone5.dtsi"
-#include "soc_system_embedded.dtsi"
+// #include "soc_system_embedded.dtsi"
 
 / {
 	model = "MS-Cheminformatics::CDS::de0-nano-soc";

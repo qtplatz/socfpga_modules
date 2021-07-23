@@ -1,5 +1,6 @@
 #! Makefile
 
+include ../config.sh
 ARCH := $(shell uname -m)
 export QUARTUS_ROOTDIR=/opt/intelFPGA_lite/20.1/quartus
 export PATH := ${PATH}:${QUARTUS_ROOTDIR}/bin:${QUARTUS_ROOTDIR}/sopc_builder/bin
@@ -7,7 +8,7 @@ export PATH := ${PATH}:${QUARTUS_ROOTDIR}/bin:${QUARTUS_ROOTDIR}/sopc_builder/bi
 device_host ?= "de0"
 device_user ?= $(shell whoami)
 design_name = soc_system
-KERNEL_DIR = "../../linux-socfpga"
+KERNEL_DIR = ${HOME}/${cross_kernel_source}
 
 DTS_SOURCES = ${KERNEL_DIR}/arch/arm/boot/dts/${design_name}_overlay.dts \
 		${KERNEL_DIR}/arch/arm/boot/dts/${design_name}_embedded.dtsi \

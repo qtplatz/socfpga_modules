@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <EnsembleReport name="soc_system" kind="soc_system" version="1.0" fabric="QSYS">
  <!-- Format version 20.1 720 (Future versions may contain additional information.) -->
- <!-- 2021.07.23.06:20:45 -->
+ <!-- 2021.07.23.09:48:28 -->
  <!-- A collection of modules and connections -->
  <parameter name="AUTO_GENERATION_ID">
   <type>java.lang.Integer</type>
-  <value>1626988838</value>
+  <value>1627001301</value>
   <derived>false</derived>
   <enabled>true</enabled>
   <visible>false</visible>
@@ -19409,6 +19409,14 @@ parameters are a RESULT of the module parameters. -->
     <slaveName>avalon_jtag_slave</slaveName>
     <name>jtag_uart.avalon_jtag_slave</name>
     <baseAddress>131072</baseAddress>
+    <span>8</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>intr_capturer_0</moduleName>
+    <slaveName>avalon_slave_0</slaveName>
+    <name>intr_capturer_0.avalon_slave_0</name>
+    <baseAddress>196608</baseAddress>
     <span>8</span>
    </memoryBlock>
    <memoryBlock>
@@ -46341,6 +46349,14 @@ parameters are a RESULT of the module parameters. -->
    </memoryBlock>
    <memoryBlock>
     <isBridge>false</isBridge>
+    <moduleName>intr_capturer_0</moduleName>
+    <slaveName>avalon_slave_0</slaveName>
+    <name>intr_capturer_0.avalon_slave_0</name>
+    <baseAddress>196608</baseAddress>
+    <span>8</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
     <moduleName>sysid_qsys</moduleName>
     <slaveName>control_slave</slaveName>
     <name>sysid_qsys.control_slave</name>
@@ -47924,6 +47940,14 @@ parameters are a RESULT of the module parameters. -->
    </memoryBlock>
    <memoryBlock>
     <isBridge>false</isBridge>
+    <moduleName>intr_capturer_0</moduleName>
+    <slaveName>avalon_slave_0</slaveName>
+    <name>intr_capturer_0.avalon_slave_0</name>
+    <baseAddress>4280483840</baseAddress>
+    <span>8</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
     <moduleName>sysid_qsys</moduleName>
     <slaveName>control_slave</slaveName>
     <name>sysid_qsys.control_slave</name>
@@ -48807,6 +48831,14 @@ parameters are a RESULT of the module parameters. -->
     <slaveName>avalon_jtag_slave</slaveName>
     <name>jtag_uart.avalon_jtag_slave</name>
     <baseAddress>4280418304</baseAddress>
+    <span>8</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>intr_capturer_0</moduleName>
+    <slaveName>avalon_slave_0</slaveName>
+    <name>intr_capturer_0.avalon_slave_0</name>
+    <baseAddress>4280483840</baseAddress>
     <span>8</span>
    </memoryBlock>
    <memoryBlock>
@@ -81998,7 +82030,7 @@ the requested settings for a module instance. -->
   </assignment>
   <assignment>
    <name>embeddedsw.CMacro.TIMESTAMP</name>
-   <value>1626988838</value>
+   <value>1627001301</value>
   </assignment>
   <assignment>
    <name>embeddedsw.dts.compatible</name>
@@ -82018,7 +82050,7 @@ the requested settings for a module instance. -->
   </assignment>
   <assignment>
    <name>embeddedsw.dts.params.timestamp</name>
-   <value>1626988838</value>
+   <value>1627001301</value>
   </assignment>
   <assignment>
    <name>embeddedsw.dts.vendor</name>
@@ -82034,7 +82066,7 @@ the requested settings for a module instance. -->
   </parameter>
   <parameter name="timestamp">
    <type>int</type>
-   <value>1626988838</value>
+   <value>1627001301</value>
    <derived>true</derived>
    <enabled>false</enabled>
    <visible>false</visible>
@@ -92720,6 +92752,57 @@ parameters are a RESULT of the module parameters. -->
   <endConnectionPoint>avalon_jtag_slave</endConnectionPoint>
  </connection>
  <connection
+   name="hps_0_bridges.h2f_lw/intr_capturer_0.avalon_slave_0"
+   kind="avalon"
+   version="20.1"
+   start="hps_0_bridges.h2f_lw"
+   end="intr_capturer_0.avalon_slave_0">
+  <parameter name="arbitrationPriority">
+   <type>int</type>
+   <value>1</value>
+   <derived>false</derived>
+   <enabled>true</enabled>
+   <visible>true</visible>
+   <valid>true</valid>
+  </parameter>
+  <parameter name="baseAddress">
+   <type>java.math.BigInteger</type>
+   <value>0x00030000</value>
+   <derived>false</derived>
+   <enabled>true</enabled>
+   <visible>true</visible>
+   <valid>true</valid>
+  </parameter>
+  <parameter name="defaultConnection">
+   <type>boolean</type>
+   <value>false</value>
+   <derived>false</derived>
+   <enabled>true</enabled>
+   <visible>true</visible>
+   <valid>true</valid>
+  </parameter>
+  <parameter name="deviceFamily">
+   <type>java.lang.String</type>
+   <value>UNKNOWN</value>
+   <derived>false</derived>
+   <enabled>true</enabled>
+   <visible>true</visible>
+   <valid>true</valid>
+  </parameter>
+  <parameter name="generateLegacySim">
+   <type>boolean</type>
+   <value>false</value>
+   <derived>false</derived>
+   <enabled>true</enabled>
+   <visible>true</visible>
+   <valid>true</valid>
+  </parameter>
+  <startModule>hps_0_bridges</startModule>
+  <startConnectionPoint>h2f_lw</startConnectionPoint>
+  <endModule>intr_capturer_0</endModule>
+  <endConnectionPoint>avalon_slave_0</endConnectionPoint>
+ </connection>
+ <connection
    name="hps_0_bridges.h2f_lw/sysid_qsys.control_slave"
    kind="avalon"
    version="20.1"
@@ -94810,7 +94893,7 @@ parameters are a RESULT of the module parameters. -->
   <version>20.1</version>
  </plugin>
  <plugin>
-  <instanceCount>146</instanceCount>
+  <instanceCount>147</instanceCount>
   <name>avalon</name>
   <type>com.altera.entityinterfaces.IElementClass</type>
   <subtype>com.altera.entityinterfaces.IConnection</subtype>

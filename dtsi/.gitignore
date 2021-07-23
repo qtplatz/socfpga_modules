@@ -1,2 +1,3 @@
 *.dtbo
-tmp/
+*.dtb
+*/

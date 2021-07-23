@@ -1,0 +1,5 @@
+boot.scr
+tmp/
+*.dts
+*.dtb
+*.rbf

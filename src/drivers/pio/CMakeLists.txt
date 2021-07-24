@@ -1,9 +1,9 @@
 
-project( dgmod )
-set ( MODNAME dgmod )
+project( pio )
+set ( MODNAME pio )
 
 set ( OBJM ${MODNAME}.o )
-set ( SRCS ${MODNAME}.c ${MODNAME}.h dgfsm.h dgmod_delay_pulse.h dgmod_ioctl.h hps.h )
+set ( SRCS ${MODNAME}.c ${MODNAME}.h )
 set ( PACKAGE_VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}.${VERSION_TWEAK} )
 
 add_custom_command(
@@ -24,8 +24,6 @@ configure_file (
 
 #--------------- DKMS ------------------
 if ( DKMS )
-  set ( RequiredStart "httpd-dg" )
-  set ( RequiredStop "httpd-dg" )
   include( ${DKMS}/dkms.cmake )
 endif()
 #--------------- DKMS ------------------

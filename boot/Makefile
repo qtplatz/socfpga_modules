@@ -74,7 +74,7 @@ ${design_name}.rbf: ${QPFDIR}/${design_name}.sof
 	${QUARTUS_CPF} -c --option=option_file.resp $< $@
 
 clean:
-	rm -rf *.dtb *.dts *.rbf *~ \#*
+	rm -rf *.dtb *.dts *.rbf *~ \#* ${design_name}
 
 ifeq (${ARCH},armv7l)
 install:

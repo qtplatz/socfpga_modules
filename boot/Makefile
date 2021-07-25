@@ -78,8 +78,11 @@ clean:
 
 ifeq (${ARCH},armv7l)
 install:
-	-mount /dev/mmcblk0p1 /mnt
-	cp ${TARGETS} zImage /mnt/
+	-sudo mount /dev/mmcblk0p1 /mnt
+	sudo cp ${TARGETS} zImage /mnt/
+	sync
+	sync
+	sync
 else
 install: ${TARGETS}
 	scp ${TARGETS} ${ZIMG} Makefile ${device_user}@${device_host}:

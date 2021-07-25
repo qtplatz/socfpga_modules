@@ -60,103 +60,134 @@
 #define PIO_IN_IRQ              HPS_0_PIO_IN_IRQ
 
 / {
-        soc {
+	clocks {
+		clk_0: clk_0 {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <50000000>;	/* 50.00 MHz */
+			clock-output-names = "clk_0-clk";
+		}; //end clk_0 (clk_0)
+	};
 
-                base-fpga-region {
+    hps_0_arm_gic_0: intc@fffed000 {
+	};
 
-	                external-fpga-config;
+	sopc0: sopc@0 {
+		device_type = "soc";
+		ranges;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "ALTR,avalon", "simple-bus";
+		bus-frequency = <0>;
 
-	                #address-cells = <0x2>;
-	                #size-cells = <0x1>;
+		hps_0_bridges: bridge@c0000000 {
+			compatible = "altr,bridge-20.1", "simple-bus";
+			reg = <0xc0000000 0x20000000>,
+				<0xff200000 0x00200000>;
+			reg-names = "axi_h2f", "axi_h2f_lw";
+			clocks = <&clk_0 &clk_0>;
+			clock-names = "h2f_axi_clock", "h2f_lw_axi_clock";
+			#address-cells = <2>;
+			#size-cells = <1>;
+			ranges = <0x00000000 0x00000000 0xc0000000 0x00010000>,
+				<0x00000001 0x00020000 0xff220000 0x00000008>,
+				<0x00000001 0x00010000 0xff210000 0x00000008>,
+				<0x00000001 0x00010040 0xff210040 0x00000010>,
+				<0x00000001 0x00010080 0xff210080 0x00000010>,
+				<0x00000001 0x000100c0 0xff2100c0 0x00000010>,
+				<0x00000001 0x00001000 0xff201000 0x00000010>,
+				<0x00000001 0x00001100 0xff201100 0x00000010>;
 
-	                ranges = <
-		        JTAG_UART_BASE	0	JTAG_UART_BASE	JTAG_UART_SPAN
-		        SYSID_QSYS_BASE	0	SYSID_QSYS_BASE	SYSID_QSYS_SPAN
-		        LED_PIO_BASE	0	LED_PIO_BASE	LED_PIO_SPAN
-		        DIPSW_PIO_BASE	0	DIPSW_PIO_BASE	DIPSW_PIO_SPAN
-		        BUTTON_PIO_BASE	0	BUTTON_PIO_BASE	BUTTON_PIO_SPAN
-                        PIO_OUT_BASE    0       PIO_OUT_BASE    PIO_OUT_SPAN
-                        PIO_IN_BASE     0       PIO_IN_BASE     PIO_IN_SPAN
-		        ILC_BASE	0	ILC_BASE	ILC_SPAN
-		        >;
+			jtag_uart: serial@100020000 {
+				compatible = "altr,juart-20.1", "altr,juart-1.0";
+				reg = <0x00000001 0x00020000 0x00000008>;
+				interrupt-parent = <&hps_0_arm_gic_0>;
+				interrupts = <0 42 4>;
+				clocks = <&clk_0>;
+			}; //end serial@100020000 (jtag_uart)
 
-	                jtag_uart: jtag_uart@JTAG_UART_BASE,0 {
-		                compatible = "altr,juart-1.0";
-		                reg = <JTAG_UART_BASE 0 JTAG_UART_SPAN>;
-		                interrupts = <0 JTAG_UART_IRQ IRQ_TYPE_LEVEL_HIGH>;
-	                };
+			sysid_qsys: sysid@100010000 {
+				compatible = "altr,sysid-20.1", "altr,sysid-1.0";
+				reg = <0x00000001 0x00010000 0x00000008>;
+				clocks = <&clk_0>;
+				id = <2899645186>;	/* embeddedsw.dts.params.id type NUMBER */
+				timestamp = <1627013771>;	/* embeddedsw.dts.params.timestamp type NUMBER */
+			}; //end sysid@100010000 (sysid_qsys)
 
-	                sysid_qsys: sysid_qsys@SYSID_QSYS_BASE,0 {
-		                compatible = "altr,sysid-1.0";
-		                reg = <SYSID_QSYS_BASE 0 SYSID_QSYS_SPAN>;
-	                };
+			led_pio: gpio@100010040 {
+				compatible = "altr,pio-20.1", "altr,pio-1.0";
+				reg = <0x00000001 0x00010040 0x00000010>;
+				clocks = <&clk_0>;
+				altr,gpio-bank-width = <8>;	/* embeddedsw.dts.params.altr,gpio-bank-width type NUMBER */
+				resetvalue = <0>;	/* embeddedsw.dts.params.resetvalue type NUMBER */
+				#gpio-cells = <2>;
+				gpio-controller;
+				label = "led_pio";	/* appended from boardinfo */
+				gpios = <480 2>;	/* appended from boardinfo */
+			}; //end gpio@100010040 (led_pio)
 
-                        led_pio: led_pio@LED_PIO_BASE,0 {
-		                compatible = "altr,pio-1.0";
-		                reg = <LED_PIO_BASE 0 LED_PIO_SPAN>;
-		                altr,ngpio = <LED_PIO_WIDTH>;
-		                #gpio-cells = <2>;
-		                gpio-controller;
-	                };
+			dipsw_pio: gpio@100010080 {
+				compatible = "altr,pio-20.1", "altr,pio-1.0";
+				reg = <0x00000001 0x00010080 0x00000010>;
+				interrupt-parent = <&hps_0_arm_gic_0>;
+				interrupts = <0 40 1>;
+				clocks = <&clk_0>;
+				altr,gpio-bank-width = <4>;
+				altr,interrupt-type = <3>;
+				altr,interrupt_type = <3>;
+				edge_type = <2>;
+				level_trigger = <0>;
+				resetvalue = <0>;
+				#gpio-cells = <2>;
+				gpio-controller;
+				label = "dipsw_pio";
+				gpios = <448 4>;
+			}; //end gpio@100010080 (dipsw_pio)
 
-	                dipsw_pio: dipsw_pio@DIPSW_PIO_BASE,0 {
-		                compatible = "altr,pio-1.0";
-		                reg = <DIPSW_PIO_BASE 0 DIPSW_PIO_SPAN>;
-		                interrupts = <0 DIPSW_PIO_IRQ IRQ_TYPE_LEVEL_HIGH>;
-		                altr,ngpio = <DIPSW_PIO_WIDTH>;
-		                #gpio-cells = <2>;
-		                gpio-controller;
-		                #interrupt-cells = <1>;
-		                interrupt-controller;
-		                altr,interrupt-type = <IRQ_TYPE_EDGE_BOTH>;
-	                };
+			button_pio: gpio@1000100c0 {
+				compatible = "altr,pio-20.1", "altr,pio-1.0";
+				reg = <0x00000001 0x000100c0 0x00000010>;
+				interrupt-parent = <&hps_0_arm_gic_0>;
+				interrupts = <0 41 1>;
+				clocks = <&clk_0>;
+				altr,gpio-bank-width = <4>;
+				altr,interrupt-type = <2>;
+				altr,interrupt_type = <2>;
+				edge_type = <1>;
+				level_trigger = <0>;
+				resetvalue = <0>;
+				#gpio-cells = <2>;
+				gpio-controller;
+				label = "button_pio";
+				gpios = <416 2>;
+			}; //end gpio@1000100c0 (button_pio)
 
-	                button_pio: button_pio@BUTTON_PIO_BASE,0 {
-		                compatible = "altr,pio-1.0";
-		                reg = <BUTTON_PIO_BASE 0 BUTTON_PIO_SPAN>;
-		                interrupts = <0 BUTTON_PIO_IRQ IRQ_TYPE_LEVEL_HIGH>;
-		                altr,ngpio = <BUTTON_PIO_WIDTH>;
-		                #gpio-cells = <2>;
-		                gpio-controller;
-		                #interrupt-cells = <1>;
-		                interrupt-controller;
-		                altr,interrupt-type = <IRQ_TYPE_EDGE_FALLING>;
-	                };
-                        /*
-                        pio_out: pio_out@HPS_0_PIO_OUT_BASE {
-		                compatible = "altr,pio-1.0";
-		                reg = <HPS_0_PIO_OUT_BASE 0 HPS_0_PIO_OUT_SPAN>;
-		                altr,ngpio = <HPS_0_PIO_OUT_DATA_WIDTH>;
-		                #gpio-cells = <2>;
-		                gpio-controller;
-                        };
+			pio_out: gpio@100001000 {
+				compatible = "dummy,dummy"; // "altr,pio-20.1", "altr,pio-1.0";
+				// compatible = "altr,pio-20.1", "altr,pio-1.0";
+				reg = <0x00000001 0x00001000 0x00000010>;
+				clocks = <&clk_0>;
+				altr,gpio-bank-width = <16>;
+				resetvalue = <65535>;
+				#gpio-cells = <2>;
+				gpio-controller;
+			}; //end gpio@100001000 (pio_out)
 
-                        pio_in: pio_in@HPS_0_PIO_IN_BASE {
-		                compatible = "altr,pio-1.0";
-		                reg = <HPS_0_PIO_IN_BASE 0 HPS_0_PIO_IN_SPAN>;
-		                interrupts = <0 HPS_0_PIO_IN_IRQ IRQ_TYPE_LEVEL_LOW>;
-		                altr,ngpio = <HPS_0_PIO_IN_DATA_WIDTH>;
-		                #gpio-cells = <2>;
-		                gpio-controller;
-		                #interrupt-cells = <1>;
-		                interrupt-controller;
-		                altr,interrupt-type = <IRQ_TYPE_EDGE_FALLING>;
-                        };
-                        */
-                        /*
-	                ilc: ilc@ILC_BASE,0 {
-		                compatible = "altr,ilc-1.0";
-		                reg = <ILC_BASE 0 ILC_SPAN>;
-		                interrupt-parent = <&intc>;
-		                interrupts = <
-			        0	DIPSW_PIO_IRQ	IRQ_TYPE_LEVEL_HIGH
-			        0	BUTTON_PIO_IRQ	IRQ_TYPE_LEVEL_HIGH
-			        0	JTAG_UART_IRQ	IRQ_TYPE_LEVEL_HIGH
-			        >;
-		                altr,sw-fifo-depth = <32>;
-	                };
-                        */
-                };
-
-        }; // soc
+			pio_in: gpio@100001100 {
+				compatible = "dummy,dummy"; // "altr,pio-20.1", "altr,pio-1.0";
+				reg = <0x00000001 0x00001100 0x00000010>;
+				interrupt-parent = <&hps_0_arm_gic_0>;
+				interrupts = <0 43 1>;
+				clocks = <&clk_0>;
+				altr,gpio-bank-width = <8>;
+				altr,interrupt-type = <2>;
+				altr,interrupt_type = <2>;
+				edge_type = <1>;
+				level_trigger = <0>;
+				resetvalue = <0>;
+				#gpio-cells = <2>;
+				gpio-controller;
+			}; //end gpio@100001100 (pio_in)
+		}; //end bridge@c0000000 (hps_0_bridges)
+	}; // sopc@0
 }; // /

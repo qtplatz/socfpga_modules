@@ -43,6 +43,8 @@
 #include <linux/platform_device.h>
 #include <linux/ktime.h>
 
+static int populate_device_tree( struct seq_file * m );
+
 static char *devname = MODNAME;
 MODULE_AUTHOR( "Toshinobu Hondo" );
 MODULE_DESCRIPTION( "Device Driver for the Delay Pulse Generator" );
@@ -137,7 +139,9 @@ handle_interrupt( int irq, void *dev_id )
 static int
 pio_proc_read( struct seq_file * m, void * v )
 {
-    seq_printf( m, "proc read" );
+    seq_printf( m, "proc read\n" );
+    populate_device_tree( m );
+
     return 0;
 }
 
@@ -330,24 +334,26 @@ pio_module_exit( void )
 
     unregister_chrdev_region( pio_dev_t, 1 ); // alloc_chrdev_region
     //
-    printk( KERN_INFO "" MODNAME " driver %s unloaded\n", MOD_VERSION );
+    printk( KERN_INFO "" MODNAME " driver %s unloaded\n<-----------\n\n", MOD_VERSION );
 }
 
 static int
 pio_module_probe( struct platform_device * pdev )
 {
+    dev_info( &pdev->dev, "pio_module proved [%s]", pdev->name );
+
     int irq = 0;
     if ( platform_get_drvdata( pdev ) == 0 ) {
         struct pio_driver * drv = devm_kzalloc( &pdev->dev, sizeof( struct pio_driver ), GFP_KERNEL );
         if ( ! drv )
             return -ENOMEM;
 
+        dev_info( &pdev->dev, "pio_module [%s] did not have pio_driver data; crate it.", pdev->name );
+
         __pdev = pdev;
         platform_set_drvdata( pdev, drv );
     }
     struct pio_driver * drv = platform_get_drvdata( pdev );
-
-    dev_info( &pdev->dev, "pio_module proved [%s]", pdev->name );
 
     for ( int i = 0; i < pdev->num_resources; ++i ) {
         struct resource * res = platform_get_resource( pdev, IORESOURCE_MEM, i );
@@ -362,7 +368,6 @@ pio_module_probe( struct platform_device * pdev )
         }
         sema_init( &drv->sem, 1 );
     }
-    platform_set_drvdata( pdev, drv );
 
     if ( ( irq = platform_get_irq( pdev, 0 ) ) > 0 ) {
         dev_info( &pdev->dev, "platform_get_irq: %d", irq );
@@ -389,8 +394,12 @@ pio_module_remove( struct platform_device * pdev )
 }
 
 static const struct of_device_id __pio_module_id [] = {
-    { .compatible = "altr,pio-20.1" }
-    , { .compatible = "altr,pio-1.0" }
+    { .compatible = "dummy,dummy" }
+    , { .compatible = "simple-pio" }
+    /* , { .compatible = "altr,juart-1.0" } */
+    /* , { .compatible = "altr,sysid-1.0" } */
+    /* , { .compatible = "altr,pio-1.0" } */
+    /* , { .compatible = "xaltr,pio-1.0" } */
     , {}
 };
 
@@ -407,3 +416,48 @@ static struct platform_driver __platform_driver = {
 
 module_init( pio_module_init );
 module_exit( pio_module_exit );
+
+
+static int populate_device_tree( struct seq_file * m )
+{
+    struct device_node * node;
+    struct device_node * child;
+
+    // trial to find hps_led0
+    if ( ( node = of_find_node_by_path( "/soc/base_fpga_region" ) ) ) {
+
+        for_each_child_of_node( node, child ) {
+            seq_printf( m, "child->name = %s, addr_cells = %d, size_cells = %d\n"
+                        , child->name
+                        , of_n_addr_cells( child )
+                        , of_n_size_cells( child ) );
+            struct property * prop = child->properties;
+            do {
+                const char * value[ 32 ] = { 0 };
+                u32 ivalue[ 32 ] = { 0 };
+                seq_printf( m, "\tname = %s\t", prop->name );
+
+                if ( of_property_read_string( child, prop->name, value ) == 0 ) {
+                    for ( int i = 0; i < countof(value) && value[ i ]; ++i )
+                        seq_printf( m, "'%s' ", value[i] );
+
+                    if ( strlen( value[0] ) == 0 ) {
+                        int sz = prop->length / 4 < countof(ivalue) ? prop->length / 4 : countof(ivalue);
+                        if ( of_property_read_u32_array( child, prop->name, ivalue, sz ) == 0 ) {
+                            for ( int i = 0; i < prop->length / 4; ++i )
+                                seq_printf( m, "0x%x ", ivalue[ i ] );
+                        }
+                    }
+                }
+                seq_printf( m, "\n" );
+            } while (( prop = prop->next ));
+
+            struct device_node * c1;
+            for_each_child_of_node( child, c1 ) {
+                seq_printf( m, "\tchild->name = %s\n", c1->name );
+            }
+        }
+        return 0;
+    }
+    return -1;
+}

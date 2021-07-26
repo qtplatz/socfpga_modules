@@ -43,7 +43,9 @@
 #include <linux/platform_device.h>
 #include <linux/ktime.h>
 
+#if 0
 static int populate_device_tree( struct seq_file * m );
+#endif
 
 static char *devname = MODNAME;
 MODULE_AUTHOR( "Toshinobu Hondo" );
@@ -63,11 +65,21 @@ static struct class * __pio_class;
 struct pio_driver {
     uint32_t irq;
     uint64_t irqCount_;
-    void __iomem * regs;
     wait_queue_head_t queue;
     int queue_condition;
     struct semaphore sem;
-    struct resource * mem_resource;
+	struct gpio_desc *inject_in;
+    struct gpio_desc *inject_out;
+    struct gpio_descs * gpio_outs;
+    struct gpio_descs * gpio_ins;
+	struct gpio_desc *led;
+    struct gpio_desc *dipsw;
+    int legacy_inject_out;
+    int legacy_inject_in;
+    int legacy_led;
+    int legacy_dipsw;
+    int dipsw_irq;
+    int injin_irq;
 };
 
 static struct semaphore __sem;
@@ -130,9 +142,14 @@ inline static void irq_mask( struct gpio_register * pio, int mask )
 static irqreturn_t
 handle_interrupt( int irq, void *dev_id )
 {
-    if ( __debug_level__ )
-        printk(KERN_INFO "" MODNAME " handle irq %d\n", irq );
-
+    if ( dev_id == __pdev ) {
+        struct pio_driver * drv = platform_get_drvdata( __pdev );
+        if ( drv->dipsw_irq == irq ) {
+            dev_info(&__pdev->dev, "handle_interrupt dipsw irq %d", irq );
+        } else if ( drv->injin_irq == irq ) {
+            dev_info(&__pdev->dev, "handle_interrupt injin irq %d", irq );
+        }
+    }
     return IRQ_HANDLED;
 }
 
@@ -140,7 +157,20 @@ static int
 pio_proc_read( struct seq_file * m, void * v )
 {
     seq_printf( m, "proc read\n" );
-    populate_device_tree( m );
+    // populate_device_tree( m );
+
+    struct pio_driver * drv = platform_get_drvdata( __pdev );
+    if ( drv ) {
+        int led = gpio_get_value( drv->legacy_led );
+        int injout = gpio_get_value( drv->legacy_inject_out );
+        int dipsw = gpio_get_value( drv->legacy_dipsw );
+        int injin = gpio_get_value( drv->legacy_inject_in );
+        seq_printf( m
+                    , "led = %d, inect_out = %d, dipsw = %d, injen = %d\n"
+                    , led, injout, dipsw, injin );
+        gpio_set_value( drv->legacy_inject_out, injout ? 0 : 1 );
+        gpio_set_value( drv->legacy_led, led ? 0 : 1 );
+    }
 
     return 0;
 }
@@ -338,46 +368,98 @@ pio_module_exit( void )
 }
 
 static int
+pio_perror( struct platform_device * pdev, const char * prefix, void * p )
+{
+    if ( IS_ERR( p ) ) {
+        dev_info(&pdev->dev, "%s %p -- error code = %ld", prefix, p, PTR_ERR(p) );
+        return PTR_ERR(p);
+    }
+    return 0;
+}
+
+static int
 pio_module_probe( struct platform_device * pdev )
 {
-    dev_info( &pdev->dev, "pio_module proved [%s]", pdev->name );
+    dev_info( &pdev->dev, "pio_module probed [%s]", pdev->name );
 
-    int irq = 0;
     if ( platform_get_drvdata( pdev ) == 0 ) {
         struct pio_driver * drv = devm_kzalloc( &pdev->dev, sizeof( struct pio_driver ), GFP_KERNEL );
         if ( ! drv )
             return -ENOMEM;
-
-        dev_info( &pdev->dev, "pio_module [%s] did not have pio_driver data; crate it.", pdev->name );
-
         __pdev = pdev;
         platform_set_drvdata( pdev, drv );
     }
     struct pio_driver * drv = platform_get_drvdata( pdev );
 
-    for ( int i = 0; i < pdev->num_resources; ++i ) {
-        struct resource * res = platform_get_resource( pdev, IORESOURCE_MEM, i );
-        if ( res ) {
-            void __iomem * regs = devm_ioremap_resource( &pdev->dev, res );
-            if ( regs ) {
-                drv->regs = regs;
-                drv->mem_resource = res;
-            }
-            dev_info( &pdev->dev, "dgmod probe resource[%d]: %x -- %x, map to %p\n"
-                      , i, res->start, res->end, regs );
+    int rcode = 0;
+    drv->dipsw = devm_gpiod_get_optional( &pdev->dev, "dipsw", GPIOD_IN );
+    if ( pio_perror( pdev, "dipsw", drv->dipsw ) ) {
+        if ( ( rcode = devm_gpio_request( &pdev->dev, 1984, "dipsw" )) == 0 ) {
+            drv->legacy_dipsw = 1984;
+            gpio_direction_input( drv->legacy_dipsw );
+        } else {
+            dev_err( &pdev->dev, "legacy_dipsw request failed: %d", rcode );
         }
-        sema_init( &drv->sem, 1 );
     }
 
-    if ( ( irq = platform_get_irq( pdev, 0 ) ) > 0 ) {
-        dev_info( &pdev->dev, "platform_get_irq: %d", irq );
-        if ( devm_request_irq( &pdev->dev, irq, handle_interrupt, 0, MODNAME, pdev ) == 0 ) {
-            drv->irq = irq;
+    drv->led = devm_gpiod_get_optional( &pdev->dev, "led", GPIOD_OUT_LOW );
+    if ( pio_perror( pdev, "led", drv->led ) ) {
+        if ( ( rcode = devm_gpio_request( &pdev->dev, 2016, "led" ) ) == 0 ) {
+            drv->legacy_led = 2016;
+            gpio_direction_output( drv->legacy_led, 0 );
         } else {
-            dev_err( &pdev->dev, "Failed to register IRQ.\n" );
-            return -ENODEV;
+            dev_err( &pdev->dev, "legacy_led request failed: %d", rcode );
         }
     }
+
+    /* drv->gpio_outs = devm_gpiod_get_array( &pdev->dev, "cds_out", GPIOD_OUT_HIGH ); */
+    /* pio_perror( pdev, "gpio_outs", drv->gpio_outs ); */
+    drv->inject_out = devm_gpiod_get_optional( &pdev->dev, "inject_out", GPIOD_OUT_HIGH );
+    if ( pio_perror( pdev, "inject_out", drv->inject_out ) ) {
+        if ( ( rcode = devm_gpio_request( &pdev->dev, 1922, "inject_out" ) ) == 0 ) {
+            drv->legacy_inject_out = 1922;
+            gpio_direction_output( drv->legacy_inject_out, 1 );
+        } else {
+            dev_err( &pdev->dev, "legacy_inject_out request failed: %d", rcode );
+        }
+    }
+
+    drv->inject_in = devm_gpiod_get_optional( &pdev->dev, "inject_in", GPIOD_IN );
+    if ( pio_perror( pdev, "inject_in", drv->inject_in ) ) {
+        if ( ( rcode = devm_gpio_request( &pdev->dev, 1990, "inject_out" ) ) == 0 ) {
+            drv->legacy_inject_in = 1990;
+            gpio_direction_input( drv->legacy_inject_in );
+        } else {
+            dev_err( &pdev->dev, "legacy_inject_in request failed: %d", rcode );
+        }
+    }
+
+    int irq;
+    if ( (irq = gpio_to_irq( drv->legacy_inject_in ) ) > 0 ) {
+        dev_info(&pdev->dev, "\tinjin gpio irq is %d", irq );
+        if ( (rcode = devm_request_irq( &pdev->dev, irq, handle_interrupt, 0, "injin", pdev )) == 0 ) {
+            drv->injin_irq = irq;
+        } else {
+            dev_err( &pdev->dev, "injin irq request failed: %d", rcode );
+        }
+    }
+    if ( (irq = gpio_to_irq( drv->legacy_dipsw ) ) > 0 ) {
+        dev_info(&pdev->dev, "\tdipsw gpio irq is %d", irq );
+        if ( (rcode = devm_request_irq( &pdev->dev, irq, handle_interrupt, 0, "dipsw", pdev )) == 0 ) {
+            drv->dipsw_irq = irq;
+        } else {
+            dev_err( &pdev->dev, "dipsw irq request failed: %d", rcode );
+        }
+    }
+
+    /*
+    if (( irq = gpiod_to_irq( drv->rst_gpio ) ) > 0 ) {
+        dev_info(&pdev->dev, "\tGPIO irq is %d", irq );
+        drv->irq = irq;
+    } else {
+        dev_err(&pdev->dev, "\tGPIO irq get failed %x", irq );
+    }
+    */
     return 0;
 }
 
@@ -386,7 +468,7 @@ pio_module_remove( struct platform_device * pdev )
 {
     int irqNumber;
     if ( ( irqNumber = platform_get_irq( pdev, 0 ) ) > 0 ) {
-        printk( KERN_INFO "" MODNAME " %s IRQ %d, %x about to be freed\n", pdev->name, irqNumber, pdev->resource->start );
+        dev_info( &pdev->dev, "IRQ %d about to be freed\n", irqNumber );
         free_irq( irqNumber, 0 );
     }
     __pdev = 0;
@@ -394,12 +476,9 @@ pio_module_remove( struct platform_device * pdev )
 }
 
 static const struct of_device_id __pio_module_id [] = {
-    { .compatible = "dummy,dummy" }
-    , { .compatible = "simple-pio" }
-    /* , { .compatible = "altr,juart-1.0" } */
-    /* , { .compatible = "altr,sysid-1.0" } */
-    /* , { .compatible = "altr,pio-1.0" } */
-    /* , { .compatible = "xaltr,pio-1.0" } */
+    { .compatible = "altr,cds-pio" }
+    , { .compatible = "altr,pio-20.1" }
+    , { .compatible = "altr,pio-1.0" }
     , {}
 };
 
@@ -417,7 +496,40 @@ static struct platform_driver __platform_driver = {
 module_init( pio_module_init );
 module_exit( pio_module_exit );
 
+#if 0
+static int print_device_node( struct seq_file * m, struct device_node * child, const char * prefix )
+{
+    seq_printf( m, "%schild->name = %s, addr_cells = %d, size_cells = %d\n"
+                , prefix
+                , child->name
+                , of_n_addr_cells( child )
+                , of_n_size_cells( child ) );
+    struct property * prop = child->properties;
+    do {
+        const char * value[ 32 ] = { 0 };
+        u32 ivalue[ 32 ] = { 0 };
+        seq_printf( m, "%s\tname = %s\t", prefix, prop->name );
 
+        if ( of_property_read_string( child, prop->name, value ) == 0 ) {
+            for ( int i = 0; i < countof(value) && value[ i ]; ++i )
+                seq_printf( m, "'%s' ", value[i] );
+
+            if ( strlen( value[0] ) == 0 ) {
+                int sz = prop->length / 4 < countof(ivalue) ? prop->length / 4 : countof(ivalue);
+                if ( of_property_read_u32_array( child, prop->name, ivalue, sz ) == 0 ) {
+                    for ( int i = 0; i < prop->length / 4; ++i )
+                        seq_printf( m, "0x%x ", ivalue[ i ] );
+                }
+            }
+        }
+        seq_printf( m, "\n" );
+    } while (( prop = prop->next ));
+
+    return 0;
+}
+#endif
+
+#if 0
 static int populate_device_tree( struct seq_file * m )
 {
     struct device_node * node;
@@ -427,37 +539,14 @@ static int populate_device_tree( struct seq_file * m )
     if ( ( node = of_find_node_by_path( "/soc/base_fpga_region" ) ) ) {
 
         for_each_child_of_node( node, child ) {
-            seq_printf( m, "child->name = %s, addr_cells = %d, size_cells = %d\n"
-                        , child->name
-                        , of_n_addr_cells( child )
-                        , of_n_size_cells( child ) );
-            struct property * prop = child->properties;
-            do {
-                const char * value[ 32 ] = { 0 };
-                u32 ivalue[ 32 ] = { 0 };
-                seq_printf( m, "\tname = %s\t", prop->name );
-
-                if ( of_property_read_string( child, prop->name, value ) == 0 ) {
-                    for ( int i = 0; i < countof(value) && value[ i ]; ++i )
-                        seq_printf( m, "'%s' ", value[i] );
-
-                    if ( strlen( value[0] ) == 0 ) {
-                        int sz = prop->length / 4 < countof(ivalue) ? prop->length / 4 : countof(ivalue);
-                        if ( of_property_read_u32_array( child, prop->name, ivalue, sz ) == 0 ) {
-                            for ( int i = 0; i < prop->length / 4; ++i )
-                                seq_printf( m, "0x%x ", ivalue[ i ] );
-                        }
-                    }
-                }
-                seq_printf( m, "\n" );
-            } while (( prop = prop->next ));
+            print_device_node( m, child, "" );
 
             struct device_node * c1;
-            for_each_child_of_node( child, c1 ) {
-                seq_printf( m, "\tchild->name = %s\n", c1->name );
-            }
+            for_each_child_of_node( child, c1 )
+                print_device_node( m, c1, "\t" );
         }
         return 0;
     }
     return -1;
 }
+#endif

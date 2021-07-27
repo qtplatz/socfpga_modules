@@ -143,11 +143,12 @@ inline static void irq_mask( struct gpio_register * pio, int mask )
 static irqreturn_t
 handle_interrupt( int irq, void *dev_id )
 {
+    printk(KERN_INFO "" MODNAME " handle_interrupt(%d)\n", irq );
+    return IRQ_HANDLED;
+
     if ( dev_id == __pdev ) {
         struct pio_driver * drv = platform_get_drvdata( __pdev );
-        if ( drv->dipsw_irq == irq ) {
-            dev_info(&__pdev->dev, "handle_interrupt dipsw irq %d", irq );
-        } else if ( drv->injin_irq == irq ) {
+        if ( drv->injin_irq == irq ) {
             dev_info(&__pdev->dev, "handle_interrupt injin irq %d", irq );
         }
     }
@@ -162,7 +163,7 @@ pio_proc_read( struct seq_file * m, void * v )
 
     if ( drv ) {
         seq_printf( m, "injin irq: %d\n",  drv->injin_irq );
-        seq_printf( m, "dipsw irq: %d\n",  drv->dipsw_irq );
+        // seq_printf( m, "dipsw irq: %d\n",  drv->dipsw_irq );
 
         int led = gpio_get_value( drv->legacy_led );
         int inj_o = gpio_get_value( drv->legacy_inject_out );
@@ -443,22 +444,6 @@ pio_module_probe( struct platform_device * pdev )
             dev_err( &pdev->dev, "legacy_inject_in request failed: %d", rcode );
         }
     }
-
-    if ( ( drv->iomem = devm_request_mem_region( &pdev->dev, 0xff201100, 0x10, "pio_in" ) ) ) {
-        {
-            u32 mask = ((u32 *)drv->iomem)[ 2 ];
-            u32 edge = ((u32 *)drv->iomem)[ 3 ];
-            dev_info(&pdev->dev, "\tpio_in mask = 0x%04x, edgecapture = 0x%04x\n", mask, edge );
-        }
-        ((u32 *)drv->iomem)[ 2 ] = 0x000f; // irq mask
-        ((u32 *)drv->iomem)[ 3 ] = 0x000f; // edge capture
-        {
-            u32 mask = ((u32 *)drv->iomem)[ 2 ];
-            u32 edge = ((u32 *)drv->iomem)[ 3 ];
-            dev_info(&pdev->dev, "\tpio_in mask = 0x%04x, edgecapture = 0x%04x\n", mask, edge );
-        }
-    }
-
 
     if ( drv->legacy_inject_in ) {
         int irq;

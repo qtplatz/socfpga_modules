@@ -150,26 +150,35 @@ handle_interrupt( int irq, void *dev_id )
             dev_info(&__pdev->dev, "handle_interrupt injin irq %d", irq );
         }
     }
+    dev_info(&__pdev->dev, "handle_interrupt dipsw irq %d", irq );
     return IRQ_HANDLED;
 }
 
 static int
 pio_proc_read( struct seq_file * m, void * v )
 {
-    seq_printf( m, "proc read\n" );
-    // populate_device_tree( m );
-
     struct pio_driver * drv = platform_get_drvdata( __pdev );
+
     if ( drv ) {
+        seq_printf( m, "injin irq: %d\n",  drv->injin_irq );
+        seq_printf( m, "dipsw irq: %d\n",  drv->dipsw_irq );
+
         int led = gpio_get_value( drv->legacy_led );
-        int injout = gpio_get_value( drv->legacy_inject_out );
-        int dipsw = gpio_get_value( drv->legacy_dipsw );
-        int injin = gpio_get_value( drv->legacy_inject_in );
-        seq_printf( m
-                    , "led = %d, inect_out = %d, dipsw = %d, injen = %d\n"
-                    , led, injout, dipsw, injin );
-        gpio_set_value( drv->legacy_inject_out, injout ? 0 : 1 );
+        int inj_o = gpio_get_value( drv->legacy_inject_out );
+        int dipsw = 0;
+        for ( int i = 0; i < 4; ++i )
+            dipsw |= ( gpio_get_value( drv->legacy_dipsw + i ) ? 1 : 0 )<< i;
+
+        gpio_set_value( drv->legacy_inject_out, inj_o ? 0 : 1 );
         gpio_set_value( drv->legacy_led, led ? 0 : 1 );
+
+        int inj_i = 0;
+        for ( int i = 0; i < 2; ++i )
+            inj_i |= ( gpio_get_value( drv->legacy_inject_in + i ) ? 1 : 0 ) << i;
+
+        seq_printf( m
+                    , "led = %d, inect_out = %d, inj_in = 0x%x, dipsw=0x%x\n"
+                    , led, inj_o, inj_i, dipsw );
     }
 
     return 0;
@@ -426,23 +435,26 @@ pio_module_probe( struct platform_device * pdev )
 
     drv->inject_in = devm_gpiod_get_optional( &pdev->dev, "inject_in", GPIOD_IN );
     if ( pio_perror( pdev, "inject_in", drv->inject_in ) ) {
-        if ( ( rcode = devm_gpio_request( &pdev->dev, 1990, "inject_out" ) ) == 0 ) {
-            drv->legacy_inject_in = 1990;
+        if ( ( rcode = devm_gpio_request( &pdev->dev, 1888, "inject_in" ) ) == 0 ) {
+            drv->legacy_inject_in = 1888;
             gpio_direction_input( drv->legacy_inject_in );
         } else {
             dev_err( &pdev->dev, "legacy_inject_in request failed: %d", rcode );
         }
     }
 
-    int irq;
-    if ( (irq = gpio_to_irq( drv->legacy_inject_in ) ) > 0 ) {
-        dev_info(&pdev->dev, "\tinjin gpio irq is %d", irq );
-        if ( (rcode = devm_request_irq( &pdev->dev, irq, handle_interrupt, 0, "injin", pdev )) == 0 ) {
-            drv->injin_irq = irq;
-        } else {
-            dev_err( &pdev->dev, "injin irq request failed: %d", rcode );
+    if ( drv->legacy_inject_in ) {
+        int irq;
+        if ( (irq = gpio_to_irq( drv->legacy_inject_in ) ) > 0 ) {
+            dev_info(&pdev->dev, "\tinjin gpio irq is %d", irq );
+            if ( (rcode = devm_request_irq( &pdev->dev, irq, handle_interrupt, 0, "injin", pdev )) == 0 ) {
+                drv->injin_irq = irq;
+            } else {
+                dev_err( &pdev->dev, "injin irq request failed: %d", rcode );
+            }
         }
     }
+#if 0
     if ( (irq = gpio_to_irq( drv->legacy_dipsw ) ) > 0 ) {
         dev_info(&pdev->dev, "\tdipsw gpio irq is %d", irq );
         if ( (rcode = devm_request_irq( &pdev->dev, irq, handle_interrupt, 0, "dipsw", pdev )) == 0 ) {
@@ -451,15 +463,7 @@ pio_module_probe( struct platform_device * pdev )
             dev_err( &pdev->dev, "dipsw irq request failed: %d", rcode );
         }
     }
-
-    /*
-    if (( irq = gpiod_to_irq( drv->rst_gpio ) ) > 0 ) {
-        dev_info(&pdev->dev, "\tGPIO irq is %d", irq );
-        drv->irq = irq;
-    } else {
-        dev_err(&pdev->dev, "\tGPIO irq get failed %x", irq );
-    }
-    */
+#endif
     return 0;
 }
 

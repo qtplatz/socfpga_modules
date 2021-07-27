@@ -143,16 +143,12 @@ inline static void irq_mask( struct gpio_register * pio, int mask )
 static irqreturn_t
 handle_interrupt( int irq, void *dev_id )
 {
-    printk(KERN_INFO "" MODNAME " handle_interrupt(%d)\n", irq );
-    return IRQ_HANDLED;
-
     if ( dev_id == __pdev ) {
         struct pio_driver * drv = platform_get_drvdata( __pdev );
         if ( drv->injin_irq == irq ) {
-            dev_info(&__pdev->dev, "handle_interrupt injin irq %d", irq );
+            dev_info(&__pdev->dev, "handle_interrupt inj.in irq %d", irq );
         }
     }
-    dev_info(&__pdev->dev, "handle_interrupt dipsw irq %d", irq );
     return IRQ_HANDLED;
 }
 
@@ -179,7 +175,7 @@ pio_proc_read( struct seq_file * m, void * v )
             inj_i |= ( gpio_get_value( drv->legacy_inject_in + i ) ? 1 : 0 ) << i;
 
         seq_printf( m
-                    , "led = %d, inect_out = %d, inj_in = 0x%x, dipsw=0x%x\n"
+                    , "led = %d, inect_out = %d, inj.in = 0x%x, dipsw=0x%x\n"
                     , led, inj_o, inj_i, dipsw );
     }
 
@@ -448,11 +444,13 @@ pio_module_probe( struct platform_device * pdev )
     if ( drv->legacy_inject_in ) {
         int irq;
         if ( (irq = gpio_to_irq( drv->legacy_inject_in ) ) > 0 ) {
-            dev_info(&pdev->dev, "\tinjin gpio irq is %d", irq );
-            if ( (rcode = devm_request_irq( &pdev->dev, irq, handle_interrupt, 0, "injin", pdev )) == 0 ) {
+            dev_info(&pdev->dev, "\tinj.in gpio irq is %d", irq );
+            if ( (rcode = devm_request_irq( &pdev->dev, irq, handle_interrupt
+                                            , IRQF_SHARED | IRQF_TRIGGER_FALLING
+                                            , "inj.in", pdev )) == 0 ) {
                 drv->injin_irq = irq;
             } else {
-                dev_err( &pdev->dev, "injin irq request failed: %d", rcode );
+                dev_err( &pdev->dev, "inj.in irq request failed: %d", rcode );
             }
         }
     }

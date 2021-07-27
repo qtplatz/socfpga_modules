@@ -924,7 +924,7 @@
    kind="intr_capturer"
    version="100.99.98.97"
    enabled="1">
-  <parameter name="AUTO_INTERRUPT_RECEIVER_INTERRUPTS_USED" value="7" />
+  <parameter name="AUTO_INTERRUPT_RECEIVER_INTERRUPTS_USED" value="15" />
   <parameter name="NUM_INTR" value="32" />
  </module>
  <module
@@ -1004,7 +1004,7 @@
   <parameter name="resetValue" value="0" />
   <parameter name="simDoTestBenchWiring" value="false" />
   <parameter name="simDrivenValue" value="0" />
-  <parameter name="width" value="8" />
+  <parameter name="width" value="2" />
  </module>
  <module name="pio_out" kind="altera_avalon_pio" version="20.1" enabled="1">
   <parameter name="bitClearingEdgeCapReg" value="false" />
@@ -1015,10 +1015,10 @@
   <parameter name="edgeType" value="RISING" />
   <parameter name="generateIRQ" value="false" />
   <parameter name="irqType" value="LEVEL" />
-  <parameter name="resetValue" value="65535" />
+  <parameter name="resetValue" value="15" />
   <parameter name="simDoTestBenchWiring" value="false" />
   <parameter name="simDrivenValue" value="0" />
-  <parameter name="width" value="16" />
+  <parameter name="width" value="4" />
  </module>
  <module
    name="sysid_qsys"
@@ -1270,6 +1270,13 @@
    start="intr_capturer_0.interrupt_receiver"
    end="dipsw_pio.irq">
   <parameter name="irqNumber" value="0" />
+ </connection>
+ <connection
+   kind="interrupt"
+   version="20.1"
+   start="intr_capturer_0.interrupt_receiver"
+   end="pio_in.irq">
+  <parameter name="irqNumber" value="3" />
  </connection>
  <connection
    kind="reset"

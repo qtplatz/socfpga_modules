@@ -8,7 +8,7 @@
 // http://www.fpga4fun.com/CrossClockDomain1.html
 //-------------------------------------------------------------------------------
 
-//`default_nettype none
+`default_nettype none
 
 module edge_cross_domain #(
                             parameter  POLARITY = "POS"

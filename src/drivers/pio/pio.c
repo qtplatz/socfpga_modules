@@ -80,6 +80,7 @@ struct pio_driver {
     int legacy_dipsw;
     int dipsw_irq;
     int injin_irq;
+    void __iomem * iomem;
 };
 
 static struct semaphore __sem;
@@ -338,8 +339,8 @@ pio_module_init( void )
     }
     __pio_class->dev_uevent = pio_dev_uevent;
 
-    // make_nod /dev/dgmod0
-    if ( !device_create( __pio_class, NULL, pio_dev_t, NULL, "dgmod%d", MINOR( pio_dev_t ) ) ) {
+    // make_nod /dev/pio0
+    if ( !device_create( __pio_class, NULL, pio_dev_t, NULL, MODNAME "%d", MINOR( pio_dev_t ) ) ) {
         printk( KERN_ERR "" MODNAME " failed to create device\n" );
         return pio_dtor( -1 );
     }
@@ -442,6 +443,22 @@ pio_module_probe( struct platform_device * pdev )
             dev_err( &pdev->dev, "legacy_inject_in request failed: %d", rcode );
         }
     }
+
+    if ( ( drv->iomem = devm_request_mem_region( &pdev->dev, 0xff201100, 0x10, "pio_in" ) ) ) {
+        {
+            u32 mask = ((u32 *)drv->iomem)[ 2 ];
+            u32 edge = ((u32 *)drv->iomem)[ 3 ];
+            dev_info(&pdev->dev, "\tpio_in mask = 0x%04x, edgecapture = 0x%04x\n", mask, edge );
+        }
+        ((u32 *)drv->iomem)[ 2 ] = 0x000f; // irq mask
+        ((u32 *)drv->iomem)[ 3 ] = 0x000f; // edge capture
+        {
+            u32 mask = ((u32 *)drv->iomem)[ 2 ];
+            u32 edge = ((u32 *)drv->iomem)[ 3 ];
+            dev_info(&pdev->dev, "\tpio_in mask = 0x%04x, edgecapture = 0x%04x\n", mask, edge );
+        }
+    }
+
 
     if ( drv->legacy_inject_in ) {
         int irq;

@@ -9,6 +9,7 @@ include_directories(
   ${QTPLATZ_SOURCE_DIR}/src/tools  # <-- eventbroker
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${Boost_INCLUDE_DIRS}
+  /opt/qtplatz/include
   )
 
 add_executable( ${PROJECT_NAME}

@@ -53,8 +53,8 @@ main( int argc, char **argv )
             ( "help,h",         "Display this help message" )
             ( "device,d",       po::value< std::string >()->default_value("/dev/pio0"), "pio device" )
             ( "wait",           "wait for injection" )
-            ( "replicates,r",   po::value< uint32_t >()->default_value(1), "replicates for inject wait" )
-            ( "event_receiver", po::value< std::string >(), "event receiver host or bcast, ex 192.168.1.1" )
+            ( "replicates,r",   po::value< uint32_t >()->default_value(0), "replicates for inject wait" )
+            ( "event_receiver", po::value< std::string >()->default_value( "192.168.71.221" ), "event receiver host" )
             ;
         po::positional_options_description p;
         p.add( "args",  -1 );
@@ -67,26 +67,26 @@ main( int argc, char **argv )
         return 0;
     }
 
-    if ( vm.count( "event_receiver" ) ) {
-        std::cerr << "event_receiver: " << vm[ "event_receiver" ].as< std::string >();
-        eventbroker_bind( vm[ "event_receiver" ].as< std::string >().c_str(), "7125", false );
-    }
+    std::cerr << "event_receiver: " << vm[ "event_receiver" ].as< std::string >();
+    eventbroker_bind( vm[ "event_receiver" ].as< std::string >().c_str(), "7125", false );
 
+    eventbroker_regiser_handler( []( const char * dllfunc, uint32_t result_code, double duration, const char * msg ){
+        std::cout << boost::format( "%s %d %gms %s" ) % dllfunc % result_code % (duration/1000) % msg << std::endl;
+    });
 
     size_t replicates = vm[ "replicates" ].as< uint32_t >();
 
-    if ( vm.count( "wait" ) ) {
-        uint64_t rep[ 2 ];
-        int fd = ::open( vm[ "device" ].as< std::string >().c_str(), O_RDONLY );
-        if ( fd > 0 ) {
-            while ( replicates-- ) {
-                std::cerr  << "waiting..." << std::endl;
-                auto count = ::read( fd, &rep, sizeof( rep ) );
-                std::cout << "read count: " << count << ", rep: " << rep[0] << ", " << rep[1] << std::endl;
-                auto dur = std::chrono::nanoseconds( rep[ 0 ] );
-                auto tp = std::chrono::time_point< std::chrono::system_clock >( dur );
+    int fd = ::open( vm[ "device" ].as< std::string >().c_str(), O_RDONLY );
+    if ( fd > 0 ) {
+        while ( true ) {
+            uint64_t rep[ 2 ];
+            if ( ::read( fd, &rep, sizeof( rep ) ) > 0 ) {
+                auto tp = std::chrono::time_point< std::chrono::system_clock >( std::chrono::nanoseconds( rep[ 0 ] ) );
+                eventbroker_out( 1 );
                 std::cout << adportable::date_time::to_iso< std::chrono::microseconds >( tp, true ) << std::endl;
             }
+            if ( replicates && ( --replicates == 0 ) )
+                break;
         }
     }
     return 0;

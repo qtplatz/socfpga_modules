@@ -6,6 +6,7 @@ set ( OBJM ${MODNAME}.o )
 set ( SRCS ${MODNAME}.c ${MODNAME}.h )
 set ( PACKAGE_VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}.${VERSION_TWEAK} )
 
+#[[
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${MODNAME}.ko
   COMMAND make -C ${KERNEL_SOURCE} ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- KERNELRELEASE=${KERNELRELEASE} M=${CMAKE_CURRENT_SOURCE_DIR}
@@ -14,6 +15,7 @@ add_custom_command(
   )
 
 add_custom_target( ${MODNAME}.ko ALL DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${MODNAME}.ko )
+]]
 
 configure_file (
   "${CMAKE_CURRENT_SOURCE_DIR}/../template/Makefile.in"

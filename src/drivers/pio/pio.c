@@ -62,7 +62,6 @@ static wait_queue_head_t __queue;
 static int __queue_condition;
 
 struct pio_driver {
-    uint64_t irqCount_;
     struct semaphore sem;
 	struct gpio_desc * inject_in;
     struct gpio_desc * inject_out;
@@ -72,13 +71,8 @@ struct pio_driver {
     u32 gpio_led;        // legacy gpio number
     u32 injin_irq;
     u64 tp;              // time point for last injection event
+    u64 irqCount;
 };
-
-struct pio_cdev_reader {
-    struct platform_device * pdev;
-};
-
-// static int __debug_level__ = 0;
 
 static irqreturn_t
 handle_interrupt( int irq, void *dev_id )
@@ -87,8 +81,8 @@ handle_interrupt( int irq, void *dev_id )
         struct pio_driver * drv = platform_get_drvdata( __pdev );
         if ( drv->injin_irq == irq ) {
 
-            //drv->tp  = ktime_get_real_ns(); // UTC
-            drv->tp++;
+            drv->tp  = ktime_get_real_ns(); // UTC
+            drv->irqCount++;
 
             ++__queue_condition;
             wake_up_interruptible( &__queue );
@@ -160,17 +154,11 @@ static const struct file_operations pio_proc_file_fops = {
 static int pio_cdev_open(struct inode *inode, struct file *file)
 {
     dev_info(&__pdev->dev, "pio_cdev_open inode=%d", MINOR( inode->i_rdev ) );
-    struct pio_cdev_reader * reader = devm_kzalloc( &__pdev->dev, sizeof( struct pio_cdev_reader ), GFP_KERNEL );
-    reader->pdev = __pdev;
-    file->private_data = reader;
-
     return 0;
 }
 
 static int pio_cdev_release(struct inode *inode, struct file *file)
 {
-    struct platform_device * pdev = file->private_data;
-    devm_kfree( &pdev->dev, file->private_data );
     dev_info(&__pdev->dev, "pio_cdev_release inode=%d", MINOR( inode->i_rdev ) );
     return 0;
 }
@@ -184,25 +172,31 @@ static ssize_t pio_cdev_read(struct file *file, char __user *data, size_t size, 
 {
     ssize_t count = 0;
 
+    struct pio_driver * drv = platform_get_drvdata( __pdev );
+    if ( !drv )
+        return -EFAULT;
+
     if ( down_interruptible( &__sem ) ) {
         dev_err(&__pdev->dev, "pio_cdev_read failed for down_interruptible\n" );
         return -ERESTARTSYS;
     }
-    dev_info(&__pdev->dev, "pio_cdev_read size=%d, pos=%lld\n", size, *f_pos );
+    // dev_info(&__pdev->dev, "pio_cdev_read size=%d, pos=%lld, tp=%lld\n", size, *f_pos, drv->tp );
 
-    if ( size > sizeof( u64 ) ) {
-        count = sizeof( u64 );
+    __queue_condition = 0;
+    wait_event_interruptible( __queue, __queue_condition != 0 );
 
-        __queue_condition = 0;
-        wait_event_interruptible( __queue, __queue_condition != 0 );
+    __queue_condition = 0;
 
-        struct pio_driver * drv = platform_get_drvdata( __pdev );
-        if ( copy_to_user( data, (const void * )(&drv->tp), sizeof( u64 ) ) ) {
-            up( &__sem );
-            return -EFAULT;
-        }
-        *f_pos += sizeof( u64 );
+    u64 rep[ 2 ] = { drv->tp, drv->irqCount };
+    count = ( size >= sizeof( rep ) ) ? sizeof( rep ) : ( size >= sizeof( u64 ) ) ? sizeof( u64 ) : size;
+
+    if ( copy_to_user( data, (const void * )(&drv->tp), count ) ) {
+        up( &__sem );
+        return -EFAULT;
     }
+
+    *f_pos += count;
+
     up( &__sem );
     return count;
 }

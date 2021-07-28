@@ -57,11 +57,12 @@ static struct platform_device *__pdev;
 static dev_t pio_dev_t = 0;
 static struct cdev * __pio_cdev;
 static struct class * __pio_class;
+static struct semaphore __sem;
+static wait_queue_head_t __queue;
+static int __queue_condition;
 
 struct pio_driver {
     uint64_t irqCount_;
-    wait_queue_head_t queue;
-    int queue_condition;
     struct semaphore sem;
 	struct gpio_desc * inject_in;
     struct gpio_desc * inject_out;
@@ -70,27 +71,14 @@ struct pio_driver {
     u32 gpio_inject_in;  // legacy gpio number
     u32 gpio_led;        // legacy gpio number
     u32 injin_irq;
+    u64 tp;              // time point for last injection event
 };
 
-static struct semaphore __sem;
-static wait_queue_head_t __trig_queue;
-static int __trig_queue_condition = 0;
-
-struct trig_data {
-    struct pio_trigger_data * cache_;
-    uint32_t cache_size_;
-    uint32_t rp_;
-    uint32_t wp_;
-    uint32_t tailp_;
+struct pio_cdev_reader {
+    struct platform_device * pdev;
 };
 
-static int __debug_level__ = 0;
-
-inline static void irq_mask( struct gpio_register * pio, int mask )
-{
-    if ( pio->addr )
-        pio->addr[ 2 ] = mask;
-}
+// static int __debug_level__ = 0;
 
 static irqreturn_t
 handle_interrupt( int irq, void *dev_id )
@@ -98,6 +86,13 @@ handle_interrupt( int irq, void *dev_id )
     if ( dev_id == __pdev ) {
         struct pio_driver * drv = platform_get_drvdata( __pdev );
         if ( drv->injin_irq == irq ) {
+
+            //drv->tp  = ktime_get_real_ns(); // UTC
+            drv->tp++;
+
+            ++__queue_condition;
+            wake_up_interruptible( &__queue );
+
             dev_info(&__pdev->dev, "handle_interrupt inj.in irq %d", irq );
         }
     }
@@ -164,17 +159,19 @@ static const struct file_operations pio_proc_file_fops = {
 
 static int pio_cdev_open(struct inode *inode, struct file *file)
 {
-    if ( __debug_level__ )
-        printk(KERN_INFO "" MODNAME " open dgmod char device\n");
+    dev_info(&__pdev->dev, "pio_cdev_open inode=%d", MINOR( inode->i_rdev ) );
+    struct pio_cdev_reader * reader = devm_kzalloc( &__pdev->dev, sizeof( struct pio_cdev_reader ), GFP_KERNEL );
+    reader->pdev = __pdev;
+    file->private_data = reader;
 
     return 0;
 }
 
 static int pio_cdev_release(struct inode *inode, struct file *file)
 {
-    if ( __debug_level__ )
-        printk(KERN_INFO "" MODNAME " release dgmod char device\n");
-
+    struct platform_device * pdev = file->private_data;
+    devm_kfree( &pdev->dev, file->private_data );
+    dev_info(&__pdev->dev, "pio_cdev_release inode=%d", MINOR( inode->i_rdev ) );
     return 0;
 }
 
@@ -185,39 +182,35 @@ static long pio_cdev_ioctl( struct file* file, unsigned int code, unsigned long 
 
 static ssize_t pio_cdev_read(struct file *file, char __user *data, size_t size, loff_t *f_pos )
 {
-    size_t count = 0;
+    ssize_t count = 0;
 
     if ( down_interruptible( &__sem ) ) {
-        printk(KERN_INFO "down_interruptible for read faild\n" );
+        dev_err(&__pdev->dev, "pio_cdev_read failed for down_interruptible\n" );
         return -ERESTARTSYS;
     }
+    dev_info(&__pdev->dev, "pio_cdev_read size=%d, pos=%lld\n", size, *f_pos );
 
-    wait_event_interruptible( __trig_queue, __trig_queue_condition != 0 );
-    __trig_queue_condition = 0;
+    if ( size > sizeof( u64 ) ) {
+        count = sizeof( u64 );
 
-    *f_pos += count;
+        __queue_condition = 0;
+        wait_event_interruptible( __queue, __queue_condition != 0 );
 
+        struct pio_driver * drv = platform_get_drvdata( __pdev );
+        if ( copy_to_user( data, (const void * )(&drv->tp), sizeof( u64 ) ) ) {
+            up( &__sem );
+            return -EFAULT;
+        }
+        *f_pos += sizeof( u64 );
+    }
     up( &__sem );
-
     return count;
 }
 
 static ssize_t pio_cdev_write(struct file *file, const char __user *data, size_t size, loff_t *f_pos)
 {
-    if ( __debug_level__ )
-        printk(KERN_INFO "pio_cdev_write size=%d\n", size );
-
-//    if ( *f_pos >= sizeof( protocol_sequence ) ) {
-        printk(KERN_INFO "pio_cdev_write size overrun size=%d, offset=%lld\n", size, *f_pos );
-//        return 0;
-//    }
-
-    /* if ( copy_from_user( (char *)(&protocol_sequence) + *f_pos, data, count ) ) */
-    /*     return -EFAULT; */
-
-        *f_pos += size;
-
-        return size;
+    *f_pos += size;
+    return size;
 }
 
 static struct file_operations pio_cdev_fops = {
@@ -299,8 +292,8 @@ pio_module_init( void )
     printk(KERN_INFO "" MODNAME " registered.\n" );
 
     sema_init( &__sem, 1 );
-
-    init_waitqueue_head( &__trig_queue );
+    init_waitqueue_head( &__queue );
+    __queue_condition = 0;
 
     return 0;
 }
@@ -348,7 +341,6 @@ pio_module_probe( struct platform_device * pdev )
     }
     struct pio_driver * drv = platform_get_drvdata( pdev );
     struct device_node * node = pdev->dev.of_node;
-
     int rcode = 0;
 
     // LED

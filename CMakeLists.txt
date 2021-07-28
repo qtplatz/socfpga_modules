@@ -4,18 +4,27 @@ cmake_policy( SET CMP0020 NEW )
 cmake_policy( SET CMP0042 NEW )
 cmake_policy( SET CMP0053 NEW )
 
-project ( socfpga )
+project ( socfpga_top )
 
 set ( CMAKE_EXPORT_COMPILE_COMMANDS ON )
 set ( CMAKE_INSTALL_PREFIX /usr/local )
 
+get_filename_component( BUILD_ROOT ${CMAKE_BINARY_DIR} DIRECTORY )
+
 list( APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules" )
-include (version)
+include ( version )
 
 if ( CMAKE_CROSSCOMPILING )
   message( STATUS "------------- CROSSCOMPILING -------------" )
   set ( VERBOSE TRUE )
+  find_path( QTPLATZ_SOURCE_DIR "qtplatz.cmake" HINTS "$ENV{HOME}/src/qtplatz" NO_CMAKE_FIND_ROOT_PATH REQUIRED )
+  find_path( QTPLATZ_BUILD_DIR  "qtplatz-config.cmake" HINTS "${BUILD_ROOT}/qtplatz.release" )
+  message( STATUS "## QTPLATZ_SOURCE_DIR : " ${QTPLATZ_SOURCE_DIR} )
+  message( STATUS "## QTPLATZ_BUILD_DIR : " ${QTPLATZ_BUILD_DIR} )
 endif()
+
+find_file( QTPLATZ_CONFIG "qtplatz-config.cmake" HINTS  "${QTPLATZ_BUILD_DIR}" "/opt/qtplatz" REQUIRED )
+include( "${QTPLATZ_CONFIG}" )
 
 file( STRINGS "${CMAKE_SOURCE_DIR}/config.sh" configs )
 foreach( i ${configs} )
@@ -32,7 +41,7 @@ endforeach()
 set ( KERNEL_DIR )
 if ( CMAKE_CROSSCOMPILING AND cross_kernel_source )
   find_path( KERNEL_DIR NAMES "Kconfig" HINTS "$ENV{HOME}/${cross_kernel_source}" NO_CMAKE_FIND_ROOT_PATH REQUIRED )
-  message( STATUS "######## KERNEL DIR: ${KERNEL_DIR}" )
+  message( STATUS "## KERNEL DIR: ${KERNEL_DIR}" )
   execute_process( COMMAND make kernelversion
     WORKING_DIRECTORY "${KERNEL_DIR}"
     OUTPUT_VARIABLE KERNELRELEASE  OUTPUT_STRIP_TRAILING_WHITESPACE )

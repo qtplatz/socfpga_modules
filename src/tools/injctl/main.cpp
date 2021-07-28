@@ -23,6 +23,7 @@
  */
 
 #include "date_time.hpp"
+#include <eventbroker/eventbroker.h>
 #include <boost/program_options.hpp>
 #include <boost/format.hpp>
 #include <array>
@@ -49,10 +50,11 @@ main( int argc, char **argv )
     po::options_description description( argv[ 0 ] );
     {
         description.add_options()
-            ( "help,h",        "Display this help message" )
-            ( "device,d",      po::value< std::string >()->default_value("/dev/pio0"), "pio device" )
-            ( "wait",          "wait for injection" )
-            ( "replicates,r",  po::value< uint32_t >()->default_value(1), "replicates for inject wait" )
+            ( "help,h",         "Display this help message" )
+            ( "device,d",       po::value< std::string >()->default_value("/dev/pio0"), "pio device" )
+            ( "wait",           "wait for injection" )
+            ( "replicates,r",   po::value< uint32_t >()->default_value(1), "replicates for inject wait" )
+            ( "event_receiver", po::value< std::string >(), "event receiver host or bcast, ex 192.168.1.1" )
             ;
         po::positional_options_description p;
         p.add( "args",  -1 );
@@ -64,6 +66,12 @@ main( int argc, char **argv )
         std::cerr << description;
         return 0;
     }
+
+    if ( vm.count( "event_receiver" ) ) {
+        std::cerr << "event_receiver: " << vm[ "event_receiver" ].as< std::string >();
+        eventbroker_bind( vm[ "event_receiver" ].as< std::string >().c_str(), "7125", false );
+    }
+
 
     size_t replicates = vm[ "replicates" ].as< uint32_t >();
 

@@ -30,6 +30,7 @@ ui_*.h
 qrc_*.cpp
 *.ko
 *.mod.c
+*.bak
 modules.order
 Module.symvers
 *.sdf

@@ -26,6 +26,8 @@ endif()
 find_file( QTPLATZ_CONFIG "qtplatz-config.cmake" HINTS  "${QTPLATZ_BUILD_DIR}" "/opt/qtplatz" REQUIRED )
 include( "${QTPLATZ_CONFIG}" )
 
+set ( CMAKE_INSTALL_PREFIX /usr/local )  # override qtplatz
+
 file( STRINGS "${CMAKE_SOURCE_DIR}/config.sh" configs )
 foreach( i ${configs} )
   if ( NOT "${i}" MATCHES "^#.*" )

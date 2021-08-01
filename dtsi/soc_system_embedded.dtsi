@@ -95,14 +95,30 @@
 			clock-names = "h2f_axi_clock", "h2f_lw_axi_clock";
 			#address-cells = <2>;
 			#size-cells = <1>;
-			ranges = <0x00000000 0x00000000 0xc0000000 0x00010000>,
+			ranges = <0x00000000 0x00011000 0xc0011000 0x00000020>,
+				<0x00000000 0x00011020 0xc0011020 0x00000010>,
+				<0x00000000 0x00011030 0xc0011030 0x00000008>,
+				<0x00000000 0x00010000 0xc0010000 0x00001000>,
+				<0x00000000 0x00000000 0xc0000000 0x00010000>,
 				<0x00000001 0x00020000 0xff220000 0x00000008>,
 				<0x00000001 0x00010000 0xff210000 0x00000008>,
 				<0x00000001 0x00010040 0xff210040 0x00000010>,
 				<0x00000001 0x00010080 0xff210080 0x00000010>,
 				<0x00000001 0x000100c0 0xff2100c0 0x00000010>,
-				<0x00000001 0x00001000 0xff201000 0x00000010>,
-				<0x00000001 0x00001100 0xff201100 0x00000010>;
+				<0x00000001 0x00000010 0xff200010 0x00000010>,
+			    <0x00000001 0x00000000 0xff200000 0x00000010>;
+
+			adc_fifo_0: msgdma@11000 {
+				compatible = "altr,msgdma-20.1", "altr,msgdma-1.0";
+				reg = <0x00000000 0x00011000 0x00000020>,
+					<0x00000000 0x00011020 0x00000010>,
+					<0x00000000 0x00011030 0x00000008>;
+				reg-names = "csr", "descriptor_slave", "response";
+				interrupt-parent = <&intc>;
+				interrupts = <0 44 4>;
+				clocks = <&clk_0>;
+			}; //end msgdma@000011000 (adc_fifo_0)
+
 
 			jtag_uart: serial@100020000 {
 				compatible = "altr,juart-20.1", "altr,juart-1.0";
@@ -188,19 +204,7 @@
 				gpio-controller;
 			}; //end gpio@100001100 (pio_in)
 
-			adc_fifo_0: msgdma@000011000 {
-				compatible = "altr,msgdma-20.1", "altr,msgdma-1.0";
-				reg = <0x00000000 HPS_0_ADC_FIFO_0_CSR_BASE HPS_0_ADC_FIFO_0_CSR_SPAN>,
-				      <0x00000000 HPS_0_ADC_FIFO_0_DESCRIPTOR_SLAVE_BASE HPS_0_ADC_FIFO_0_DESCRIPTOR_SLAVE_SPAN>,
-				      <0x00000000 HPS_0_ADC_FIFO_0_RESPONSE_BASE HPS_0_ADC_FIFO_0_RESPONSE_SPAN>;
-				reg-names = "csr", "descriptor_slave", "response";
-				interrupt-parent = <&intc>;
-				interrupts = <0 44 4>;
-				clocks = <&clk_0>;
-				label = "adc_fifo_0";
-			};
-
-			slave_io_0: slave_io@00001000 {
+			slave_io_0: slave_io@1000 {
 				compatible = "altr,avalon-mm-slave-2.0";
 				reg = <0x00000000 HPS_0_BRIDGES_SLAVE_IO_0_BASE HPS_0_BRIDGES_SLAVE_IO_0_SPAN>;
 			};

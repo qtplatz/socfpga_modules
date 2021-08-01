@@ -57,7 +57,7 @@ module_param( devname, charp, S_IRUGO );
 
 static struct platform_driver __adc_fifo_platform_driver;
 
-struct platform_device * __pdevices[2] = { 0 };
+struct platform_device * __pdevice = 0;
 
 enum dma { dmalen = 16*sizeof(u32) }; // 512bits
 
@@ -78,7 +78,6 @@ struct adc_fifo_driver {
     void __iomem * reg_csr;
     void __iomem * reg_descriptor;
     void __iomem * reg_response;   // this is once time access only allowed (destructive read)
-    uint32_t * dma_ptr;
     uint32_t phys_source_address;
     uint32_t phys_destination_address;
     wait_queue_head_t queue;
@@ -88,7 +87,8 @@ struct adc_fifo_driver {
     uint32_t readp;  // fpga read phys addr
     struct resource * mem_resource;
     dma_addr_t dma_handle;
-    void * dma_recv_buffer;
+    u32 dma_alloc_size;
+    void * dma_cpu_addr;
 };
 
 struct adc_fifo_cdev_reader {
@@ -145,8 +145,8 @@ adc_fifo_transfer_r( u32 phys_source_address
                          , u32 octets
                          , int packet_enabled )
 {
-    if ( __pdevices[ dma_r ] ) {
-        adc_fifo_transfer( __pdevices[ dma_r ]
+    if ( __pdevice ) {
+        adc_fifo_transfer( __pdevice
                            , phys_source_address
                            , phys_destination_address
                            , octets
@@ -182,20 +182,18 @@ adc_fifo_clear_irq( uint32_t * csr )
 
 
 static void
-adc_fifo_fetch( struct adc_fifo_driver * driver )
+adc_fifo_fetch( struct adc_fifo_driver * drv )
 {
     //const int dmalen = 8 * sizeof(u32);  // 12bit nacc, 52bit fpga-tp(50MHz), 8*24bit adc data
     const int packet_enable = 0;
 
-    if ( driver ) {
-        /*
-        adc_fifo_transfer_r( ingress_stream, driver->wp, dmalen, packet_enable );
-        if ( ( driver->wp + dmalen ) < ( ingress_address + ingress_size ) ) {
-            driver->wp += dmalen;
+    if ( drv ) {
+        adc_fifo_transfer_r( 0x00000000, drv->wp, dmalen /* 64o */, packet_enable );
+        if ( ( drv->wp + dmalen ) < ( drv->dma_handle + drv->dma_alloc_size ) ) {
+            drv->wp += dmalen;
         } else {
-            driver->wp = ingress_address;
+            drv->wp = drv->dma_handle;
         }
-        */
     }
 }
 
@@ -223,8 +221,7 @@ handle_interrupt( int irq, void *dev_id )
         driver->queue_condition++;
         wake_up_interruptible( &driver->queue );
 
-        if ( dev_id == __pdevices[ dma_r ] ) // read
-            adc_fifo_fetch( driver );  // start next dma cycle
+        adc_fifo_fetch( driver );  // start next dma cycle
 
 #ifndef NDEBUG
 #if 0
@@ -267,74 +264,67 @@ adc_fifo_proc_read( struct seq_file * m, void * v )
 {
     seq_printf( m, "adc_fifo debug level = %d\n", __debug_level__ );
 
-    for ( int id = 0; id < countof(__pdevices); ++id ) {
-        struct adc_fifo_driver * msgdma = 0;
+    struct adc_fifo_driver * drv = platform_get_drvdata( __pdevice );
+    if ( drv ) {
+        volatile u32 * csr = drv->reg_csr;
+        if ( csr ) {
 
-        if ( __pdevices[ id ] && ( msgdma = platform_get_drvdata( __pdevices[ id ] ) ) ) {
+            uint32_t status = csr[ 0 ];
+            uint32_t control = csr[ 1 ];
+            uint32_t reg2 = csr[ 2 ];
+            uint32_t reg3 = csr[ 3 ];
 
-            volatile u32 * csr = msgdma->reg_csr;
-            if ( csr ) {
+            seq_printf( m, "%s CSR:%04x %04x %08x, %08x "
+                        , drv->label, status, control, reg2, reg3 );
 
-                uint32_t status = csr[ 0 ];
-                uint32_t control = csr[ 1 ];
-                uint32_t reg2 = csr[ 2 ];
-                uint32_t reg3 = csr[ 3 ];
+            if ( status & 0x01 )
+                seq_printf( m, "Busy," );
+            if ( status & 0x02 )
+                seq_printf( m, "Desc-empty,");
+            if ( status & 0x04 )
+                seq_printf( m, "Desc-full,");
+            if ( status & 0x08 )
+                seq_printf( m, "Resp-empty,");
+            if ( status & 0x10 )
+                seq_printf( m, "Resp-full,");
+            if ( status & 0x20 )
+                seq_printf( m, "Stopped,");
+            if ( status & 0x40 )
+                seq_printf( m, "Resetting,");
+            if ( status & 0x80 )
+                seq_printf( m, "Stopped on Error,");
+            if ( status & 0x100 )
+                seq_printf( m, "Stopped on Early Termination,");
+            if ( status & 0x200 )
+                seq_printf( m, "IRQ,");
 
-                seq_printf( m, "[%d] %s CSR:%04x %04x %08x, %08x "
-                            , id, msgdma->label, status, control, reg2, reg3 );
+            seq_printf( m, "\t");
+            if ( control & 0x01 )
+                seq_printf( m, "Stop Dispatcher,");
+            if ( control & 0x02 )
+                seq_printf( m, "Reset Dispatcher,");
+            if ( control & 0x04 )
+                seq_printf( m, "Stop on Error,");
+            if ( control & 0x08 )
+                seq_printf( m, "Stop on Early Termination,");
+            if ( control & 0x10 )
+                seq_printf( m, "Global Interrupt Enable Mask,");
+            if ( control & 0x20 )
+                seq_printf( m, "Stop Descriptors,");
 
-                if ( status & 0x01 )
-                    seq_printf( m, "Busy," );
-                if ( status & 0x02 )
-                    seq_printf( m, "Desc-empty,");
-                if ( status & 0x04 )
-                    seq_printf( m, "Desc-full,");
-                if ( status & 0x08 )
-                    seq_printf( m, "Resp-empty,");
-                if ( status & 0x10 )
-                    seq_printf( m, "Resp-full,");
-                if ( status & 0x20 )
-                    seq_printf( m, "Stopped,");
-                if ( status & 0x40 )
-                    seq_printf( m, "Resetting,");
-                if ( status & 0x80 )
-                    seq_printf( m, "Stopped on Error,");
-                if ( status & 0x100 )
-                    seq_printf( m, "Stopped on Early Termination,");
-                if ( status & 0x200 )
-                    seq_printf( m, "IRQ,");
-
-                seq_printf( m, "\t");
-                if ( control & 0x01 )
-                    seq_printf( m, "Stop Dispatcher,");
-                if ( control & 0x02 )
-                    seq_printf( m, "Reset Dispatcher,");
-                if ( control & 0x04 )
-                    seq_printf( m, "Stop on Error,");
-                if ( control & 0x08 )
-                    seq_printf( m, "Stop on Early Termination,");
-                if ( control & 0x10 )
-                    seq_printf( m, "Global Interrupt Enable Mask,");
-                if ( control & 0x20 )
-                    seq_printf( m, "Stop Descriptors,");
-            }
             seq_printf( m, "\n");
-            volatile u32 * desc = msgdma->reg_descriptor;
+            volatile u32 * desc = drv->reg_descriptor;
             if ( desc ) {
                 seq_printf( m, "\tdescriptor: 0x%08x, 0x%08x, 0x%08x, 0x%08x\n"
                             , desc[0], desc[1], desc[2], desc[3] );
             }
+
+            const u64 * rx = (u64*)(drv->dma_cpu_addr); // ptr[ ( drv->readp - drv->mem_resource->start ) / sizeof(u32) ]);
+            for ( int i = 0; i < 8; ++i )
+                seq_printf( m, "\t0x%016llx", be64_to_cpu( rx[i] ) );
+            seq_printf( m, "\n" );
         }
     }
-    struct platform_device * pdev = __pdevices[ dma_r ];
-    struct adc_fifo_driver * drv = platform_get_drvdata( pdev );
-    if ( drv ) {
-        const u64 * rx = (u64*)(&drv->dma_ptr[ ( drv->readp - drv->mem_resource->start ) / sizeof(u32) ]);
-        for ( int i = 0; i < 8; ++i )
-            seq_printf( m, "\t0x%016llx", be64_to_cpu( rx[i] ) );
-        seq_printf( m, "\n" );
-    }
-
     return 0;
 }
 
@@ -351,9 +341,9 @@ adc_fifo_proc_write( struct file * filep, const char * user, size_t size, loff_t
 
     readbuf[ size ] = '\0';
 
-    if ( strncmp( readbuf, "recv", 4 ) == 0 && __pdevices[ dma_r ] ) {
+    if ( strncmp( readbuf, "recv", 4 ) == 0 && __pdevice ) {
 
-        struct adc_fifo_driver * driver = platform_get_drvdata( __pdevices[ dma_r ] );
+        struct adc_fifo_driver * driver = platform_get_drvdata( __pdevice );
         adc_fifo_fetch( driver );
 
     } else if ( strncmp( readbuf, "debug", 5 ) == 0 ) {
@@ -397,18 +387,11 @@ static int adc_fifo_cdev_open(struct inode *inode, struct file *file)
 {
     unsigned int node = MINOR( inode->i_rdev );
 
-    struct platform_device * dev = 0;
+    if ( __pdevice ) {
 
-    if ( ( dev = __pdevices[ dma_r ] ) ) {
-
-        if ( node != dma_r ) {
-            dev_info( &dev->dev, "node %d : no such device or address\n", node );
-            return -ENXIO; // no such device or address
-        }
-
-        struct adc_fifo_cdev_reader * reader = devm_kzalloc( &dev->dev
+        struct adc_fifo_cdev_reader * reader = devm_kzalloc( &__pdevice->dev
                                                              , sizeof( struct adc_fifo_cdev_reader ), GFP_KERNEL );
-        reader->driver = platform_get_drvdata( dev );
+        reader->driver = platform_get_drvdata( __pdevice );
         reader->rp     = 0; //reader->driver->readp;  // <- most recent recv data pointer (phys)
 
         file->private_data = reader;
@@ -433,8 +416,8 @@ adc_fifo_cdev_release( struct inode *inode, struct file *file )
     if ( reader && __debug_level__ )
         printk( KERN_INFO "cdev_release " MODNAME " node %d, %p, %x\n", node, file->private_data, reader->rp );
 
-    if ( file->private_data && __pdevices[ dma_r ] )
-        devm_kfree( &__pdevices[ dma_r ]->dev, file->private_data );
+    if ( file->private_data && __pdevice )
+        devm_kfree( &__pdevice->dev, file->private_data );
 
     return 0;
 }
@@ -460,7 +443,7 @@ adc_fifo_nextp( struct adc_fifo_driver const * drv, u32 xp, u32 length )
 static ssize_t adc_fifo_cdev_read( struct file * file, char __user *data, size_t size, loff_t *f_pos )
 {
     ssize_t count = 0;
-
+#if 0
     struct adc_fifo_cdev_reader * reader = file->private_data;
     if ( reader ) {
         struct adc_fifo_driver * drv = reader->driver;
@@ -493,6 +476,7 @@ static ssize_t adc_fifo_cdev_read( struct file * file, char __user *data, size_t
             up( &drv->sem );
         }
     }
+#endif
     return count;
 }
 
@@ -506,29 +490,28 @@ adc_fifo_cdev_write(struct file *file, const char __user *data, size_t size, lof
 static ssize_t
 adc_fifo_cdev_mmap( struct file * file, struct vm_area_struct * vma )
 {
+#if 0
     const unsigned long length = vma->vm_end - vma->vm_start;
     int ret = (-1);
 
     struct adc_fifo_driver * drv = platform_get_drvdata( __pdevices[ dma_r ] );
-    if ( drv == 0 || drv->dma_ptr ) {
+    if ( drv == 0 || drv->dma_handle == 0 ) {
         printk(KERN_CRIT "%s: Couldn't allocate shared memory for user space\n", __func__);
         return -1; // Error
     }
 
     // Map the allocated memory into the calling processes address space.
-    /*
     ret = remap_pfn_range( vma
                            , vma->vm_start
                            , ingress_address >> PAGE_SHIFT
                            , length
                            , vma->vm_page_prot );
-    */
     if (ret < 0) {
         printk(KERN_CRIT "%s: remap of shared memory failed, %d\n", __func__, ret);
         return(ret);
     }
-
-    return 0; // Success
+#endif
+    return -1; // Error
 }
 
 loff_t
@@ -656,60 +639,46 @@ adc_fifo_module_probe( struct platform_device * pdev )
     int irq = 0;
     const char * label = 0;
 
+    dev_info( &pdev->dev, "adc_fifo_module_probe [%s], num_resources = %d\n", pdev->name, pdev->num_resources );
+
+    if ( device_property_read_string( &pdev->dev, "label", &label ) == 0 ) {
+        if ( strcmp( label, "adc_fifo_0" ) != 0 )
+            return -1;
+    }
+
     struct adc_fifo_driver * drv = devm_kzalloc( &pdev->dev, sizeof( struct adc_fifo_driver ), GFP_KERNEL );
     if ( ! drv )
         return -ENOMEM;
 
-    dev_info( &pdev->dev, "adc_fifo_module_probe [%s]", pdev->name );
+    platform_set_drvdata( pdev, drv );
+    __pdevice = pdev;
+    drv->label = label;
+    drv->dma_alloc_size = 0x800;
 
-    if ( device_property_read_string( &pdev->dev, "label", &label ) == 0 ) {
-        drv->label = label;
-        dev_dbg( &pdev->dev, "\tadc_fifo_module_probe label=%s", label );
-    }
-
-    if ( strcmp( drv->label, "adc_fifo_0" ) == 0 ) {
-        if ( (drv->dma_recv_buffer = dma_alloc_coherent( &pdev->dev, 0x800, &drv->dma_handle, GFP_KERNEL )) ) {
-            dev_info( &pdev->dev, "dma alloc_coherent %p\t%x\n", drv->dma_recv_buffer, drv->dma_handle );
-        } else {
-            dev_err( &pdev->dev, "failed dma alloc_coherent %p\n", drv->dma_recv_buffer );
-            return -ENOMEM;
-        }
-/*
-        drv->wp = ingress_address;
-        __pdevices[ dma_r ] = pdev;
-        if ( ( drv->mem_resource = devm_request_mem_region( &pdev->dev, ingress_address, ingress_size, MODNAME ) ) ) {
-            drv->dma_ptr = (uint32_t*)devm_ioremap( &pdev->dev
-                                                    , drv->mem_resource->start
-                                                    , drv->mem_resource->end - drv->mem_resource->start + 1 );
-        }
-*/
-    }
-
-    if ( drv->dma_ptr == 0 ) {
-        printk( KERN_INFO "" MODNAME "  msgdma buffer allocation faild\n" );
+    if ( !(drv->dma_cpu_addr = dma_alloc_coherent( &pdev->dev, drv->dma_alloc_size, &drv->dma_handle, GFP_KERNEL )) ) {
+        dev_err( &pdev->dev, "failed dma alloc_coherent %p\n", drv->dma_cpu_addr );
         return -ENOMEM;
     }
 
-    platform_set_drvdata( pdev, drv );
-
-    init_waitqueue_head( &drv->queue );
-    drv->queue_condition = 0;
-    sema_init( &drv->sem, 1 );
+    dev_info( &pdev->dev, "dma alloc_coherent %p\t%x\n", drv->dma_cpu_addr, drv->dma_handle );
+    drv->wp = drv->dma_handle; // physical addr
 
     for ( int i = 0; i < pdev->num_resources; ++i ) {
         struct resource * res = platform_get_resource( pdev, IORESOURCE_MEM, i );
         if ( res ) {
-            void __iomem * regs = devm_ioremap_resource( &pdev->dev, res );
-            if ( regs && i == 0 ) // check reg_names[i]
-                drv->reg_csr = regs;
-            else if ( regs && i == 1 )
-                drv->reg_descriptor = regs;
-            else if ( regs && i == 2 )
-                drv->reg_response = regs;
-            //dev_info( &pdev->dev, "adc_fifo probe [%s]\tresource[%d]: %x -- %x, map to %p\n"
-            //          , adc_fifo->label, i, res->start, res->end, regs );
+            void __iomem * reg = devm_platform_ioremap_resource(pdev, i);
+            dev_info( &pdev->dev, "res [%d] 0x%08x, 0x%x = %p\n", i, res->start, res->end - res->start + 1, reg );
+            switch( i ) {
+            case 0: drv->reg_csr        = reg; break;
+            case 1: drv->reg_descriptor = reg; break;
+            case 2: drv->reg_response   = reg; break;
+            }
         }
     }
+
+    init_waitqueue_head( &drv->queue );
+    drv->queue_condition = 0;
+    sema_init( &drv->sem, 1 );
 
     if ( ( irq = platform_get_irq( pdev, 0 ) ) > 0 ) {
         if ( devm_request_irq( &pdev->dev, irq, handle_interrupt, 0, MODNAME, pdev ) == 0 ) {
@@ -742,7 +711,7 @@ adc_fifo_module_remove( struct platform_device * pdev )
             adc_fifo_disable_irq( drv->reg_csr );
     }
 
-    dma_free_coherent( &pdev->dev, 0x800, drv->dma_recv_buffer, drv->dma_handle );
+    dma_free_coherent( &pdev->dev, 0x800, drv->dma_cpu_addr, drv->dma_handle );
 
     dev_info( &pdev->dev, "Unregistered '%s'\n", drv->label );
 

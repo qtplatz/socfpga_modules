@@ -17,14 +17,14 @@ module edge_cross_domain #(
     input wire aclk
     , input wire flag
     , input wire bclk
-    , output wire flagOut // from which we generate a one-clock pulse in clkB domain
+    , output wire sync_out // from which we generate a one-clock pulse in clkB domain
     , output wire tp
     );
 
    reg [1:0]   ack = 0;
    reg [1:0]   flag_d = 0;
-   wire         pulse;
-   reg          edge_cdc = 0;
+   wire        pulse;
+   reg         edge_cdc = 0;
 
    assign tp = pulse;
 

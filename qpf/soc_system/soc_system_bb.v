@@ -1,7 +1,14 @@
 
 module soc_system (
+	adc_fifo_0_st_sink_data,
+	adc_fifo_0_st_sink_valid,
+	adc_fifo_0_st_sink_ready,
+	adc_fifo_0_st_sink_startofpacket,
+	adc_fifo_0_st_sink_endofpacket,
+	adc_fifo_0_st_sink_empty,
 	button_pio_external_connection_export,
 	clk_clk,
+	clock_bridge_0_out_clk_clk,
 	dipsw_pio_external_connection_export,
 	hps_0_f2h_cold_reset_req_reset_n,
 	hps_0_f2h_debug_reset_req_reset_n,
@@ -75,10 +82,55 @@ module soc_system (
 	memory_oct_rzqin,
 	pio_0_external_connection_export,
 	pio_1_external_connection_export,
-	reset_reset_n);	
+	pll_0_locked_export,
+	pll_0_outclk1_clk,
+	reset_reset_n,
+	slave_io_0_user_interface_dataout_0,
+	slave_io_0_user_interface_dataout_1,
+	slave_io_0_user_interface_dataout_2,
+	slave_io_0_user_interface_dataout_3,
+	slave_io_0_user_interface_dataout_4,
+	slave_io_0_user_interface_dataout_5,
+	slave_io_0_user_interface_dataout_6,
+	slave_io_0_user_interface_dataout_7,
+	slave_io_0_user_interface_dataout_8,
+	slave_io_0_user_interface_dataout_9,
+	slave_io_0_user_interface_dataout_10,
+	slave_io_0_user_interface_dataout_11,
+	slave_io_0_user_interface_dataout_12,
+	slave_io_0_user_interface_dataout_13,
+	slave_io_0_user_interface_dataout_14,
+	slave_io_0_user_interface_dataout_15,
+	slave_io_0_user_interface_datain_0,
+	slave_io_0_user_interface_datain_1,
+	slave_io_0_user_interface_datain_2,
+	slave_io_0_user_interface_datain_3,
+	slave_io_0_user_interface_datain_4,
+	slave_io_0_user_interface_datain_5,
+	slave_io_0_user_interface_datain_6,
+	slave_io_0_user_interface_datain_7,
+	slave_io_0_user_interface_datain_8,
+	slave_io_0_user_interface_datain_9,
+	slave_io_0_user_interface_datain_10,
+	slave_io_0_user_interface_datain_11,
+	slave_io_0_user_interface_datain_12,
+	slave_io_0_user_interface_datain_13,
+	slave_io_0_user_interface_datain_14,
+	slave_io_0_user_interface_datain_15,
+	slave_io_0_user_interface_write,
+	slave_io_0_user_interface_read,
+	slave_io_0_user_interface_chipselect,
+	slave_io_0_user_interface_byteenable);	
 
+	input	[511:0]	adc_fifo_0_st_sink_data;
+	input		adc_fifo_0_st_sink_valid;
+	output		adc_fifo_0_st_sink_ready;
+	input		adc_fifo_0_st_sink_startofpacket;
+	input		adc_fifo_0_st_sink_endofpacket;
+	input	[5:0]	adc_fifo_0_st_sink_empty;
 	input	[3:0]	button_pio_external_connection_export;
 	input		clk_clk;
+	output		clock_bridge_0_out_clk_clk;
 	input	[3:0]	dipsw_pio_external_connection_export;
 	input		hps_0_f2h_cold_reset_req_reset_n;
 	input		hps_0_f2h_debug_reset_req_reset_n;
@@ -152,5 +204,43 @@ module soc_system (
 	input		memory_oct_rzqin;
 	output	[3:0]	pio_0_external_connection_export;
 	input	[1:0]	pio_1_external_connection_export;
+	output		pll_0_locked_export;
+	output		pll_0_outclk1_clk;
 	input		reset_reset_n;
+	output	[63:0]	slave_io_0_user_interface_dataout_0;
+	output	[63:0]	slave_io_0_user_interface_dataout_1;
+	output	[63:0]	slave_io_0_user_interface_dataout_2;
+	output	[63:0]	slave_io_0_user_interface_dataout_3;
+	output	[63:0]	slave_io_0_user_interface_dataout_4;
+	output	[63:0]	slave_io_0_user_interface_dataout_5;
+	output	[63:0]	slave_io_0_user_interface_dataout_6;
+	output	[63:0]	slave_io_0_user_interface_dataout_7;
+	output	[63:0]	slave_io_0_user_interface_dataout_8;
+	output	[63:0]	slave_io_0_user_interface_dataout_9;
+	output	[63:0]	slave_io_0_user_interface_dataout_10;
+	output	[63:0]	slave_io_0_user_interface_dataout_11;
+	output	[63:0]	slave_io_0_user_interface_dataout_12;
+	output	[63:0]	slave_io_0_user_interface_dataout_13;
+	output	[63:0]	slave_io_0_user_interface_dataout_14;
+	output	[63:0]	slave_io_0_user_interface_dataout_15;
+	input	[63:0]	slave_io_0_user_interface_datain_0;
+	input	[63:0]	slave_io_0_user_interface_datain_1;
+	input	[63:0]	slave_io_0_user_interface_datain_2;
+	input	[63:0]	slave_io_0_user_interface_datain_3;
+	input	[63:0]	slave_io_0_user_interface_datain_4;
+	input	[63:0]	slave_io_0_user_interface_datain_5;
+	input	[63:0]	slave_io_0_user_interface_datain_6;
+	input	[63:0]	slave_io_0_user_interface_datain_7;
+	input	[63:0]	slave_io_0_user_interface_datain_8;
+	input	[63:0]	slave_io_0_user_interface_datain_9;
+	input	[63:0]	slave_io_0_user_interface_datain_10;
+	input	[63:0]	slave_io_0_user_interface_datain_11;
+	input	[63:0]	slave_io_0_user_interface_datain_12;
+	input	[63:0]	slave_io_0_user_interface_datain_13;
+	input	[63:0]	slave_io_0_user_interface_datain_14;
+	input	[63:0]	slave_io_0_user_interface_datain_15;
+	output		slave_io_0_user_interface_write;
+	output		slave_io_0_user_interface_read;
+	output	[15:0]	slave_io_0_user_interface_chipselect;
+	output	[7:0]	slave_io_0_user_interface_byteenable;
 endmodule

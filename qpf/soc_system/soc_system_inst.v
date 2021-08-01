@@ -1,6 +1,13 @@
 	soc_system u0 (
+		.adc_fifo_0_st_sink_data               (<connected-to-adc_fifo_0_st_sink_data>),               //             adc_fifo_0_st_sink.data
+		.adc_fifo_0_st_sink_valid              (<connected-to-adc_fifo_0_st_sink_valid>),              //                               .valid
+		.adc_fifo_0_st_sink_ready              (<connected-to-adc_fifo_0_st_sink_ready>),              //                               .ready
+		.adc_fifo_0_st_sink_startofpacket      (<connected-to-adc_fifo_0_st_sink_startofpacket>),      //                               .startofpacket
+		.adc_fifo_0_st_sink_endofpacket        (<connected-to-adc_fifo_0_st_sink_endofpacket>),        //                               .endofpacket
+		.adc_fifo_0_st_sink_empty              (<connected-to-adc_fifo_0_st_sink_empty>),              //                               .empty
 		.button_pio_external_connection_export (<connected-to-button_pio_external_connection_export>), // button_pio_external_connection.export
 		.clk_clk                               (<connected-to-clk_clk>),                               //                            clk.clk
+		.clock_bridge_0_out_clk_clk            (<connected-to-clock_bridge_0_out_clk_clk>),            //         clock_bridge_0_out_clk.clk
 		.dipsw_pio_external_connection_export  (<connected-to-dipsw_pio_external_connection_export>),  //  dipsw_pio_external_connection.export
 		.hps_0_f2h_cold_reset_req_reset_n      (<connected-to-hps_0_f2h_cold_reset_req_reset_n>),      //       hps_0_f2h_cold_reset_req.reset_n
 		.hps_0_f2h_debug_reset_req_reset_n     (<connected-to-hps_0_f2h_debug_reset_req_reset_n>),     //      hps_0_f2h_debug_reset_req.reset_n
@@ -74,6 +81,44 @@
 		.memory_oct_rzqin                      (<connected-to-memory_oct_rzqin>),                      //                               .oct_rzqin
 		.pio_0_external_connection_export      (<connected-to-pio_0_external_connection_export>),      //      pio_0_external_connection.export
 		.pio_1_external_connection_export      (<connected-to-pio_1_external_connection_export>),      //      pio_1_external_connection.export
-		.reset_reset_n                         (<connected-to-reset_reset_n>)                          //                          reset.reset_n
+		.pll_0_locked_export                   (<connected-to-pll_0_locked_export>),                   //                   pll_0_locked.export
+		.pll_0_outclk1_clk                     (<connected-to-pll_0_outclk1_clk>),                     //                  pll_0_outclk1.clk
+		.reset_reset_n                         (<connected-to-reset_reset_n>),                         //                          reset.reset_n
+		.slave_io_0_user_interface_dataout_0   (<connected-to-slave_io_0_user_interface_dataout_0>),   //      slave_io_0_user_interface.dataout_0
+		.slave_io_0_user_interface_dataout_1   (<connected-to-slave_io_0_user_interface_dataout_1>),   //                               .dataout_1
+		.slave_io_0_user_interface_dataout_2   (<connected-to-slave_io_0_user_interface_dataout_2>),   //                               .dataout_2
+		.slave_io_0_user_interface_dataout_3   (<connected-to-slave_io_0_user_interface_dataout_3>),   //                               .dataout_3
+		.slave_io_0_user_interface_dataout_4   (<connected-to-slave_io_0_user_interface_dataout_4>),   //                               .dataout_4
+		.slave_io_0_user_interface_dataout_5   (<connected-to-slave_io_0_user_interface_dataout_5>),   //                               .dataout_5
+		.slave_io_0_user_interface_dataout_6   (<connected-to-slave_io_0_user_interface_dataout_6>),   //                               .dataout_6
+		.slave_io_0_user_interface_dataout_7   (<connected-to-slave_io_0_user_interface_dataout_7>),   //                               .dataout_7
+		.slave_io_0_user_interface_dataout_8   (<connected-to-slave_io_0_user_interface_dataout_8>),   //                               .dataout_8
+		.slave_io_0_user_interface_dataout_9   (<connected-to-slave_io_0_user_interface_dataout_9>),   //                               .dataout_9
+		.slave_io_0_user_interface_dataout_10  (<connected-to-slave_io_0_user_interface_dataout_10>),  //                               .dataout_10
+		.slave_io_0_user_interface_dataout_11  (<connected-to-slave_io_0_user_interface_dataout_11>),  //                               .dataout_11
+		.slave_io_0_user_interface_dataout_12  (<connected-to-slave_io_0_user_interface_dataout_12>),  //                               .dataout_12
+		.slave_io_0_user_interface_dataout_13  (<connected-to-slave_io_0_user_interface_dataout_13>),  //                               .dataout_13
+		.slave_io_0_user_interface_dataout_14  (<connected-to-slave_io_0_user_interface_dataout_14>),  //                               .dataout_14
+		.slave_io_0_user_interface_dataout_15  (<connected-to-slave_io_0_user_interface_dataout_15>),  //                               .dataout_15
+		.slave_io_0_user_interface_datain_0    (<connected-to-slave_io_0_user_interface_datain_0>),    //                               .datain_0
+		.slave_io_0_user_interface_datain_1    (<connected-to-slave_io_0_user_interface_datain_1>),    //                               .datain_1
+		.slave_io_0_user_interface_datain_2    (<connected-to-slave_io_0_user_interface_datain_2>),    //                               .datain_2
+		.slave_io_0_user_interface_datain_3    (<connected-to-slave_io_0_user_interface_datain_3>),    //                               .datain_3
+		.slave_io_0_user_interface_datain_4    (<connected-to-slave_io_0_user_interface_datain_4>),    //                               .datain_4
+		.slave_io_0_user_interface_datain_5    (<connected-to-slave_io_0_user_interface_datain_5>),    //                               .datain_5
+		.slave_io_0_user_interface_datain_6    (<connected-to-slave_io_0_user_interface_datain_6>),    //                               .datain_6
+		.slave_io_0_user_interface_datain_7    (<connected-to-slave_io_0_user_interface_datain_7>),    //                               .datain_7
+		.slave_io_0_user_interface_datain_8    (<connected-to-slave_io_0_user_interface_datain_8>),    //                               .datain_8
+		.slave_io_0_user_interface_datain_9    (<connected-to-slave_io_0_user_interface_datain_9>),    //                               .datain_9
+		.slave_io_0_user_interface_datain_10   (<connected-to-slave_io_0_user_interface_datain_10>),   //                               .datain_10
+		.slave_io_0_user_interface_datain_11   (<connected-to-slave_io_0_user_interface_datain_11>),   //                               .datain_11
+		.slave_io_0_user_interface_datain_12   (<connected-to-slave_io_0_user_interface_datain_12>),   //                               .datain_12
+		.slave_io_0_user_interface_datain_13   (<connected-to-slave_io_0_user_interface_datain_13>),   //                               .datain_13
+		.slave_io_0_user_interface_datain_14   (<connected-to-slave_io_0_user_interface_datain_14>),   //                               .datain_14
+		.slave_io_0_user_interface_datain_15   (<connected-to-slave_io_0_user_interface_datain_15>),   //                               .datain_15
+		.slave_io_0_user_interface_write       (<connected-to-slave_io_0_user_interface_write>),       //                               .write
+		.slave_io_0_user_interface_read        (<connected-to-slave_io_0_user_interface_read>),        //                               .read
+		.slave_io_0_user_interface_chipselect  (<connected-to-slave_io_0_user_interface_chipselect>),  //                               .chipselect
+		.slave_io_0_user_interface_byteenable  (<connected-to-slave_io_0_user_interface_byteenable>)   //                               .byteenable
 	);
 

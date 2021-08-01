@@ -39,9 +39,16 @@
 // ============================================================================
 
 `default_nettype none
+`include "../hdl/delay_pulse/delay_width.vh"
 
+`define MODEL_NUMBER    32'h20210801
+
+`define CONFIG_ADC_FIFO
 `define ENABLE_HPS
 //`define ENABLE_CLK
+parameter NDELAY_PAIRS = 9;
+parameter NDELAY_PINS  = 7;
+
 
 module system_top(
 
@@ -154,12 +161,56 @@ module system_top(
    wire [ 1:0]            inject_in;
    wire [ 1:0]            evbox_pulse;
 
+`ifdef CONFIG_ADC_FIFO
+   wire [511:0]           adc_fifo_0_st_sink_data;          // time_stamp[64], adc[24*8]
+   wire                   adc_fifo_0_st_sink_valid;
+   wire                   adc_fifo_0_st_sink_ready;
+   wire                   adc_fifo_0_st_sink_startofpacket;
+   wire                   adc_fifo_0_st_sink_endofpacket;
+   wire [3:0]             adc_fifo_tp;
+`endif
+
+   wire                   pll_0_locked;
+   wire                   clk100;
+   wire                   clk1;
+
+   reg [31:0]             model_number;
+   reg [31:0]             revision_number;
+   reg [63:0]             timestamp = 64'h0000;
+   reg [63:0]             clock_counter = 64'h0000;
+
+   reg [31:0]             dg_interval = 'd1000000; // 1 ms default
+   wire                   dg_t0;
+   wire [31:0]            delay_counter;
+   wire [1:0]             user_protocol_number; // setpoint
+   reg [ 1:0]             dg_protocol_number_reg;  // actual
+   reg [ 31:0]            slave_io_0_dg_interval;
+   wire [31:0]            slave_io_0_flags;
+   var delay_width_t      delay_width_pairs [ NDELAY_PAIRS ];
+   wire [NDELAY_PAIRS-1:0] delay_pins; // virtual pins
+   wire                    slave_io_0_user_interface_write;
+   wire                    slave_io_0_user_interface_read;
+   wire [15:0]             slave_io_0_user_interface_chipselect;
+   wire [7:0]              slave_io_0_user_interface_byteenable;
+   wire                    slave_io_commit_valid;
+
+   //wire [ 1:0]             dg_data_protocol_number; // user data
+   //reg [ 1:0]              dg_protocol_number_gray; // gray code
+
    // connection of internal logics
    assign LED[5:1]         = fpga_led_internal;
    assign LED[7]           = evbox_pulse[1];
    assign LED[6]           = evbox_pulse[0];
    assign fpga_clk_50      = FPGA_CLK1_50;
    assign stm_hw_events    = {{15{1'b0}}, SW, fpga_led_internal, fpga_debounced_buttons};
+
+   assign GPIO_0[  0 ] = ~delay_pins[ 0 ];    // push (pos|neg)
+   assign GPIO_0[  1 ] = ~delay_pins[ 1 ];    // injection-sector
+   assign GPIO_0[  2 ] = ~( delay_pins[ 2 ] | delay_pins[ 3 ] );  // ejection-sector 0,1
+   assign GPIO_0[  3 ] = ~( delay_pins[ 4 ] | delay_pins[ 5 ] );  // gate 0,1
+   assign GPIO_0[  4 ] = ~delay_pins[ 6 ];    // adc-delay
+   assign GPIO_0[  5 ] = dg_t0;
+   // assign GPIO_0[ 7:6] = ( dg_data_io_flags_l & 'h40 ) ? dg_protocol_number_gray : ~dg_protocol_number_gray;
 
    // output
    assign GPIO_1[ 23: 0 ] = '0;
@@ -172,6 +223,12 @@ module system_top(
 
    assign pio_in_external_connection_export[1:0] = evbox_pulse[1:0];
 
+   assign slave_io_commit_valid
+     = slave_io_0_user_interface_write
+       & slave_io_0_user_interface_chipselect[1]
+       & slave_io_0_flags[ 0 ];
+
+   //
    //=======================================================
    soc_system u0 (
 		  //Clock&Reset
@@ -263,6 +320,57 @@ module system_top(
                   //
                   .pio_0_external_connection_export     ( pio_out_external_connection_export )
                   , .pio_1_external_connection_export    ( pio_in_external_connection_export )
+`ifdef CONFIG_ADC_FIFO
+                  , .adc_fifo_0_st_sink_data               ( adc_fifo_0_st_sink_data )            // input  wire [31:0]
+                  , .adc_fifo_0_st_sink_valid              ( adc_fifo_0_st_sink_valid )           // input  wire
+                  , .adc_fifo_0_st_sink_ready              ( adc_fifo_0_st_sink_ready )           // output wire
+                  , .adc_fifo_0_st_sink_startofpacket      ( adc_fifo_0_st_sink_startofpacket )   // input  wire
+                  , .adc_fifo_0_st_sink_endofpacket        ( adc_fifo_0_st_sink_endofpacket )     // input  wire
+`endif
+		  , .pll_0_locked_export                   ( pll_0_locked )
+		  , .pll_0_outclk1_clk                     ( clk1 )
+                  , .clock_bridge_0_out_clk_clk            ( clk100 )
+
+                  // delay generator setpoints
+                  // hps -> fpga
+		  , .slave_io_0_user_interface_dataout_0    () // read-only
+		  , .slave_io_0_user_interface_dataout_1    ( { slave_io_0_flags, slave_io_0_dg_interval } )   // input  wire [63:0]
+		  , .slave_io_0_user_interface_dataout_2    ( { delay_width_pairs[ 0  ].delay, delay_width_pairs[ 0  ].width } )  // push
+		  , .slave_io_0_user_interface_dataout_3    ( { delay_width_pairs[ 1  ].delay, delay_width_pairs[ 1  ].width } )  // inject
+		  , .slave_io_0_user_interface_dataout_4    ( { delay_width_pairs[ 2  ].delay, delay_width_pairs[ 2  ].width } )  // exit_0
+		  , .slave_io_0_user_interface_dataout_5    ( { delay_width_pairs[ 3  ].delay, delay_width_pairs[ 3  ].width } )  // exit_1
+		  , .slave_io_0_user_interface_dataout_6    ( { delay_width_pairs[ 4  ].delay, delay_width_pairs[ 4  ].width } )  // gate_0
+		  , .slave_io_0_user_interface_dataout_7    ( { delay_width_pairs[ 5  ].delay, delay_width_pairs[ 5  ].width } )  // gate_1
+		  , .slave_io_0_user_interface_dataout_8    ( { delay_width_pairs[ 6  ].delay, delay_width_pairs[ 6  ].width } )  // adc_del
+		  , .slave_io_0_user_interface_dataout_9    ( { delay_width_pairs[ 7  ].delay, delay_width_pairs[ 7  ].width } )  // delay_6
+		  , .slave_io_0_user_interface_dataout_10   ( { delay_width_pairs[ 8  ].delay, delay_width_pairs[ 8  ].width } )  // delay_7
+		  , .slave_io_0_user_interface_dataout_11   ()  // output wire [63:0]                                .dataout_11
+		  , .slave_io_0_user_interface_dataout_12   ()  // output wire [63:0]                                .dataout_12
+		  , .slave_io_0_user_interface_dataout_13   ()  // output wire [63:0]                                .dataout_13
+		  , .slave_io_0_user_interface_dataout_14   ()  // output wire [63:0]                                .dataout_14
+		  , .slave_io_0_user_interface_dataout_15   ( { 62'b0, user_protocol_number } )  // output wire [63:0]                                .dataout_15
+                  // fpga -> hps
+		  , .slave_io_0_user_interface_datain_0     ( { model_number, revision_number } )   // input  wire [63:0]
+		  , .slave_io_0_user_interface_datain_1     ( { 32'b0, slave_io_0_dg_interval } )   // input  wire [63:0]
+                  , .slave_io_0_user_interface_datain_2     ( { delay_width_pairs[ 0  ].delay, delay_width_pairs[ 0  ].width } )  // push
+                  , .slave_io_0_user_interface_datain_3     ( { delay_width_pairs[ 1  ].delay, delay_width_pairs[ 1  ].width } )  // inject
+                  , .slave_io_0_user_interface_datain_4     ( { delay_width_pairs[ 2  ].delay, delay_width_pairs[ 2  ].width } )  // exit_0
+                  , .slave_io_0_user_interface_datain_5     ( { delay_width_pairs[ 3  ].delay, delay_width_pairs[ 3  ].width } )  // exit_1
+                  , .slave_io_0_user_interface_datain_6     ( { delay_width_pairs[ 4  ].delay, delay_width_pairs[ 4  ].width } )  // gate_0
+                  , .slave_io_0_user_interface_datain_7     ( { delay_width_pairs[ 5  ].delay, delay_width_pairs[ 5  ].width } )  // gate_1
+                  , .slave_io_0_user_interface_datain_8     ( { delay_width_pairs[ 6  ].delay, delay_width_pairs[ 6  ].width } )  // adc_delay
+                  , .slave_io_0_user_interface_datain_9     ( { delay_width_pairs[ 7  ].delay, delay_width_pairs[ 7  ].width } )  // delay_6
+                  , .slave_io_0_user_interface_datain_10    ( { delay_width_pairs[ 8  ].delay, delay_width_pairs[ 8  ].width } )  // delay_7
+		  , .slave_io_0_user_interface_datain_11    ()   // input  wire [63:0]
+		  , .slave_io_0_user_interface_datain_12    ()   // input  wire [63:0]
+		  , .slave_io_0_user_interface_datain_13    ()   // input  wire [63:0]
+		  , .slave_io_0_user_interface_datain_14    ()   // input  wire [63:0]
+		  , .slave_io_0_user_interface_datain_15    ( { 62'b0, user_protocol_number } )  // output wire [63:0]                                .dataout_15
+
+		  , .slave_io_0_user_interface_write        ( slave_io_0_user_interface_write )       // output wire                                       .write
+		  , .slave_io_0_user_interface_read         ( slave_io_0_user_interface_read  )       // output wire                                       .read
+		  , .slave_io_0_user_interface_chipselect   ( slave_io_0_user_interface_chipselect )  // output wire [15:0]                                .chipselect
+		  , .slave_io_0_user_interface_byteenable   ( slave_io_0_user_interface_byteenable )  // output wire [7:0]                                 .byteenable
                   );
 
    // Debounce logic to clean out glitches within 1ms
@@ -273,6 +381,11 @@ module system_top(
                   , .data_in                              (KEY)
                   , .data_out                             (fpga_debounced_buttons)
                   );
+
+   revision #( .MODEL_NUMBER( `MODEL_NUMBER )
+               ) revision_0 ( .revision_number ( revision_number )
+                              , .model_number( model_number )
+                              );
 
    // Source/Probe megawizard instance
    hps_reset hps_reset_inst (
@@ -316,7 +429,68 @@ module system_top(
       end
    endgenerate
 
+`ifdef CONFIG_ADC_FIFO
+   adc_fifo #( $bits( adc_fifo_0_st_sink_data ) )
+   adc_fifo_0 ( .clk                  ( fpga_clk_50 )
+                , .reset_n            ( hps_fpga_reset_n )
+                , .spi_ss_n           ( ADC_CONVST )
+                , .spi_sclk           ( ADC_SCK )
+                , .spi_miso           ( ADC_SDO )              // input, 'command to be sent to serial'
+                , .spi_mosi           ( ADC_SDI )              // output, return adc data
+                , .dipsw              ( SW )
+                , .sink_data          ( adc_fifo_0_st_sink_data )  // output
+                , .sink_valid         ( adc_fifo_0_st_sink_valid ) // output
+                , .sink_ready         ( adc_fifo_0_st_sink_ready ) // input
+                , .sink_startofpacket ( adc_fifo_0_st_sink_startofpacket )
+                , .sink_endofpacket   ( adc_fifo_0_st_sink_endofpacket )
+                , .in_flags           ( { pio_in_external_connection_export, 6'b0} )
+                , .out_flags          ( { 20'b0, pio_out_external_connection_export }  )
+                , .tp()
+                );
+`endif
 
+   assign LED [ 0 ] = ~pll_0_locked;
+
+   delay_pulse_generator #(.NDELAY_CHANNELS( NDELAY_PAIRS ) )
+   delay_pulse_generator_i( .clk( clk100 )
+                            , .reset_n( hps_fpga_reset_n )
+                            , .interval( dg_interval )
+                            , .user_delay_width_pairs( delay_width_pairs )
+                            , .user_data_valid( slave_io_commit_valid )
+                            , .pins( delay_pins )
+                            , .tp0 ( dg_t0 )
+                            , .delay_counter( delay_counter )
+                            , .debug()
+                            );
+
+   // ------------
+   always @( posedge clk100 ) begin
+      if ( ~hps_fpga_reset_n ) begin
+         dg_interval <= 'd100000; // 10ns * 100k := 1ms
+      end
+      else if ( slave_io_0_user_interface_write & slave_io_0_user_interface_chipselect[1] ) begin
+         dg_interval <= slave_io_0_dg_interval < 1000 ? 'd1000 : slave_io_0_dg_interval; // 1us minimum
+      end
+   end
+
+   // 100MHz clock counter
+   always @( posedge clk100 ) begin
+      if ( ~hps_fpga_reset_n ) begin
+         clock_counter <= 0;
+      end
+      else begin
+         clock_counter <= clock_counter + 1'b1;
+      end
+   end
+
+   always @* begin
+      if ( dg_t0 ) begin
+         timestamp = clock_counter;
+         dg_protocol_number_reg = user_protocol_number;
+      end
+   end
+
+/* -----\/----- EXCLUDED -----\/-----
    reg [25:0]             counter;
    reg                    led_level;
    always @	(posedge fpga_clk_50 or negedge hps_fpga_reset_n)
@@ -337,4 +511,5 @@ module system_top(
      end
 
    assign LED[0] = led_level;
+ -----/\----- EXCLUDED -----/\----- */
 endmodule

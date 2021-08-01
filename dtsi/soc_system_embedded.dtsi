@@ -188,6 +188,23 @@
 				gpio-controller;
 			}; //end gpio@100001100 (pio_in)
 
+			adc_fifo_0: msgdma@000011000 {
+				compatible = "altr,msgdma-20.1", "altr,msgdma-1.0";
+				reg = <0x00000000 HPS_0_ADC_FIFO_0_CSR_BASE HPS_0_ADC_FIFO_0_CSR_SPAN>,
+				      <0x00000000 HPS_0_ADC_FIFO_0_DESCRIPTOR_SLAVE_BASE HPS_0_ADC_FIFO_0_DESCRIPTOR_SLAVE_SPAN>,
+				      <0x00000000 HPS_0_ADC_FIFO_0_RESPONSE_BASE HPS_0_ADC_FIFO_0_RESPONSE_SPAN>;
+				reg-names = "csr", "descriptor_slave", "response";
+				interrupt-parent = <&intc>;
+				interrupts = <0 44 4>;
+				clocks = <&clk_0>;
+				label = "adc_fifo_0";
+			};
+
+			slave_io_0: slave_io@00001000 {
+				compatible = "altr,avalon-mm-slave-2.0";
+				reg = <0x00000000 HPS_0_BRIDGES_SLAVE_IO_0_BASE HPS_0_BRIDGES_SLAVE_IO_0_SPAN>;
+			};
+
 			cds_gpio {
 				compatible  = "altr,cds-pio"; // consumer
 				inject_in-gpios = <&pio_in 1888 GPIO_ACTIVE_LOW>;   // 34 --> 30 * active

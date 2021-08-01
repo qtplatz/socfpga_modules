@@ -95,18 +95,19 @@
 			clock-names = "h2f_axi_clock", "h2f_lw_axi_clock";
 			#address-cells = <2>;
 			#size-cells = <1>;
-			ranges = <0x00000000 0x00011000 0xc0011000 0x00000020>,
-				<0x00000000 0x00011020 0xc0011020 0x00000010>,
-				<0x00000000 0x00011030 0xc0011030 0x00000008>,
-				<0x00000000 0x00010000 0xc0010000 0x00001000>,
-				<0x00000000 0x00000000 0xc0000000 0x00010000>,
-				<0x00000001 0x00020000 0xff220000 0x00000008>,
-				<0x00000001 0x00010000 0xff210000 0x00000008>,
-				<0x00000001 0x00010040 0xff210040 0x00000010>,
-				<0x00000001 0x00010080 0xff210080 0x00000010>,
-				<0x00000001 0x000100c0 0xff2100c0 0x00000010>,
-				<0x00000001 0x00000010 0xff200010 0x00000010>,
-			    <0x00000001 0x00000000 0xff200000 0x00000010>;
+			ranges =
+			<0x00000000 0x00011000 0xc0011000 0x00000020>,  // adc-fifo <0>
+			<0x00000000 0x00011020 0xc0011020 0x00000010>,  // adc-fifo <1>
+			<0x00000000 0x00011030 0xc0011030 0x00000008>,  // adc-fifo <2>
+			<0x00000000 0x00010000 0xc0010000 0x00001000>,  // slave_io_0
+			<0x00000000 0x00000000 0xc0000000 0x00010000>,  //
+			<0x00000001 0x00020000 0xff220000 0x00000008>,  // jtag_uart
+			<0x00000001 0x00010000 0xff210000 0x00000008>,  // sysid_qsys
+			<0x00000001 0x00010040 0xff210040 0x00000010>,  // led_pio
+			<0x00000001 0x00010080 0xff210080 0x00000010>,  // dipsw_pio
+			<0x00000001 0x000100c0 0xff2100c0 0x00000010>,  // button_pio
+			<0x00000001 0x00000010 0xff200010 0x00000010>,  // pio_out
+			<0x00000001 0x00000000 0xff200000 0x00000010>;  // pio_in
 
 			adc_fifo_0: msgdma@11000 {
 				compatible = "altr,msgdma-20.1", "altr,msgdma-1.0";
@@ -118,6 +119,11 @@
 				interrupts = <0 44 4>;
 				clocks = <&clk_0>;
 			}; //end msgdma@000011000 (adc_fifo_0)
+
+			slave_io_0: slave_io@1000 {
+				compatible = "altr,avalon-mm-slave-2.0";
+				reg = <0x00000000 HPS_0_BRIDGES_SLAVE_IO_0_BASE HPS_0_BRIDGES_SLAVE_IO_0_SPAN>; // <0, 0x10000, 0x1000>
+			};
 
 
 			jtag_uart: serial@100020000 {
@@ -203,11 +209,6 @@
 				#gpio-cells = <2>;
 				gpio-controller;
 			}; //end gpio@100001100 (pio_in)
-
-			slave_io_0: slave_io@1000 {
-				compatible = "altr,avalon-mm-slave-2.0";
-				reg = <0x00000000 HPS_0_BRIDGES_SLAVE_IO_0_BASE HPS_0_BRIDGES_SLAVE_IO_0_SPAN>;
-			};
 
 			cds_gpio {
 				compatible  = "altr,cds-pio"; // consumer

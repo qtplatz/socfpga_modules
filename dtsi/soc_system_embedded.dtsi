@@ -73,6 +73,13 @@
 			clock-frequency = <50000000>;	/* 50.00 MHz */
 			clock-output-names = "clk_0-clk";
 		}; //end clk_0 (clk_0)
+
+		pll_0: pll_0 {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <100000000>;	/* 100.00 MHz */
+			clock-output-names = "pll_0-clk";
+		};
 	};
 
     //hps_0_arm_gic_0: intc@fffed000 {
@@ -96,35 +103,82 @@
 			#address-cells = <2>;
 			#size-cells = <1>;
 			ranges =
-			<0x00000000 0x00011000 0xc0011000 0x00000020>,  // adc-fifo <0>
-			<0x00000000 0x00011020 0xc0011020 0x00000010>,  // adc-fifo <1>
-			<0x00000000 0x00011030 0xc0011030 0x00000008>,  // adc-fifo <2>
-			<0x00000000 0x00010000 0xc0010000 0x00001000>,  // slave_io_0
-			<0x00000000 0x00000000 0xc0000000 0x00010000>,  //
-			<0x00000001 0x00020000 0xff220000 0x00000008>,  // jtag_uart
-			<0x00000001 0x00010000 0xff210000 0x00000008>,  // sysid_qsys
-			<0x00000001 0x00010040 0xff210040 0x00000010>,  // led_pio
-			<0x00000001 0x00010080 0xff210080 0x00000010>,  // dipsw_pio
-			<0x00000001 0x000100c0 0xff2100c0 0x00000010>,  // button_pio
-			<0x00000001 0x00000010 0xff200010 0x00000010>,  // pio_out
-			<0x00000001 0x00000000 0xff200000 0x00000010>;  // pio_in
+			<0x00000000 0x00012000 0xc0012000 0x00000020>, // adc_fifo_0
+			<0x00000000 0x00012020 0xc0012020 0x00000010>, // adc_fifo_0
+			<0x00000000 0x00012040 0xc0012040 0x00000008>, // adc_fifo_0
+			<0x00000000 0x00010000 0xc0010000 0x00001000>, // slave_io
+			<0x00000000 0x00000000 0xc0000000 0x00010000>, // mem
+			<0x00000000 0x00011100 0xc0011100 0x00000010>, // pio_dg
+			<0x00000000 0x00011120 0xc0011120 0x00000010>, // pio_in
+			<0x00000000 0x00011140 0xc0011140 0x00000010>, // pio_out
+			<0x00000001 0x00020000 0xff220000 0x00000008>, // jtag
+			<0x00000001 0x00010000 0xff210000 0x00000008>, // sysid
+			<0x00000001 0x00010040 0xff210040 0x00000010>, // led
+			<0x00000001 0x00010080 0xff210080 0x00000010>, // dipsw
+			<0x00000001 0x000100c0 0xff2100c0 0x00000010>; // button
 
-			adc_fifo_0: msgdma@11000 {
+			adc_fifo_0: msgdma@12000 {
 				compatible = "altr,msgdma-20.1", "altr,msgdma-1.0";
-				reg = <0x00000000 0x00011000 0x00000020>,
-					<0x00000000 0x00011020 0x00000010>,
-					<0x00000000 0x00011030 0x00000008>;
+				reg = <0x00000000 0x00012000 0x00000020>,
+					<0x00000000 0x00012020 0x00000010>,
+					<0x00000000 0x00012040 0x00000008>;
 				reg-names = "csr", "descriptor_slave", "response";
 				interrupt-parent = <&intc>;
 				interrupts = <0 44 4>;
 				clocks = <&clk_0>;
-			}; //end msgdma@000011000 (adc_fifo_0)
+			}; //end msgdma@000012000 (adc_fifo_0)
 
-			slave_io_0: slave_io@1000 {
-				compatible = "altr,avalon-mm-slave-2.0";
-				reg = <0x00000000 HPS_0_BRIDGES_SLAVE_IO_0_BASE HPS_0_BRIDGES_SLAVE_IO_0_SPAN>; // <0, 0x10000, 0x1000>
-			};
+			slave_io_0: slave_io@10000 {
+				compatible = "altr,avalon-mm-slave-2.0", "slave_io";
+				reg = <0x00000000 0x00010000 0x00001000>;
+				clocks = <&clk_0 0>;
+				dg-gpios = <&pio_dg 2016 GPIO_ACTIVE_HIGH>;
+			}; //end slave_io@000010000 (slave_io_0)
 
+			pio_dg: gpio@11100 {
+				compatible = "altr,pio-20.1", "altr,pio-1.0";
+				reg = <0x00000000 0x00011100 0x00000010>;
+				interrupt-parent = <&intc>;
+				interrupts = <0 45 1>;
+				clocks = <&pll_0 0>;
+				altr,gpio-bank-width = <1>;	/* embeddedsw.dts.params.altr,gpio-bank-width type NUMBER */
+				altr,interrupt-type = <1>;	/* embeddedsw.dts.params.altr,interrupt-type type NUMBER */
+				altr,interrupt_type = <1>;	/* embeddedsw.dts.params.altr,interrupt_type type NUMBER */
+				edge_type = <0>;	/* embeddedsw.dts.params.edge_type type NUMBER */
+				level_trigger = <0>;	/* embeddedsw.dts.params.level_trigger type NUMBER */
+				resetvalue = <0>;	/* embeddedsw.dts.params.resetvalue type NUMBER */
+				#gpio-cells = <2>;
+				gpio-controller;
+				// gpios <2016..>
+			}; //end gpio@000011100 (pio_dg)
+
+			pio_in: gpio@11120 {
+				compatible = "altr,pio-20.1", "altr,pio-1.0";
+				reg = <0x00000000 0x00011120 0x00000010>;
+				interrupt-parent = <&intc>;
+				interrupts = <0 43 1>;
+				clocks = <&clk_0>;
+				altr,gpio-bank-width = <2>;	/* embeddedsw.dts.params.altr,gpio-bank-width type NUMBER */
+				altr,interrupt-type = <2>;	/* embeddedsw.dts.params.altr,interrupt-type type NUMBER */
+				altr,interrupt_type = <2>;	/* embeddedsw.dts.params.altr,interrupt_type type NUMBER */
+				edge_type = <1>;	/* embeddedsw.dts.params.edge_type type NUMBER */
+				level_trigger = <0>;	/* embeddedsw.dts.params.level_trigger type NUMBER */
+				resetvalue = <0>;	/* embeddedsw.dts.params.resetvalue type NUMBER */
+				#gpio-cells = <2>;
+				gpio-controller;
+				// gpios = <1984, 2>;
+			}; //end gpio@000011120 (pio_in)
+
+			pio_out: gpio@11140 {
+				compatible = "altr,pio-20.1", "altr,pio-1.0";
+				reg = <0x00000000 0x00011140 0x00000010>;
+				clocks = <&clk_0>;
+				altr,gpio-bank-width = <4>;	/* embeddedsw.dts.params.altr,gpio-bank-width type NUMBER */
+				resetvalue = <15>;	/* embeddedsw.dts.params.resetvalue type NUMBER */
+				#gpio-cells = <2>;
+				gpio-controller;
+				// gpios = <1952, 4>;
+			}; //end gpio@000011140 (pio_out)
 
 			jtag_uart: serial@100020000 {
 				compatible = "altr,juart-20.1", "altr,juart-1.0";
@@ -139,17 +193,19 @@
 				reg = <0x00000001 0x00010000 0x00000008>;
 				clocks = <&clk_0>;
 				id = <2899645186>;	/* embeddedsw.dts.params.id type NUMBER */
-				timestamp = <1627013771>;	/* embeddedsw.dts.params.timestamp type NUMBER */
+				timestamp = <1627885135>;	/* embeddedsw.dts.params.timestamp type NUMBER */
 			}; //end sysid@100010000 (sysid_qsys)
 
 			led_pio: gpio@100010040 {
 				compatible = "altr,pio-20.1", "altr,pio-1.0";
 				reg = <0x00000001 0x00010040 0x00000010>;
 				clocks = <&clk_0>;
-				altr,gpio-bank-width = <8>;	/* embeddedsw.dts.params.altr,gpio-bank-width type NUMBER */
-				resetvalue = <0>;	/* embeddedsw.dts.params.resetvalue type NUMBER */
+				altr,gpio-bank-width = <8>;
+				resetvalue = <0>;
 				#gpio-cells = <2>;
 				gpio-controller;
+				label = "led_pio";
+				// gpios = <1920, 8>;
 			}; //end gpio@100010040 (led_pio)
 
 			dipsw_pio: gpio@100010080 {
@@ -166,6 +222,8 @@
 				resetvalue = <0>;
 				#gpio-cells = <2>;
 				gpio-controller;
+				label = "dipsw_pio";	/* appended from boardinfo */
+				// gpios = <1888..>;
 			}; //end gpio@100010080 (dipsw_pio)
 
 			button_pio: gpio@1000100c0 {
@@ -182,52 +240,16 @@
 				resetvalue = <0>;
 				#gpio-cells = <2>;
 				gpio-controller;
+				label = "button_pio";
+				// gpios = <1856 ..>;
 			}; //end gpio@1000100c0 (button_pio)
-
-			pio_out: gpio@100001000 {
-				compatible = "altr,cds-pio", "altr,pio-20.1", "altr,pio-1.0";
-				reg = <0x00000001 0x00001000 0x00000010>;
-				clocks = <&clk_0>;
-				altr,gpio-bank-width = <16>;
-				resetvalue = <65535>;
-				#gpio-cells = <2>;
-				gpio-controller;
-			}; //end gpio@100001000 (pio_out)
-
-			pio_in: gpio@100001100 {
-				compatible = "altr,pio-20.1", "altr,pio-1.0";
-				reg = <0x00000001 0x00001100 0x00000010>;
-				interrupt-parent = <&intc>;
-				interrupts = <0 43 1>;
-				clocks = <&clk_0>;
-				altr,gpio-bank-width = <4>;
-				altr,interrupt-type = <2>;
-				altr,interrupt_type = <2>;
-				edge_type = <1>;
-				level_trigger = <0>;
-				resetvalue = <0>;
-				#gpio-cells = <2>;
-				gpio-controller;
-			}; //end gpio@100001100 (pio_in)
 
 			cds_gpio {
 				compatible  = "altr,cds-pio"; // consumer
-				inject_in-gpios = <&pio_in 1888 GPIO_ACTIVE_LOW>;   // 34 --> 30 * active
-				inject_out-gpios = <&pio_out 1922 GPIO_ACTIVE_LOW>;   // 34 --> 30 * active
-				/*
-				cds_in-gpios   =
-				<&pio_in 1988 GPIO_ACTIVE_LOW>     // 32 --> 28
-				, <&pio_in 1989 GPIO_ACTIVE_LOW>   // 33 --> 29
-				, <&pio_in 1990 GPIO_ACTIVE_LOW>   // 34 --> 30 * active
-				, <&pio_in 1991 GPIO_ACTIVE_LOW>;  // 35 --> 31
-				*/
-				cds_out-gpios = <&pio_out 1920 GPIO_ACTIVE_LOW>     // 24
-				, <&pio_out 1921 GPIO_ACTIVE_LOW>   // 25
-				, <&pio_out 1922 GPIO_ACTIVE_LOW>   // 26 active
-				, <&pio_out 1923 GPIO_ACTIVE_LOW>;  // 27
-
-				led-gpios = <&led_pio 2016 GPIO_ACTIVE_HIGH>;
-				dipsw-gpios = <&dipsw_pio 1984 GPIO_ACTIVE_HIGH>;
+				inject_in-gpios = <&pio_in 1884 GPIO_ACTIVE_LOW>;    // 1984,1985
+				inject_out-gpios = <&pio_out 1954 GPIO_ACTIVE_LOW>;  // 1952,1953,1954,1955
+				led-gpios = <&led_pio 1920 GPIO_ACTIVE_HIGH>;
+				// dipsw-gpios = <&dipsw_pio 1888 GPIO_ACTIVE_HIGH>;
 			};
 
 		}; //end bridge@c0000000 (hps_0_bridges)

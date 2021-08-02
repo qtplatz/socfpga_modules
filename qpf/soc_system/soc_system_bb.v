@@ -82,9 +82,11 @@ module soc_system (
 	memory_oct_rzqin,
 	pio_0_external_connection_export,
 	pio_1_external_connection_export,
+	pio_dg_external_connection_export,
 	pll_0_locked_export,
 	pll_0_outclk1_clk,
 	reset_reset_n,
+	reset_bridge_0_out_reset_reset_n,
 	slave_io_0_user_interface_dataout_0,
 	slave_io_0_user_interface_dataout_1,
 	slave_io_0_user_interface_dataout_2,
@@ -120,8 +122,7 @@ module soc_system (
 	slave_io_0_user_interface_write,
 	slave_io_0_user_interface_read,
 	slave_io_0_user_interface_chipselect,
-	slave_io_0_user_interface_byteenable,
-	reset_bridge_0_out_reset_reset_n);	
+	slave_io_0_user_interface_byteenable);	
 
 	input	[511:0]	adc_fifo_0_st_sink_data;
 	input		adc_fifo_0_st_sink_valid;
@@ -205,9 +206,11 @@ module soc_system (
 	input		memory_oct_rzqin;
 	output	[3:0]	pio_0_external_connection_export;
 	input	[1:0]	pio_1_external_connection_export;
+	input		pio_dg_external_connection_export;
 	output		pll_0_locked_export;
 	output		pll_0_outclk1_clk;
 	input		reset_reset_n;
+	output		reset_bridge_0_out_reset_reset_n;
 	output	[63:0]	slave_io_0_user_interface_dataout_0;
 	output	[63:0]	slave_io_0_user_interface_dataout_1;
 	output	[63:0]	slave_io_0_user_interface_dataout_2;
@@ -244,5 +247,4 @@ module soc_system (
 	output		slave_io_0_user_interface_read;
 	output	[15:0]	slave_io_0_user_interface_chipselect;
 	output	[7:0]	slave_io_0_user_interface_byteenable;
-	output		reset_bridge_0_out_reset_reset_n;
 endmodule

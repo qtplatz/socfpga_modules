@@ -81,9 +81,11 @@
 		.memory_oct_rzqin                      (<connected-to-memory_oct_rzqin>),                      //                               .oct_rzqin
 		.pio_0_external_connection_export      (<connected-to-pio_0_external_connection_export>),      //      pio_0_external_connection.export
 		.pio_1_external_connection_export      (<connected-to-pio_1_external_connection_export>),      //      pio_1_external_connection.export
+		.pio_dg_external_connection_export     (<connected-to-pio_dg_external_connection_export>),     //     pio_dg_external_connection.export
 		.pll_0_locked_export                   (<connected-to-pll_0_locked_export>),                   //                   pll_0_locked.export
 		.pll_0_outclk1_clk                     (<connected-to-pll_0_outclk1_clk>),                     //                  pll_0_outclk1.clk
 		.reset_reset_n                         (<connected-to-reset_reset_n>),                         //                          reset.reset_n
+		.reset_bridge_0_out_reset_reset_n      (<connected-to-reset_bridge_0_out_reset_reset_n>),      //       reset_bridge_0_out_reset.reset_n
 		.slave_io_0_user_interface_dataout_0   (<connected-to-slave_io_0_user_interface_dataout_0>),   //      slave_io_0_user_interface.dataout_0
 		.slave_io_0_user_interface_dataout_1   (<connected-to-slave_io_0_user_interface_dataout_1>),   //                               .dataout_1
 		.slave_io_0_user_interface_dataout_2   (<connected-to-slave_io_0_user_interface_dataout_2>),   //                               .dataout_2
@@ -119,7 +121,6 @@
 		.slave_io_0_user_interface_write       (<connected-to-slave_io_0_user_interface_write>),       //                               .write
 		.slave_io_0_user_interface_read        (<connected-to-slave_io_0_user_interface_read>),        //                               .read
 		.slave_io_0_user_interface_chipselect  (<connected-to-slave_io_0_user_interface_chipselect>),  //                               .chipselect
-		.slave_io_0_user_interface_byteenable  (<connected-to-slave_io_0_user_interface_byteenable>),  //                               .byteenable
-		.reset_bridge_0_out_reset_reset_n      (<connected-to-reset_bridge_0_out_reset_reset_n>)       //       reset_bridge_0_out_reset.reset_n
+		.slave_io_0_user_interface_byteenable  (<connected-to-slave_io_0_user_interface_byteenable>)   //                               .byteenable
 	);
 

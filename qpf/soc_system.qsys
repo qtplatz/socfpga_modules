@@ -29,7 +29,7 @@
    {
       datum baseAddress
       {
-         value = "69664";
+         value = "69712";
          type = "String";
       }
    }
@@ -37,7 +37,7 @@
    {
       datum baseAddress
       {
-         value = "69680";
+         value = "69728";
          type = "String";
       }
    }
@@ -238,6 +238,22 @@
          type = "String";
       }
    }
+   element pio_dg
+   {
+      datum _sortIndex
+      {
+         value = "18";
+         type = "int";
+      }
+   }
+   element pio_dg.s1
+   {
+      datum baseAddress
+      {
+         value = "69696";
+         type = "String";
+      }
+   }
    element pio_in
    {
       datum _sortIndex
@@ -250,7 +266,7 @@
    {
       datum baseAddress
       {
-         value = "0";
+         value = "69680";
          type = "String";
       }
    }
@@ -266,7 +282,7 @@
    {
       datum baseAddress
       {
-         value = "16";
+         value = "69664";
          type = "String";
       }
    }
@@ -406,6 +422,11 @@
  <interface
    name="pio_1_external_connection"
    internal="pio_in.external_connection"
+   type="conduit"
+   dir="end" />
+ <interface
+   name="pio_dg_external_connection"
+   internal="pio_dg.external_connection"
    type="conduit"
    dir="end" />
  <interface name="pll_0_locked" internal="pll_0.locked" type="conduit" dir="end" />
@@ -1142,6 +1163,20 @@
   <parameter name="useShallowMemBlocks" value="false" />
   <parameter name="writable" value="true" />
  </module>
+ <module name="pio_dg" kind="altera_avalon_pio" version="20.1" enabled="1">
+  <parameter name="bitClearingEdgeCapReg" value="true" />
+  <parameter name="bitModifyingOutReg" value="false" />
+  <parameter name="captureEdge" value="true" />
+  <parameter name="clockRate" value="100000000" />
+  <parameter name="direction" value="Input" />
+  <parameter name="edgeType" value="RISING" />
+  <parameter name="generateIRQ" value="true" />
+  <parameter name="irqType" value="EDGE" />
+  <parameter name="resetValue" value="0" />
+  <parameter name="simDoTestBenchWiring" value="false" />
+  <parameter name="simDrivenValue" value="0" />
+  <parameter name="width" value="1" />
+ </module>
  <module name="pio_in" kind="altera_avalon_pio" version="20.1" enabled="1">
   <parameter name="bitClearingEdgeCapReg" value="true" />
   <parameter name="bitModifyingOutReg" value="false" />
@@ -1420,7 +1455,7 @@
    start="hps_0.h2f_axi_master"
    end="adc_fifo_0.csr">
   <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x00011000" />
+  <parameter name="baseAddress" value="0x00012000" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection
@@ -1429,7 +1464,7 @@
    start="hps_0.h2f_axi_master"
    end="adc_fifo_0.descriptor_slave">
   <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x00011020" />
+  <parameter name="baseAddress" value="0x00012020" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection
@@ -1438,7 +1473,7 @@
    start="hps_0.h2f_axi_master"
    end="adc_fifo_0.response">
   <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x00011030" />
+  <parameter name="baseAddress" value="0x00012040" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection
@@ -1457,6 +1492,33 @@
    end="onchip_memory2_0.s1">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0000" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="20.1"
+   start="hps_0.h2f_axi_master"
+   end="pio_dg.s1">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x00011100" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="20.1"
+   start="hps_0.h2f_axi_master"
+   end="pio_in.s1">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x00011120" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="20.1"
+   start="hps_0.h2f_axi_master"
+   end="pio_out.s1">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x00011140" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection
@@ -1511,24 +1573,6 @@
    end="button_pio.s1">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x000100c0" />
-  <parameter name="defaultConnection" value="false" />
- </connection>
- <connection
-   kind="avalon"
-   version="20.1"
-   start="hps_0.h2f_lw_axi_master"
-   end="pio_out.s1">
-  <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x0010" />
-  <parameter name="defaultConnection" value="false" />
- </connection>
- <connection
-   kind="avalon"
-   version="20.1"
-   start="hps_0.h2f_lw_axi_master"
-   end="pio_in.s1">
-  <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x0000" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection
@@ -1652,6 +1696,7 @@
    version="20.1"
    start="pll_0.outclk0"
    end="reset_bridge_0.clk" />
+ <connection kind="clock" version="20.1" start="pll_0.outclk0" end="pio_dg.clk" />
  <connection
    kind="clock"
    version="20.1"
@@ -1696,6 +1741,13 @@
    start="hps_0.f2h_irq0"
    end="pio_in.irq">
   <parameter name="irqNumber" value="3" />
+ </connection>
+ <connection
+   kind="interrupt"
+   version="20.1"
+   start="hps_0.f2h_irq0"
+   end="pio_dg.irq">
+  <parameter name="irqNumber" value="5" />
  </connection>
  <connection
    kind="interrupt"
@@ -1781,6 +1833,11 @@
    start="clk_0.clk_reset"
    end="pio_in.reset" />
  <connection kind="reset" version="20.1" start="clk_0.clk_reset" end="pll_0.reset" />
+ <connection
+   kind="reset"
+   version="20.1"
+   start="clk_0.clk_reset"
+   end="pio_dg.reset" />
  <connection
    kind="reset"
    version="20.1"

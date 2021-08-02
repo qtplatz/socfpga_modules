@@ -64,23 +64,35 @@ main( int argc, char **argv )
         return 0;
     }
 
-    std::array< uint32_t, 32 > data[ 2 ];
+    std::array< uint32_t, 32 > data[ 2 ] = { 0 };
+    std::pair< size_t, size_t > sz; // altera de0-nano-soc only returns 32 dwords (16 x 64 bit)
     do {
         std::ifstream in( vm[ "device" ].as< std::string >(), std::ios::binary | std::ios::in );
-        in.read( reinterpret_cast< char * >( data[ 0 ].data() ), data[0].size() * sizeof( uint32_t ) );
-        in.read( reinterpret_cast< char * >( data[ 1 ].data() ), data[1].size() * sizeof( uint32_t ) );
+        sz.first = in.read( reinterpret_cast< char * >( data[ 0 ].data() ), data[0].size() * sizeof( uint32_t ) ).gcount();
+        sz.second = in.read( reinterpret_cast< char * >( data[ 1 ].data() ), data[1].size() * sizeof( uint32_t ) ).gcount();
     } while ( 0 );
 
     if ( vm.count( "list" ) || argc == 1 ) {
-        for ( size_t i = 0; i < data[ 0 ].size(); i += 2 ) {
-            std::cout <<
-                boost::format( "%d\t0x%08x\t0x%08x\t|\t0x%08x\t%08x" )
-                % i
-                % data[ 0 ].at( i )
-                % data[ 0 ].at( i + 1 )
-                % data[ 1 ].at( i )
-                % data[ 1 ].at( i + 1 )
-                      << std::endl;
+        if ( sz.second ) {
+            for ( size_t i = 0; i < data[ 0 ].size(); i += 2 ) {
+                std::cout <<
+                    boost::format( "%d\t0x%08x\t0x%08x\t|\t0x%08x\t%08x" )
+                    % i
+                    % data[ 0 ].at( i )
+                    % data[ 0 ].at( i + 1 )
+                    % data[ 1 ].at( i )
+                    % data[ 1 ].at( i + 1 )
+                          << std::endl;
+            }
+        } else {
+            for ( size_t i = 0; i < data[ 0 ].size(); i += 2 ) {
+                std::cout <<
+                    boost::format( "%d\t0x%08x\t0x%08x" )
+                    % i
+                    % data[ 0 ].at( i )
+                    % data[ 0 ].at( i + 1 )
+                          << std::endl;
+            }
         }
     }
 

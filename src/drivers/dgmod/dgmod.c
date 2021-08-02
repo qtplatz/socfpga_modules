@@ -35,6 +35,7 @@
 #include <linux/ioctl.h>
 #include <linux/irq.h>
 #include <linux/kernel.h>
+#include <linux/mm.h>
 #include <linux/module.h>
 #include <linux/proc_fs.h> // create_proc_entry
 #include <linux/seq_file.h>
@@ -63,13 +64,20 @@ static wait_queue_head_t __queue;
 static int __queue_condition;
 
 struct dgmod_driver {
-    struct semaphore sem;
 	struct gpio_desc * dg_pio; // t0 trigger
     u32 dg_pio_number;        // legacy gpio number
     u32 irq;
-    u64 irqCount;
+    u32 irqCount;
     void __iomem * regs;
+    struct resource * mem_resource;
 };
+
+struct dgmod_cdev_private {
+    u32 node;
+    u32 size;
+    u64 user_data [ 16 ];
+};
+
 
 typedef struct slave_data {
     uint32_t user_dataout;    // 0x00
@@ -114,11 +122,9 @@ handle_interrupt( int irq, void *dev_id )
             drv->tp  = ktime_get_real_ns(); // UTC
 #endif
             drv->irqCount++;
-
-            ++__queue_condition;
-            wake_up_interruptible( &__queue );
-
-            dev_info(&__pdev->dev, "handle_interrupt inj.in irq %d", irq );
+            // ++__queue_condition;
+            // wake_up_interruptible( &__queue );
+            // dev_info(&__pdev->dev, "handle_interrupt inj.in irq %d", irq );
         }
     }
     return IRQ_HANDLED;
@@ -130,13 +136,13 @@ dgmod_proc_read( struct seq_file * m, void * v )
     struct dgmod_driver * drv = platform_get_drvdata( __pdev );
 
     if ( drv ) {
-        seq_printf( m, "proc_read\n" );
+        seq_printf( m, "proc_read irqCount=%d\n", drv->irqCount );
         for ( int i = 0; i < 16; ++i ) {
             volatile struct slave_data64 * p = __slave_data64( drv->regs, i );
             seq_printf( m, "[%2d] 0x%08x:%08x\t", i, (u32)(p->user_dataout >> 32), (u32)(p->user_dataout & 0xffffffff) );
             seq_printf( m, "%08x:%08x\t", (u32)(p->user_datain >> 32), (u32)(p->user_datain & 0xffffffff) );
-            seq_printf( m, "%08x:%08x\t", (u32)(p->irqmask >> 32), (u32)(p->irqmask & 0xffffffff) );
-            seq_printf( m, "%08x:%08x\n", (u32)(p->edge_capture >> 32), (u32)(p->edge_capture & 0xffffffff) );
+            //seq_printf( m, "%08x:%08x\t", (u32)(p->irqmask >> 32), (u32)(p->irqmask & 0xffffffff) );
+            //seq_printf( m, "%08x:%08x\n", (u32)(p->edge_capture >> 32), (u32)(p->edge_capture & 0xffffffff) );
         }
     }
 
@@ -177,12 +183,26 @@ static const struct file_operations dgmod_proc_file_fops = {
 static int dgmod_cdev_open(struct inode *inode, struct file *file)
 {
     dev_info(&__pdev->dev, "dgmod_cdev_open inode=%d", MINOR( inode->i_rdev ) );
+
+    struct dgmod_cdev_private *
+        private_data = devm_kzalloc( &__pdev->dev
+                                     , sizeof( struct dgmod_cdev_private )
+                                     , GFP_KERNEL );
+    if ( private_data ) {
+        private_data->node =  MINOR( inode->i_rdev );
+        private_data->size = 16 * sizeof(u64);
+        file->private_data = private_data;
+    }
+
     return 0;
 }
 
 static int dgmod_cdev_release(struct inode *inode, struct file *file)
 {
-    dev_info(&__pdev->dev, "dgmod_cdev_release inode=%d", MINOR( inode->i_rdev ) );
+    if ( file->private_data ) {
+        dev_info(&__pdev->dev, "dgmod_cdev_release inode=%d", MINOR( inode->i_rdev ) );
+        devm_kfree( &__pdev->dev, file->private_data );
+    }
     return 0;
 }
 
@@ -194,26 +214,35 @@ static long dgmod_cdev_ioctl( struct file* file, unsigned int code, unsigned lon
 static ssize_t dgmod_cdev_read(struct file *file, char __user *data, size_t size, loff_t *f_pos )
 {
     ssize_t count = 0;
+    dev_info( &__pdev->dev, "dgmod_cdev_read: fpos=%llx, size=%ud\n", *f_pos, size );
 
     struct dgmod_driver * drv = platform_get_drvdata( __pdev );
-    if ( !drv )
-        return -EFAULT;
+    if ( drv ) {
+        if ( down_interruptible( &__sem ) ) {
+            dev_info(&__pdev->dev, "%s: down_interruptible for read faild\n", __func__ );
+            return -ERESTARTSYS;
+        }
 
-    if ( down_interruptible( &__sem ) ) {
-        dev_err(&__pdev->dev, "dgmod_cdev_read failed for down_interruptible\n" );
-        return -ERESTARTSYS;
+        struct dgmod_cdev_private * private_data = file->private_data;
+
+        // 64 bit align
+        *f_pos &= ~07;
+
+        if ( *f_pos < private_data->size ) {
+            size_t dsize = private_data->size - *f_pos;
+            for ( size_t i = *f_pos / sizeof(u64); i < dsize / sizeof(u64); ++i ) {
+                u64 d = __slave_data64( drv->regs, i )->user_dataout;
+                dev_info(&__pdev->dev, "data[%d]: %llx, dsize=%d\n", i, d, dsize );
+                if ( copy_to_user( data, (const char *)&d, sizeof(u64) ) ) {
+                    up( &__sem );
+                    return -EFAULT;
+                }
+                data += sizeof(u64);
+            }
+            *f_pos += dsize;
+            count = dsize;
+        }
     }
-
-    u64 rep[ 2 ] = { 0 };
-    count = ( size >= sizeof( rep ) ) ? sizeof( rep ) : ( size >= sizeof( u64 ) ) ? sizeof( u64 ) : size;
-
-    if ( copy_to_user( data, (const void * )(rep), count ) ) {
-        up( &__sem );
-        return -EFAULT;
-    }
-
-    *f_pos += count;
-
     up( &__sem );
     return count;
 }
@@ -224,13 +253,67 @@ static ssize_t dgmod_cdev_write(struct file *file, const char __user *data, size
     return size;
 }
 
+static ssize_t
+dgmod_cdev_mmap( struct file * file, struct vm_area_struct * vma )
+{
+    int ret = (-1);
+
+    struct dgmod_driver * drv = platform_get_drvdata( __pdev );
+    if ( drv == 0  ) {
+        printk( KERN_CRIT "%s: Couldn't allocate shared memory for user space\n", __func__ );
+        return -1; // Error
+    }
+
+    // Map the allocated memory into the calling processes address space.
+    u32 size = vma->vm_end - vma->vm_start;
+
+    ret = remap_pfn_range( vma
+                           , vma->vm_start
+                           , drv->mem_resource->start
+                           , size
+                           , vma->vm_page_prot );
+    if (ret < 0) {
+        printk(KERN_CRIT "%s: remap of shared memory failed, %d\n", __func__, ret);
+        return ret;
+    }
+
+    return ret;
+}
+
+loff_t
+dgmod_cdev_llseek( struct file * file, loff_t offset, int orig )
+{
+    // struct dgmod_cdev_reader * reader = file->private_data;
+    loff_t pos = 0;
+    switch( orig ) {
+    case 0: // SEEK_SET
+        pos = offset;
+        break;
+    case 1: // SEEK_CUR
+        pos = pos + offset;
+        break;
+    case 2: // SEEK_END
+        pos = pos + offset;
+        break;
+    default:
+        return -EINVAL;
+    }
+    if ( pos < 0 )
+        return -EINVAL;
+    file->f_pos = pos;
+    return pos;
+}
+
+
 static struct file_operations dgmod_cdev_fops = {
-    .owner   = THIS_MODULE,
-    .open    = dgmod_cdev_open,
-    .release = dgmod_cdev_release,
-    .unlocked_ioctl = dgmod_cdev_ioctl,
-    .read    = dgmod_cdev_read,
-    .write   = dgmod_cdev_write,
+    .owner   = THIS_MODULE
+    , .llseek  = dgmod_cdev_llseek
+    , .open    = dgmod_cdev_open
+    , .release = dgmod_cdev_release
+    , .unlocked_ioctl = dgmod_cdev_ioctl
+    , .read    = dgmod_cdev_read
+    , .write   = dgmod_cdev_write
+    , .mmap    = dgmod_cdev_mmap
 };
 
 static int dgmod_dev_uevent( struct device * dev, struct kobj_uevent_env * env )
@@ -357,6 +440,7 @@ dgmod_module_probe( struct platform_device * pdev )
     for ( int i = 0; i < pdev->num_resources; ++i ) {
         struct resource * res = platform_get_resource( pdev, IORESOURCE_MEM, i );
         if ( res ) {
+            drv->mem_resource = res;
             drv->regs = devm_platform_ioremap_resource(pdev, i);
             dev_info( &pdev->dev, "res [%d] 0x%08x, 0x%x = %p\n", i, res->start, res->end - res->start + 1, drv->regs );
         }
@@ -387,7 +471,7 @@ dgmod_module_probe( struct platform_device * pdev )
             if ( (rcode = devm_request_irq( &pdev->dev
                                             , drv->irq
                                             , handle_interrupt
-                                            , IRQF_SHARED | IRQF_TRIGGER_FALLING
+                                            , IRQF_SHARED | IRQF_TRIGGER_RISING // FALLING
                                             , "dg"
                                             , pdev )) != 0 ) {
                 dev_err( &pdev->dev, "dg irq request failed: %d", rcode );

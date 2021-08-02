@@ -7,7 +7,6 @@ cmake_policy( SET CMP0053 NEW )
 project ( socfpga_top )
 
 set ( CMAKE_EXPORT_COMPILE_COMMANDS ON )
-set ( CMAKE_INSTALL_PREFIX /usr/local )
 
 get_filename_component( BUILD_ROOT ${CMAKE_BINARY_DIR} DIRECTORY )
 
@@ -26,7 +25,9 @@ endif()
 find_file( QTPLATZ_CONFIG "qtplatz-config.cmake" HINTS  "${QTPLATZ_BUILD_DIR}" "/opt/qtplatz" REQUIRED )
 include( "${QTPLATZ_CONFIG}" )
 
-set ( CMAKE_INSTALL_PREFIX /usr/local )  # override qtplatz
+set ( CMAKE_INSTALL_PREFIX "/usr/local" )            # override qtplatz
+set ( HTML_INSTALL_PREFIX "/opt" )
+set ( HTML_INSTALL_DIR "${HTML_INSTALL_DIR}/html" )  # referenced in src/httpd/httpd/CMakeList.txt
 
 file( STRINGS "${CMAKE_SOURCE_DIR}/config.sh" configs )
 foreach( i ${configs} )
@@ -95,6 +96,14 @@ set( CPACK_GENERATOR "DEB" )
 set( CPACK_PACKAGE_VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}.${VERSION_TWEAK} )
 set( CPACK_DEBIAN_PACKAGE_MAINTAINER "T. Hondo <toshi.hondo@qtplatz.com>" )
 set( CPACK_DEBIAN_PACKAGE_ARCHITECTURE armhf )
+
+###############################################
+# httpd (dgmod-httpd) package
+cpack_add_component( socfpga  DISPLAY_NAME "socfpga" GROUP httpd )
+cpack_add_component_group( httpd )
+set ( CPACK_DEBIAN_HTTPD_PACKAGE_CONTROL_EXTRA
+  "${CMAKE_BINARY_DIR}/linux/httpd/httpd/postinst;${CMAKE_BINARY_DIR}/linux/httpd/httpd/prerm" )
+set ( CPACK_DEBIAN_HTTPD_PACKAGE_DEPENDS "" )
 
 ###############################################
 # dkms PACKAGES ---------

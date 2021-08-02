@@ -20,10 +20,18 @@ message( STATUS "## OPENSSL_SSL_LIBRARIES:    ${OPENSSL_SSL_LIBRARIES}" )
 message( STATUS "## OPENSSL_VERSION:          ${OPENSSL_VERSION}" )
 message( STATUS "## OPENSSL_APPLINK_SOURCE:   ${OPENSSL_APPLINK_SOURCE}" )
 
+if ( ${CMAKE_SYSTEM_NAME} MATCHES "Linux" )
+  configure_file( "${PROJECT_SOURCE_DIR}/httpd.sh.in" "${PROJECT_BINARY_DIR}/${PROJECT_NAME}" @ONLY )
+  configure_file( "${PROJECT_SOURCE_DIR}/postinst.in" "${PROJECT_BINARY_DIR}/postinst" @ONLY )
+  configure_file( "${PROJECT_SOURCE_DIR}/prerm.in" "${PROJECT_BINARY_DIR}/prerm" @ONLY )
+endif()
+
 include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${Boost_INCLUDE_DIRS}
   )
+
+add_definitions( -DPID_NAME="/var/run/${PROJECT_NAME}.pid" -DDOC_ROOT="${HTML_INSTALL_DIR}/html" )
 
 add_executable (
   ${PROJECT_NAME}
@@ -42,26 +50,10 @@ target_link_libraries (
 
 
 #[[
-if (OPENSSL_FOUND)
-    GroupSources(include/boost/beast beast)
-    GroupSources(example/common common)
-    GroupSources(example/advanced/server-flex "/")
-
-    add_executable (advanced-server-flex
-        ${BOOST_BEAST_FILES}
-        ${PROJECT_SOURCE_DIR}/example/common/server_certificate.hpp
-        Jamfile
-        advanced_server_flex.cpp
-    )
-
-    set_property(TARGET advanced-server-flex PROPERTY FOLDER "example-advanced-server")
-
-    target_link_libraries (advanced-server-flex
-        OpenSSL::SSL OpenSSL::Crypto
-        lib-asio
-        lib-asio-ssl
-        lib-beast
-        )
-
-endif()
+target_link_libraries (advanced-server-flex
+  OpenSSL::SSL OpenSSL::Crypto
+  lib-asio
+  lib-asio-ssl
+  lib-beast
+  )
 ]]

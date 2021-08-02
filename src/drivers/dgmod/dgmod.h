@@ -22,21 +22,6 @@
 **
 **************************************************************************/
 
-#ifndef SOCFPGA_DRIVERS_DGMOD_H
-#define SOCFPGA_DRIVERS_DGMOD_H
-
-#include <linux/version.h>
-#include <linux/cdev.h>
-
+#pragma once
 #define MODNAME     "dgmod"
 #define CDEV_NAME   MODNAME
-
-#define IOCTL_VERSION 0x01010000
-
-enum fsm_state {
-    fsm_stop     = 0x0000
-    , fsm_start  = 0x0001
-    , fsm_commit = 0x0001
-};
-
-#endif

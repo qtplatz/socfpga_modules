@@ -3,7 +3,7 @@ project( dgmod )
 set ( MODNAME dgmod )
 
 set ( OBJM ${MODNAME}.o )
-set ( SRCS ${MODNAME}.c ${MODNAME}.h dgfsm.h dgmod_delay_pulse.h dgmod_ioctl.h hps.h )
+set ( SRCS ${MODNAME}.c ${MODNAME}.h )
 set ( PACKAGE_VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}.${VERSION_TWEAK} )
 
 add_custom_command(
@@ -11,10 +11,7 @@ add_custom_command(
   COMMAND make -C ${KERNEL_SOURCE} ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- KERNELRELEASE=${KERNELRELEASE} M=${CMAKE_CURRENT_SOURCE_DIR}
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${MODNAME}.c ${CMAKE_CURRENT_SOURCE_DIR}/${MODNAME}.h
-  DEPENDS zImage
   )
-
-add_custom_target( ${MODNAME}.ko ALL DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${MODNAME}.ko )
 
 configure_file (
   "${CMAKE_CURRENT_SOURCE_DIR}/../template/Makefile.in"
@@ -24,8 +21,6 @@ configure_file (
 
 #--------------- DKMS ------------------
 if ( DKMS )
-  set ( RequiredStart "httpd-dg" )
-  set ( RequiredStop "httpd-dg" )
   include( ${DKMS}/dkms.cmake )
 endif()
 #--------------- DKMS ------------------

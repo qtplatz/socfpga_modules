@@ -278,6 +278,14 @@
          type = "int";
       }
    }
+   element reset_bridge_0
+   {
+      datum _sortIndex
+      {
+         value = "17";
+         type = "int";
+      }
+   }
    element slave_io_0
    {
       datum _sortIndex
@@ -407,6 +415,11 @@
    type="clock"
    dir="start" />
  <interface name="reset" internal="clk_0.clk_in_reset" type="reset" dir="end" />
+ <interface
+   name="reset_bridge_0_out_reset"
+   internal="reset_bridge_0.out_reset"
+   type="reset"
+   dir="start" />
  <interface
    name="slave_io_0_user_interface"
    internal="slave_io_0.user_interface"
@@ -1360,6 +1373,17 @@
   <parameter name="gui_switchover_mode">Automatic Switchover</parameter>
   <parameter name="gui_use_locked" value="true" />
  </module>
+ <module
+   name="reset_bridge_0"
+   kind="altera_reset_bridge"
+   version="20.1"
+   enabled="1">
+  <parameter name="ACTIVE_LOW_RESET" value="1" />
+  <parameter name="AUTO_CLK_CLOCK_RATE" value="100000000" />
+  <parameter name="NUM_RESET_OUTPUTS" value="1" />
+  <parameter name="SYNCHRONOUS_EDGES" value="deassert" />
+  <parameter name="USE_RESET_REQUEST" value="0" />
+ </module>
  <module name="slave_io_0" kind="slave_io" version="2.0" enabled="1">
   <parameter name="AUTO_CLOCK_RESET_CLOCK_RATE" value="100000000" />
   <parameter name="AUTO_DEVICE_FAMILY" value="Cyclone V" />
@@ -1627,6 +1651,11 @@
    kind="clock"
    version="20.1"
    start="pll_0.outclk0"
+   end="reset_bridge_0.clk" />
+ <connection
+   kind="clock"
+   version="20.1"
+   start="pll_0.outclk0"
    end="slave_io_0.clock_reset" />
  <connection
    kind="clock"
@@ -1711,6 +1740,11 @@
    version="20.1"
    start="clk_0.clk_reset"
    end="slave_io_0.clock_reset_reset" />
+ <connection
+   kind="reset"
+   version="20.1"
+   start="clk_0.clk_reset"
+   end="reset_bridge_0.in_reset" />
  <connection
    kind="reset"
    version="20.1"

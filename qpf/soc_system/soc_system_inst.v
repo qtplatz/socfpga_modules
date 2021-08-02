@@ -119,6 +119,7 @@
 		.slave_io_0_user_interface_write       (<connected-to-slave_io_0_user_interface_write>),       //                               .write
 		.slave_io_0_user_interface_read        (<connected-to-slave_io_0_user_interface_read>),        //                               .read
 		.slave_io_0_user_interface_chipselect  (<connected-to-slave_io_0_user_interface_chipselect>),  //                               .chipselect
-		.slave_io_0_user_interface_byteenable  (<connected-to-slave_io_0_user_interface_byteenable>)   //                               .byteenable
+		.slave_io_0_user_interface_byteenable  (<connected-to-slave_io_0_user_interface_byteenable>),  //                               .byteenable
+		.reset_bridge_0_out_reset_reset_n      (<connected-to-reset_bridge_0_out_reset_reset_n>)       //       reset_bridge_0_out_reset.reset_n
 	);
 

@@ -10,7 +10,11 @@ project_name=$(basename "${source_dir}")
 build_debug=false
 build_clean=false
 top=$(dirname "$cwd")
-build_root=$(dirname "$top")
+if [ $(basename "${top}") = src ]; then
+	build_root="${top}"           # one level up
+else
+	build_root=$(dirname "$top")  # two levels up
+fi
 config=release
 cmake_args=('-DCMAKE_BUILD_TYPE=Release')
 
@@ -45,8 +49,10 @@ if [ $build_clean = true ]; then
     exit
 fi
 
+echo "top              : ${top}"
 echo "source_dir       : ${source_dir}"
 echo "project_name     : ${project_name}"
+echo "build_root       : ${build_root}"
 echo "build_dir        : ${build_dir}"
 echo "cross_target     :" $cross_target
 echo "toolchain        :" ${CMAKE_TOOLCHAIN_FILE}

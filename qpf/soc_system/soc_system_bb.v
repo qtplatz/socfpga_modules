@@ -120,7 +120,8 @@ module soc_system (
 	slave_io_0_user_interface_write,
 	slave_io_0_user_interface_read,
 	slave_io_0_user_interface_chipselect,
-	slave_io_0_user_interface_byteenable);	
+	slave_io_0_user_interface_byteenable,
+	reset_bridge_0_out_reset_reset_n);	
 
 	input	[511:0]	adc_fifo_0_st_sink_data;
 	input		adc_fifo_0_st_sink_valid;
@@ -243,4 +244,5 @@ module soc_system (
 	output		slave_io_0_user_interface_read;
 	output	[15:0]	slave_io_0_user_interface_chipselect;
 	output	[7:0]	slave_io_0_user_interface_byteenable;
+	output		reset_bridge_0_out_reset_reset_n;
 endmodule

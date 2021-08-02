@@ -1,6 +1,6 @@
 #
 #
-cmake_minimum_required (VERSION 3.19)
+cmake_minimum_required (VERSION 3.13.4)
 project( httpd CXX )
 
 if ( CMAKE_CROSSCOMPILING )

@@ -68,7 +68,30 @@ struct dgmod_driver {
     u32 dg_pio_number;        // legacy gpio number
     u32 irq;
     u64 irqCount;
+    void __iomem * regs;
 };
+
+typedef struct slave_data {
+    uint32_t user_dataout;    // 0x00
+    uint32_t user_datain;     // 0x04
+    uint32_t irqmask;         // 0x08
+    uint32_t edge_capture;    // 0x0c
+    uint32_t resv[12];        //
+} slave_data;
+
+typedef struct slave_data64 {
+    uint64_t user_dataout;    // 0x00
+    uint64_t user_datain;     // 0x08
+    uint64_t irqmask;         // 0x10
+    uint64_t edge_capture;    // 0x18
+    uint64_t resv[12];        //
+} slave_data64;
+
+inline static volatile slave_data64 * __slave_data64( void __iomem * regs, u32 idx )
+{
+    return ((volatile slave_data64 *)(regs)) + idx;
+}
+
 
 static irqreturn_t
 handle_interrupt( int irq, void *dev_id )
@@ -108,6 +131,13 @@ dgmod_proc_read( struct seq_file * m, void * v )
 
     if ( drv ) {
         seq_printf( m, "proc_read\n" );
+        for ( int i = 0; i < 16; ++i ) {
+            volatile struct slave_data64 * p = __slave_data64( drv->regs, i );
+            seq_printf( m, "[%2d] 0x%08x:%08x\t", i, (u32)(p->user_dataout >> 32), (u32)(p->user_dataout & 0xffffffff) );
+            seq_printf( m, "%08x:%08x\t", (u32)(p->user_datain >> 32), (u32)(p->user_datain & 0xffffffff) );
+            seq_printf( m, "%08x:%08x\t", (u32)(p->irqmask >> 32), (u32)(p->irqmask & 0xffffffff) );
+            seq_printf( m, "%08x:%08x\n", (u32)(p->edge_capture >> 32), (u32)(p->edge_capture & 0xffffffff) );
+        }
     }
 
     return 0;
@@ -311,7 +341,9 @@ dgmod_perror( struct platform_device * pdev, const char * prefix, void * p )
 static int
 dgmod_module_probe( struct platform_device * pdev )
 {
-    dev_info( &pdev->dev, "dgmod_module probed [%s]", pdev->name );
+    dev_info( &pdev->dev, "dgmod_module probed [%s], num_resources=%d\n"
+              , pdev->name
+              , pdev->num_resources );
 
     if ( platform_get_drvdata( pdev ) == 0 ) {
         struct dgmod_driver * drv = devm_kzalloc( &pdev->dev, sizeof( struct dgmod_driver ), GFP_KERNEL );
@@ -321,34 +353,44 @@ dgmod_module_probe( struct platform_device * pdev )
         platform_set_drvdata( pdev, drv );
     }
     struct dgmod_driver * drv = platform_get_drvdata( pdev );
-    struct device_node * node = pdev->dev.of_node;
 
+    for ( int i = 0; i < pdev->num_resources; ++i ) {
+        struct resource * res = platform_get_resource( pdev, IORESOURCE_MEM, i );
+        if ( res ) {
+            drv->regs = devm_platform_ioremap_resource(pdev, i);
+            dev_info( &pdev->dev, "res [%d] 0x%08x, 0x%x = %p\n", i, res->start, res->end - res->start + 1, drv->regs );
+        }
+    }
 
-    drv->dg_pio = devm_gpiod_get_optional( &pdev->dev, "dg_pio", GPIOD_IN );
-    if ( dgmod_perror( pdev, "dg_pio", drv->dg_pio ) == -EPROBE_DEFER ) {
+    //////
+    drv->dg_pio = devm_gpiod_get_optional( &pdev->dev, "dg", GPIOD_IN );
+    if ( drv->dg_pio && dgmod_perror( pdev, "dg", drv->dg_pio ) == -EPROBE_DEFER ) {
         u32 rcode;
-        if ( of_property_read_u32_index( node, "dg_pio-gpios", 1, &drv->dg_pio_number ) == 0 ) {
+        struct device_node * node = pdev->dev.of_node;
+        if ( of_property_read_u32_index( node, "dg-gpios", 1, &drv->dg_pio_number ) == 0 ) {
             dev_info(&__pdev->dev, "dg_pio-gpios switch to legacy api: numberr %d", drv->dg_pio_number );
-            if ( ( rcode = devm_gpio_request( &pdev->dev, drv->dg_pio_number, "dg_pio" ) ) == 0 ) {
+            if ( ( rcode = devm_gpio_request( &pdev->dev, drv->dg_pio_number, "dg" ) ) == 0 ) {
                 gpio_direction_input( drv->dg_pio_number );
             }
         } else {
             dev_err( &pdev->dev, "legacy gpio dg_pio request failed: %d", rcode );
         }
+    } else {
+        dev_err( &pdev->dev, "dg gpio get failed: %ld", PTR_ERR( drv->dg_pio ) );
     }
 
     // IRQ
-    if ( gpio_is_valid( drv->dg_pio_number ) ) {
+    if ( drv->dg_pio && gpio_is_valid( drv->dg_pio_number ) ) {
         if ( (drv->irq = gpio_to_irq( drv->dg_pio_number ) ) > 0 ) {
-            dev_info(&pdev->dev, "\tdg_pio gpio irq is %d", drv->irq );
+            dev_info(&pdev->dev, "\tdg gpio irq is %d", drv->irq );
             u32 rcode;
             if ( (rcode = devm_request_irq( &pdev->dev
                                             , drv->irq
                                             , handle_interrupt
                                             , IRQF_SHARED | IRQF_TRIGGER_FALLING
-                                            , "dg_pio"
+                                            , "dg"
                                             , pdev )) != 0 ) {
-                dev_err( &pdev->dev, "dg_pio irq request failed: %d", rcode );
+                dev_err( &pdev->dev, "dg irq request failed: %d", rcode );
             }
         }
     }
@@ -369,7 +411,7 @@ dgmod_module_remove( struct platform_device * pdev )
 }
 
 static const struct of_device_id __dgmod_module_id [] = {
-    { .compatible = "altr,altr,avalon-mm-slave-2.0" }
+    { .compatible = "altr,avalon-mm-slave-2.0" }
     , {}
 };
 

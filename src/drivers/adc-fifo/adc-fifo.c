@@ -89,6 +89,7 @@ struct adc_fifo_driver {
     dma_addr_t dma_handle;
     u32 dma_alloc_size;
     void * dma_cpu_addr;
+    struct dma_pool * dma_pool;
 };
 
 struct adc_fifo_cdev_reader {
@@ -201,6 +202,8 @@ adc_fifo_fetch( struct adc_fifo_driver * drv )
 static irqreturn_t
 handle_interrupt( int irq, void *dev_id )
 {
+    dev_info( &__pdevice->dev, "handle_interrupt(%d)\n", irq );
+
     struct adc_fifo_driver * driver = dev_id ? platform_get_drvdata( dev_id ) : 0;
     if ( driver && driver->reg_csr ) {
 
@@ -320,7 +323,8 @@ adc_fifo_proc_read( struct seq_file * m, void * v )
             }
 
             const u64 * rx = (u64*)(drv->dma_cpu_addr); // ptr[ ( drv->readp - drv->mem_resource->start ) / sizeof(u32) ]);
-            for ( int i = 0; i < 8; ++i )
+
+            for ( int i = 0; i < 4; ++i )
                 seq_printf( m, "\t0x%016llx", be64_to_cpu( rx[i] ) );
             seq_printf( m, "\n" );
         }
@@ -655,6 +659,8 @@ adc_fifo_module_probe( struct platform_device * pdev )
     drv->label = label;
     drv->dma_alloc_size = 0x800;
 
+    // drv->dma_pool = dma_pool_create( MODNAME, &pdev->dev, dmalen, 4, 64 );
+
     if ( !(drv->dma_cpu_addr = dma_alloc_coherent( &pdev->dev, drv->dma_alloc_size, &drv->dma_handle, GFP_KERNEL )) ) {
         dev_err( &pdev->dev, "failed dma alloc_coherent %p\n", drv->dma_cpu_addr );
         return -ENOMEM;
@@ -681,12 +687,13 @@ adc_fifo_module_probe( struct platform_device * pdev )
     sema_init( &drv->sem, 1 );
 
     if ( ( irq = platform_get_irq( pdev, 0 ) ) > 0 ) {
-        if ( devm_request_irq( &pdev->dev, irq, handle_interrupt, 0, MODNAME, pdev ) == 0 ) {
+        if ( devm_request_irq( &pdev->dev, irq, handle_interrupt, IRQF_SHARED, MODNAME, pdev ) == 0 ) {
+            dev_info( &pdev->dev, "got irq = %d\n", irq );
             drv->irq = irq;
             if ( drv->reg_csr ) {
                 adc_fifo_clear_irq( drv->reg_csr );
                 adc_fifo_enable_irq( drv->reg_csr );
-                irq_set_irq_type( irq, 4 ); // interrpts<0, 72, 4> ; 4 := IRQ_TYPE_LEVEL_HIGH, see include/linux/irq.h
+                irq_set_irq_type( irq, 4 ); // interrpts<0, 44, 4> ; 4 := IRQ_TYPE_LEVEL_HIGH, see include/linux/irq.h
             }
 
             adc_fifo_fetch( drv );

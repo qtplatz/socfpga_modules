@@ -140,9 +140,7 @@ dgmod_proc_read( struct seq_file * m, void * v )
         for ( int i = 0; i < 16; ++i ) {
             volatile struct slave_data64 * p = __slave_data64( drv->regs, i );
             seq_printf( m, "[%2d] 0x%08x:%08x\t", i, (u32)(p->user_dataout >> 32), (u32)(p->user_dataout & 0xffffffff) );
-            seq_printf( m, "%08x:%08x\t", (u32)(p->user_datain >> 32), (u32)(p->user_datain & 0xffffffff) );
-            //seq_printf( m, "%08x:%08x\t", (u32)(p->irqmask >> 32), (u32)(p->irqmask & 0xffffffff) );
-            //seq_printf( m, "%08x:%08x\n", (u32)(p->edge_capture >> 32), (u32)(p->edge_capture & 0xffffffff) );
+            seq_printf( m, "%08x:%08x\n", (u32)(p->user_datain >> 32), (u32)(p->user_datain & 0xffffffff) );
         }
     }
 
@@ -152,6 +150,36 @@ dgmod_proc_read( struct seq_file * m, void * v )
 static ssize_t
 dgmod_proc_write( struct file * filep, const char * user, size_t size, loff_t * f_off )
 {
+    static char readbuf[256];
+
+    if ( size >= sizeof( readbuf ) )
+        size = sizeof( readbuf ) - 1;
+
+    if ( copy_from_user( readbuf, user, size ) )
+        return -EFAULT;
+    readbuf[ size ] = '\0';
+
+    struct dgmod_driver * drv = platform_get_drvdata( __pdev );
+    if ( drv ) {
+        if ( strncmp( readbuf, "write", 5 ) == 0 ) {
+            __slave_data64( drv->regs,  2 )->user_datain = 0x1122334455667788LL;
+            __slave_data64( drv->regs,  2 )->user_datain = (1000000LL) << 32 | (0x11111111LL);
+            __slave_data64( drv->regs,  3 )->user_datain = (1000000LL) << 32 | (0x11111111LL);
+            __slave_data64( drv->regs,  4 )->user_datain = (1000000LL) << 32 | (0x11111111LL);
+            __slave_data64( drv->regs,  5 )->user_datain = (1000000LL) << 32 | (0x11111111LL);
+            __slave_data64( drv->regs,  6 )->user_datain = (1000000LL) << 32 | (0x11111111LL);
+            __slave_data64( drv->regs,  7 )->user_datain = (1000000LL) << 32 | (0x11111111LL);
+            __slave_data64( drv->regs,  8 )->user_datain = (1000000LL) << 32 | (0x11111111LL);
+            __slave_data64( drv->regs,  9 )->user_datain = (1000000LL) << 32 | (0x11111111LL);
+            __slave_data64( drv->regs, 10 )->user_datain = (1000000LL) << 32 | (0x11111111LL);
+            __slave_data64( drv->regs, 11 )->user_datain = (1000000LL) << 32 | (0x11111111LL);
+            __slave_data64( drv->regs, 12 )->user_datain = (1000000LL) << 32 | (0x11111111LL);
+            __slave_data64( drv->regs, 13 )->user_datain = (1000000LL) << 32 | (0x11111111LL);
+            __slave_data64( drv->regs, 14 )->user_datain = (1000000LL) << 32 | (0x11111111LL);
+            __slave_data64( drv->regs, 15 )->user_datain = (1000000LL) << 32 | (0x11111111LL);
+            __slave_data64( drv->regs,  1 )->user_datain = 0x11223344LL;
+        }
+    }
     return size;
 }
 
@@ -232,7 +260,6 @@ static ssize_t dgmod_cdev_read(struct file *file, char __user *data, size_t size
             size_t dsize = private_data->size - *f_pos;
             for ( size_t i = *f_pos / sizeof(u64); i < dsize / sizeof(u64); ++i ) {
                 u64 d = __slave_data64( drv->regs, i )->user_dataout;
-                dev_info(&__pdev->dev, "data[%d]: %llx, dsize=%d\n", i, d, dsize );
                 if ( copy_to_user( data, (const char *)&d, sizeof(u64) ) ) {
                     up( &__sem );
                     return -EFAULT;
@@ -242,15 +269,36 @@ static ssize_t dgmod_cdev_read(struct file *file, char __user *data, size_t size
             *f_pos += dsize;
             count = dsize;
         }
+        up( &__sem );
     }
-    up( &__sem );
     return count;
 }
 
 static ssize_t dgmod_cdev_write(struct file *file, const char __user *data, size_t size, loff_t *f_pos)
 {
-    *f_pos += size;
-    return size;
+    ssize_t count = 0;
+    struct dgmod_driver * drv = platform_get_drvdata( __pdev );
+    if ( drv ) {
+        if ( down_interruptible( &__sem ) ) {
+            dev_info(&__pdev->dev, "%s: down_interruptible for read faild\n", __func__ );
+            return -ERESTARTSYS;
+        }
+        // align (round up)
+        *f_pos = ( *f_pos + sizeof(u64) - 1 ) & ~07;
+        struct dgmod_cdev_private * private_data = file->private_data;
+        while ( (*f_pos < private_data->size ) && size >= sizeof(u64) ) {
+            u64 d;
+            if ( copy_from_user( &d, data, sizeof(u64) ) ) {
+                up( &__sem );
+                return -EFAULT;
+            }
+            *f_pos += sizeof( u64 );
+            count += sizeof( u64 );
+            size -= sizeof( u64 );
+        }
+        up( &__sem );
+    }
+    return count;
 }
 
 static ssize_t

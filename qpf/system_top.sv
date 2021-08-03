@@ -156,6 +156,7 @@ module system_top(
    //
    wire [ 3:0]            pio_out_external_connection_export;
    wire [ 1:0]            pio_in_external_connection_export;
+   wire                   pio_dg_external_connection_export;
 
    wire [ 1:0]            async_inject_in;
    wire [ 1:0]            inject_in;
@@ -178,14 +179,19 @@ module system_top(
    reg [31:0]             revision_number;
    reg [63:0]             timestamp = 64'h0000;
    reg [63:0]             clock_counter = 64'h0000;
+   reg [31:0]             t0_counter = 32'h0000;
 
    reg [31:0]             dg_interval = 'd1000000; // 1 ms default
    wire                   dg_t0;
    wire [31:0]            delay_counter;
    wire [1:0]             user_protocol_number; // setpoint
    reg [ 1:0]             dg_protocol_number_reg;  // actual
-   reg [ 31:0]            slave_io_0_dg_interval;
-   wire [31:0]            slave_io_0_flags;
+   reg [ 31:0]            user_dg_interval;
+   reg [ 31:0]            view_dg_interval;
+   wire [31:0]            user_flags;
+   wire [31:0]            user_commit;
+   var delay_width_t      user_delay_width_pairs [ NDELAY_PAIRS ];
+   var delay_width_t      view_delay_width_pairs [ NDELAY_PAIRS ];
    var delay_width_t      delay_width_pairs [ NDELAY_PAIRS ];
    wire [NDELAY_PAIRS-1:0] delay_pins; // virtual pins
    wire                    slave_io_0_user_interface_write;
@@ -225,8 +231,8 @@ module system_top(
 
    assign slave_io_commit_valid
      = slave_io_0_user_interface_write
-       & slave_io_0_user_interface_chipselect[1]
-       & slave_io_0_flags[ 0 ];
+       & slave_io_0_user_interface_chipselect[15]
+       & user_commit[ 0 ];
 
    //
    //=======================================================
@@ -316,10 +322,11 @@ module system_top(
 	          .hps_0_f2h_cold_reset_req_reset_n      (~hps_cold_reset ),      //       hps_0_f2h_cold_reset_req.reset_n
                   .hps_0_f2h_debug_reset_req_reset_n     (~hps_debug_reset ),     //      hps_0_f2h_debug_reset_req.reset_n
                   .hps_0_f2h_stm_hw_events_stm_hwevents  (stm_hw_events ),  //        hps_0_f2h_stm_hw_events.stm_hwevents
-                  .hps_0_f2h_warm_reset_req_reset_n      (~hps_warm_reset ),      //       hps_0_f2h_warm_reset_req.reset_n
+                  .hps_0_f2h_warm_reset_req_reset_n      (~hps_warm_reset )      //       hps_0_f2h_warm_reset_req.reset_n
                   //
-                  .pio_0_external_connection_export     ( pio_out_external_connection_export )
-                  , .pio_1_external_connection_export    ( pio_in_external_connection_export )
+                  , .pio_0_external_connection_export      ( pio_out_external_connection_export )
+                  , .pio_1_external_connection_export      ( pio_in_external_connection_export )
+                  , .pio_dg_external_connection_export     ( pio_dg_external_connection_export )
 `ifdef CONFIG_ADC_FIFO
                   , .adc_fifo_0_st_sink_data               ( adc_fifo_0_st_sink_data )            // input  wire [31:0]
                   , .adc_fifo_0_st_sink_valid              ( adc_fifo_0_st_sink_valid )           // input  wire
@@ -331,46 +338,44 @@ module system_top(
 		  , .pll_0_outclk1_clk                     ( clk1 )
                   , .clock_bridge_0_out_clk_clk            ( clk100 )
 
-                  // delay generator setpoints
-                  // hps -> fpga
-		  , .slave_io_0_user_interface_dataout_0    () // read-only
-		  , .slave_io_0_user_interface_dataout_1    ( { slave_io_0_flags, slave_io_0_dg_interval } )   // input  wire [63:0]
-		  , .slave_io_0_user_interface_dataout_2    ( { delay_width_pairs[ 0  ].delay, delay_width_pairs[ 0  ].width } )  // push
-		  , .slave_io_0_user_interface_dataout_3    ( { delay_width_pairs[ 1  ].delay, delay_width_pairs[ 1  ].width } )  // inject
-		  , .slave_io_0_user_interface_dataout_4    ( { delay_width_pairs[ 2  ].delay, delay_width_pairs[ 2  ].width } )  // exit_0
-		  , .slave_io_0_user_interface_dataout_5    ( { delay_width_pairs[ 3  ].delay, delay_width_pairs[ 3  ].width } )  // exit_1
-		  , .slave_io_0_user_interface_dataout_6    ( { delay_width_pairs[ 4  ].delay, delay_width_pairs[ 4  ].width } )  // gate_0
-		  , .slave_io_0_user_interface_dataout_7    ( { delay_width_pairs[ 5  ].delay, delay_width_pairs[ 5  ].width } )  // gate_1
-		  , .slave_io_0_user_interface_dataout_8    ( { delay_width_pairs[ 6  ].delay, delay_width_pairs[ 6  ].width } )  // adc_del
-		  , .slave_io_0_user_interface_dataout_9    ( { delay_width_pairs[ 7  ].delay, delay_width_pairs[ 7  ].width } )  // delay_6
-		  , .slave_io_0_user_interface_dataout_10   ( { delay_width_pairs[ 8  ].delay, delay_width_pairs[ 8  ].width } )  // delay_7
+                  , .slave_io_0_user_interface_dataout_0    ( { 32'b1,                              user_dg_interval } )   // input  wire [63:0]
+		  , .slave_io_0_user_interface_dataout_1    ( { user_delay_width_pairs[ 0  ].delay, user_delay_width_pairs[ 0  ].width } )  // push
+		  , .slave_io_0_user_interface_dataout_2    ( { user_delay_width_pairs[ 1  ].delay, user_delay_width_pairs[ 1  ].width } )  // inject
+		  , .slave_io_0_user_interface_dataout_3    ( { user_delay_width_pairs[ 2  ].delay, user_delay_width_pairs[ 2  ].width } )  // exit_0
+		  , .slave_io_0_user_interface_dataout_4    ( { user_delay_width_pairs[ 3  ].delay, user_delay_width_pairs[ 3  ].width } )  // exit_1
+		  , .slave_io_0_user_interface_dataout_5    ( { user_delay_width_pairs[ 4  ].delay, user_delay_width_pairs[ 4  ].width } )  // gate_0
+		  , .slave_io_0_user_interface_dataout_6    ( { user_delay_width_pairs[ 5  ].delay, user_delay_width_pairs[ 5  ].width } )  // gate_1
+		  , .slave_io_0_user_interface_dataout_7    ( { user_delay_width_pairs[ 6  ].delay, user_delay_width_pairs[ 6  ].width } )  // adc_del
+		  , .slave_io_0_user_interface_dataout_8    ( { user_delay_width_pairs[ 7  ].delay, user_delay_width_pairs[ 7  ].width } )  // delay_6
+		  , .slave_io_0_user_interface_dataout_9    ( { user_delay_width_pairs[ 8  ].delay, user_delay_width_pairs[ 8  ].width } )  // delay_7
+		  , .slave_io_0_user_interface_dataout_10   ()
 		  , .slave_io_0_user_interface_dataout_11   ()  // output wire [63:0]                                .dataout_11
 		  , .slave_io_0_user_interface_dataout_12   ()  // output wire [63:0]                                .dataout_12
 		  , .slave_io_0_user_interface_dataout_13   ()  // output wire [63:0]                                .dataout_13
-		  , .slave_io_0_user_interface_dataout_14   ()  // output wire [63:0]                                .dataout_14
-		  , .slave_io_0_user_interface_dataout_15   ( { 62'b0, user_protocol_number } )  // output wire [63:0]                                .dataout_15
+		  , .slave_io_0_user_interface_dataout_14   ( { 62'b0, user_protocol_number } )  // output wire [63:0]                                .dataout_15
+		  , .slave_io_0_user_interface_dataout_15   ( { user_flags, user_commit } ) // write only, cannot read
                   // fpga -> hps
-		  , .slave_io_0_user_interface_datain_0     ( { model_number, revision_number } )   // input  wire [63:0]
-		  , .slave_io_0_user_interface_datain_1     ( { 32'b0, slave_io_0_dg_interval } )   // input  wire [63:0]
-                  , .slave_io_0_user_interface_datain_2     ( { delay_width_pairs[ 0  ].delay, delay_width_pairs[ 0  ].width } )  // push
-                  , .slave_io_0_user_interface_datain_3     ( { delay_width_pairs[ 1  ].delay, delay_width_pairs[ 1  ].width } )  // inject
-                  , .slave_io_0_user_interface_datain_4     ( { delay_width_pairs[ 2  ].delay, delay_width_pairs[ 2  ].width } )  // exit_0
-                  , .slave_io_0_user_interface_datain_5     ( { delay_width_pairs[ 3  ].delay, delay_width_pairs[ 3  ].width } )  // exit_1
-                  , .slave_io_0_user_interface_datain_6     ( { delay_width_pairs[ 4  ].delay, delay_width_pairs[ 4  ].width } )  // gate_0
-                  , .slave_io_0_user_interface_datain_7     ( { delay_width_pairs[ 5  ].delay, delay_width_pairs[ 5  ].width } )  // gate_1
-                  , .slave_io_0_user_interface_datain_8     ( { delay_width_pairs[ 6  ].delay, delay_width_pairs[ 6  ].width } )  // adc_delay
-                  , .slave_io_0_user_interface_datain_9     ( { delay_width_pairs[ 7  ].delay, delay_width_pairs[ 7  ].width } )  // delay_6
-                  , .slave_io_0_user_interface_datain_10    ( { delay_width_pairs[ 8  ].delay, delay_width_pairs[ 8  ].width } )  // delay_7
+		  , .slave_io_0_user_interface_datain_0     ( { user_flags,                         view_dg_interval } )   // input  wire [63:0]
+		  , .slave_io_0_user_interface_datain_1     ( { view_delay_width_pairs[ 0  ].delay, view_delay_width_pairs[ 0  ].width } )  // push
+                  , .slave_io_0_user_interface_datain_2     ( { view_delay_width_pairs[ 1  ].delay, view_delay_width_pairs[ 1  ].width } )  // inject
+                  , .slave_io_0_user_interface_datain_3     ( { view_delay_width_pairs[ 2  ].delay, view_delay_width_pairs[ 2  ].width } )  // exit_0
+                  , .slave_io_0_user_interface_datain_4     ( { view_delay_width_pairs[ 3  ].delay, view_delay_width_pairs[ 3  ].width } )  // exit_1
+                  , .slave_io_0_user_interface_datain_5     ( { view_delay_width_pairs[ 4  ].delay, view_delay_width_pairs[ 4  ].width } )  // gate_0
+                  , .slave_io_0_user_interface_datain_6     ( { view_delay_width_pairs[ 5  ].delay, view_delay_width_pairs[ 5  ].width } )  // gate_1
+                  , .slave_io_0_user_interface_datain_7     ( { view_delay_width_pairs[ 6  ].delay, view_delay_width_pairs[ 6  ].width } )  // adc_delay
+                  , .slave_io_0_user_interface_datain_8     ( { view_delay_width_pairs[ 7  ].delay, view_delay_width_pairs[ 7  ].width } )  // delay_6
+                  , .slave_io_0_user_interface_datain_9     ( { view_delay_width_pairs[ 8  ].delay, view_delay_width_pairs[ 8  ].width } )  // delay_7
+                  , .slave_io_0_user_interface_datain_10    ()
 		  , .slave_io_0_user_interface_datain_11    ()   // input  wire [63:0]
-		  , .slave_io_0_user_interface_datain_12    ()   // input  wire [63:0]
-		  , .slave_io_0_user_interface_datain_13    ()   // input  wire [63:0]
-		  , .slave_io_0_user_interface_datain_14    ()   // input  wire [63:0]
-		  , .slave_io_0_user_interface_datain_15    ( { 62'b0, user_protocol_number } )  // output wire [63:0]                                .dataout_15
-
-		  , .slave_io_0_user_interface_write        ( slave_io_0_user_interface_write )       // output wire                                       .write
-		  , .slave_io_0_user_interface_read         ( slave_io_0_user_interface_read  )       // output wire                                       .read
-		  , .slave_io_0_user_interface_chipselect   ( slave_io_0_user_interface_chipselect )  // output wire [15:0]                                .chipselect
-		  , .slave_io_0_user_interface_byteenable   ( slave_io_0_user_interface_byteenable )  // output wire [7:0]                                 .byteenable
+		  , .slave_io_0_user_interface_datain_12    ()
+		  , .slave_io_0_user_interface_datain_13    (   timestamp                                             )
+		  , .slave_io_0_user_interface_datain_14    ( { t0_counter, 30'b0,             user_protocol_number } )
+		  , .slave_io_0_user_interface_datain_15    ( { model_number,                  revision_number } )
+                  //
+		  , .slave_io_0_user_interface_write        ( slave_io_0_user_interface_write )       // output wire
+		  , .slave_io_0_user_interface_read         ( slave_io_0_user_interface_read  )       // output wire
+		  , .slave_io_0_user_interface_chipselect   ( slave_io_0_user_interface_chipselect )  // output wire [15:0]
+		  , .slave_io_0_user_interface_byteenable   ( slave_io_0_user_interface_byteenable )  // output wire [7:0]
                   );
 
    // Debounce logic to clean out glitches within 1ms
@@ -451,11 +456,14 @@ module system_top(
 
    assign LED [ 0 ] = ~pll_0_locked;
 
+   assign pio_dg_external_connection_export = dg_t0;
+
    delay_pulse_generator #(.NDELAY_CHANNELS( NDELAY_PAIRS ) )
    delay_pulse_generator_i( .clk( clk100 )
                             , .reset_n( hps_fpga_reset_n )
                             , .interval( dg_interval )
-                            , .user_delay_width_pairs( delay_width_pairs )
+                            , .user_delay_width_pairs( user_delay_width_pairs )
+                            , .delay_width_pairs( delay_width_pairs )
                             , .user_data_valid( slave_io_commit_valid )
                             , .pins( delay_pins )
                             , .tp0 ( dg_t0 )
@@ -463,13 +471,16 @@ module system_top(
                             , .debug()
                             );
 
+   assign view_delay_width_pairs = user_flags[ 0 ] ? user_delay_width_pairs : delay_width_pairs;
+   assign view_dg_interval = user_flags[ 0 ] ? user_dg_interval : dg_interval;
+
    // ------------
    always @( posedge clk100 ) begin
       if ( ~hps_fpga_reset_n ) begin
          dg_interval <= 'd100000; // 10ns * 100k := 1ms
       end
-      else if ( slave_io_0_user_interface_write & slave_io_0_user_interface_chipselect[1] ) begin
-         dg_interval <= slave_io_0_dg_interval < 1000 ? 'd1000 : slave_io_0_dg_interval; // 1us minimum
+      else if ( slave_io_commit_valid ) begin
+         dg_interval <= user_dg_interval < 1000 ? 'd1000 : user_dg_interval; // 1us minimum
       end
    end
 
@@ -486,6 +497,7 @@ module system_top(
    always @* begin
       if ( dg_t0 ) begin
          timestamp = clock_counter;
+         t0_counter = t0_counter + 1;
          dg_protocol_number_reg = user_protocol_number;
       end
    end

@@ -18,7 +18,7 @@ set_module_property SIMULATION_MODEL_IS_OBFUSCATED false
 # |
 # +-----------------------------------
 
-set_module_assignment embeddedsw.dts.vendor "altera"
+set_module_assignment embeddedsw.dts.vendor "altr"
 set_module_assignment embeddedsw.dts.name   "avalon-mm-slave"
 set_module_assignment embeddedsw.dts.group  "slave_io"
 set_module_assignment embeddedsw.dts.compatible "slave_io"

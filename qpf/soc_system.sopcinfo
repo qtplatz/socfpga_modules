@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <EnsembleReport name="soc_system" kind="soc_system" version="1.0" fabric="QSYS">
  <!-- Format version 20.1 720 (Future versions may contain additional information.) -->
- <!-- 2021.08.02.15:19:02 -->
+ <!-- 2021.08.03.18:35:45 -->
  <!-- A collection of modules and connections -->
  <parameter name="AUTO_GENERATION_ID">
   <type>java.lang.Integer</type>
-  <value>1627885135</value>
+  <value>1627983338</value>
   <derived>false</derived>
   <enabled>true</enabled>
   <visible>false</visible>
@@ -21006,7 +21006,7 @@ parameters are a RESULT of the module parameters. -->
     <moduleName>adc_fifo_0</moduleName>
     <slaveName>csr</slaveName>
     <name>adc_fifo_0.csr</name>
-    <baseAddress>73728</baseAddress>
+    <baseAddress>69632</baseAddress>
     <span>32</span>
    </memoryBlock>
    <memoryBlock>
@@ -21014,7 +21014,7 @@ parameters are a RESULT of the module parameters. -->
     <moduleName>adc_fifo_0</moduleName>
     <slaveName>descriptor_slave</slaveName>
     <name>adc_fifo_0.descriptor_slave</name>
-    <baseAddress>73760</baseAddress>
+    <baseAddress>69664</baseAddress>
     <span>16</span>
    </memoryBlock>
    <memoryBlock>
@@ -21022,7 +21022,7 @@ parameters are a RESULT of the module parameters. -->
     <moduleName>adc_fifo_0</moduleName>
     <slaveName>response</slaveName>
     <name>adc_fifo_0.response</name>
-    <baseAddress>73792</baseAddress>
+    <baseAddress>69696</baseAddress>
     <span>8</span>
    </memoryBlock>
    <memoryBlock>
@@ -21030,7 +21030,7 @@ parameters are a RESULT of the module parameters. -->
     <moduleName>slave_io_0</moduleName>
     <slaveName>s0</slaveName>
     <name>slave_io_0.s0</name>
-    <baseAddress>65536</baseAddress>
+    <baseAddress>73728</baseAddress>
     <span>4096</span>
    </memoryBlock>
    <memoryBlock>
@@ -21046,7 +21046,7 @@ parameters are a RESULT of the module parameters. -->
     <moduleName>pio_dg</moduleName>
     <slaveName>s1</slaveName>
     <name>pio_dg.s1</name>
-    <baseAddress>69888</baseAddress>
+    <baseAddress>65536</baseAddress>
     <span>16</span>
    </memoryBlock>
    <memoryBlock>
@@ -21054,7 +21054,7 @@ parameters are a RESULT of the module parameters. -->
     <moduleName>pio_in</moduleName>
     <slaveName>s1</slaveName>
     <name>pio_in.s1</name>
-    <baseAddress>69920</baseAddress>
+    <baseAddress>65568</baseAddress>
     <span>16</span>
    </memoryBlock>
    <memoryBlock>
@@ -21062,7 +21062,7 @@ parameters are a RESULT of the module parameters. -->
     <moduleName>pio_out</moduleName>
     <slaveName>s1</slaveName>
     <name>pio_out.s1</name>
-    <baseAddress>69952</baseAddress>
+    <baseAddress>65600</baseAddress>
     <span>16</span>
    </memoryBlock>
   </interface>
@@ -48420,7 +48420,7 @@ parameters are a RESULT of the module parameters. -->
     <moduleName>adc_fifo_0</moduleName>
     <slaveName>csr</slaveName>
     <name>adc_fifo_0.csr</name>
-    <baseAddress>73728</baseAddress>
+    <baseAddress>69632</baseAddress>
     <span>32</span>
    </memoryBlock>
    <memoryBlock>
@@ -48428,7 +48428,7 @@ parameters are a RESULT of the module parameters. -->
     <moduleName>adc_fifo_0</moduleName>
     <slaveName>descriptor_slave</slaveName>
     <name>adc_fifo_0.descriptor_slave</name>
-    <baseAddress>73760</baseAddress>
+    <baseAddress>69664</baseAddress>
     <span>16</span>
    </memoryBlock>
    <memoryBlock>
@@ -48436,7 +48436,7 @@ parameters are a RESULT of the module parameters. -->
     <moduleName>adc_fifo_0</moduleName>
     <slaveName>response</slaveName>
     <name>adc_fifo_0.response</name>
-    <baseAddress>73792</baseAddress>
+    <baseAddress>69696</baseAddress>
     <span>8</span>
    </memoryBlock>
    <memoryBlock>
@@ -48444,7 +48444,7 @@ parameters are a RESULT of the module parameters. -->
     <moduleName>slave_io_0</moduleName>
     <slaveName>s0</slaveName>
     <name>slave_io_0.s0</name>
-    <baseAddress>65536</baseAddress>
+    <baseAddress>73728</baseAddress>
     <span>4096</span>
    </memoryBlock>
    <memoryBlock>
@@ -48460,7 +48460,7 @@ parameters are a RESULT of the module parameters. -->
     <moduleName>pio_dg</moduleName>
     <slaveName>s1</slaveName>
     <name>pio_dg.s1</name>
-    <baseAddress>69888</baseAddress>
+    <baseAddress>65536</baseAddress>
     <span>16</span>
    </memoryBlock>
    <memoryBlock>
@@ -48468,7 +48468,7 @@ parameters are a RESULT of the module parameters. -->
     <moduleName>pio_in</moduleName>
     <slaveName>s1</slaveName>
     <name>pio_in.s1</name>
-    <baseAddress>69920</baseAddress>
+    <baseAddress>65568</baseAddress>
     <span>16</span>
    </memoryBlock>
    <memoryBlock>
@@ -48476,7 +48476,7 @@ parameters are a RESULT of the module parameters. -->
     <moduleName>pio_out</moduleName>
     <slaveName>s1</slaveName>
     <name>pio_out.s1</name>
-    <baseAddress>69952</baseAddress>
+    <baseAddress>65600</baseAddress>
     <span>16</span>
    </memoryBlock>
   </interface>
@@ -50399,7 +50399,7 @@ parameters are a RESULT of the module parameters. -->
     <moduleName>adc_fifo_0</moduleName>
     <slaveName>csr</slaveName>
     <name>adc_fifo_0.csr</name>
-    <baseAddress>3221299200</baseAddress>
+    <baseAddress>3221295104</baseAddress>
     <span>32</span>
    </memoryBlock>
    <memoryBlock>
@@ -50407,7 +50407,7 @@ parameters are a RESULT of the module parameters. -->
     <moduleName>adc_fifo_0</moduleName>
     <slaveName>descriptor_slave</slaveName>
     <name>adc_fifo_0.descriptor_slave</name>
-    <baseAddress>3221299232</baseAddress>
+    <baseAddress>3221295136</baseAddress>
     <span>16</span>
    </memoryBlock>
    <memoryBlock>
@@ -50415,7 +50415,7 @@ parameters are a RESULT of the module parameters. -->
     <moduleName>adc_fifo_0</moduleName>
     <slaveName>response</slaveName>
     <name>adc_fifo_0.response</name>
-    <baseAddress>3221299264</baseAddress>
+    <baseAddress>3221295168</baseAddress>
     <span>8</span>
    </memoryBlock>
    <memoryBlock>
@@ -50423,7 +50423,7 @@ parameters are a RESULT of the module parameters. -->
     <moduleName>slave_io_0</moduleName>
     <slaveName>s0</slaveName>
     <name>slave_io_0.s0</name>
-    <baseAddress>3221291008</baseAddress>
+    <baseAddress>3221299200</baseAddress>
     <span>4096</span>
    </memoryBlock>
    <memoryBlock>
@@ -50439,7 +50439,7 @@ parameters are a RESULT of the module parameters. -->
     <moduleName>pio_dg</moduleName>
     <slaveName>s1</slaveName>
     <name>pio_dg.s1</name>
-    <baseAddress>3221295360</baseAddress>
+    <baseAddress>3221291008</baseAddress>
     <span>16</span>
    </memoryBlock>
    <memoryBlock>
@@ -50447,7 +50447,7 @@ parameters are a RESULT of the module parameters. -->
     <moduleName>pio_in</moduleName>
     <slaveName>s1</slaveName>
     <name>pio_in.s1</name>
-    <baseAddress>3221295392</baseAddress>
+    <baseAddress>3221291040</baseAddress>
     <span>16</span>
    </memoryBlock>
    <memoryBlock>
@@ -50455,7 +50455,7 @@ parameters are a RESULT of the module parameters. -->
     <moduleName>pio_out</moduleName>
     <slaveName>s1</slaveName>
     <name>pio_out.s1</name>
-    <baseAddress>3221295424</baseAddress>
+    <baseAddress>3221291072</baseAddress>
     <span>16</span>
    </memoryBlock>
    <memoryBlock>
@@ -51334,7 +51334,7 @@ parameters are a RESULT of the module parameters. -->
     <moduleName>adc_fifo_0</moduleName>
     <slaveName>csr</slaveName>
     <name>adc_fifo_0.csr</name>
-    <baseAddress>3221299200</baseAddress>
+    <baseAddress>3221295104</baseAddress>
     <span>32</span>
    </memoryBlock>
    <memoryBlock>
@@ -51342,7 +51342,7 @@ parameters are a RESULT of the module parameters. -->
     <moduleName>adc_fifo_0</moduleName>
     <slaveName>descriptor_slave</slaveName>
     <name>adc_fifo_0.descriptor_slave</name>
-    <baseAddress>3221299232</baseAddress>
+    <baseAddress>3221295136</baseAddress>
     <span>16</span>
    </memoryBlock>
    <memoryBlock>
@@ -51350,7 +51350,7 @@ parameters are a RESULT of the module parameters. -->
     <moduleName>adc_fifo_0</moduleName>
     <slaveName>response</slaveName>
     <name>adc_fifo_0.response</name>
-    <baseAddress>3221299264</baseAddress>
+    <baseAddress>3221295168</baseAddress>
     <span>8</span>
    </memoryBlock>
    <memoryBlock>
@@ -51358,7 +51358,7 @@ parameters are a RESULT of the module parameters. -->
     <moduleName>slave_io_0</moduleName>
     <slaveName>s0</slaveName>
     <name>slave_io_0.s0</name>
-    <baseAddress>3221291008</baseAddress>
+    <baseAddress>3221299200</baseAddress>
     <span>4096</span>
    </memoryBlock>
    <memoryBlock>
@@ -51374,7 +51374,7 @@ parameters are a RESULT of the module parameters. -->
     <moduleName>pio_dg</moduleName>
     <slaveName>s1</slaveName>
     <name>pio_dg.s1</name>
-    <baseAddress>3221295360</baseAddress>
+    <baseAddress>3221291008</baseAddress>
     <span>16</span>
    </memoryBlock>
    <memoryBlock>
@@ -51382,7 +51382,7 @@ parameters are a RESULT of the module parameters. -->
     <moduleName>pio_in</moduleName>
     <slaveName>s1</slaveName>
     <name>pio_in.s1</name>
-    <baseAddress>3221295392</baseAddress>
+    <baseAddress>3221291040</baseAddress>
     <span>16</span>
    </memoryBlock>
    <memoryBlock>
@@ -51390,7 +51390,7 @@ parameters are a RESULT of the module parameters. -->
     <moduleName>pio_out</moduleName>
     <slaveName>s1</slaveName>
     <name>pio_out.s1</name>
-    <baseAddress>3221295424</baseAddress>
+    <baseAddress>3221291072</baseAddress>
     <span>16</span>
    </memoryBlock>
    <memoryBlock>
@@ -89818,7 +89818,7 @@ the requested settings for a module instance. -->
   </assignment>
   <assignment>
    <name>embeddedsw.dts.vendor</name>
-   <value>altera</value>
+   <value>altr</value>
   </assignment>
   <parameter name="DATA_WIDTH">
    <type>int</type>
@@ -90750,7 +90750,7 @@ the requested settings for a module instance. -->
   </assignment>
   <assignment>
    <name>embeddedsw.CMacro.TIMESTAMP</name>
-   <value>1627885135</value>
+   <value>1627983338</value>
   </assignment>
   <assignment>
    <name>embeddedsw.dts.compatible</name>
@@ -90770,7 +90770,7 @@ the requested settings for a module instance. -->
   </assignment>
   <assignment>
    <name>embeddedsw.dts.params.timestamp</name>
-   <value>1627885135</value>
+   <value>1627983338</value>
   </assignment>
   <assignment>
    <name>embeddedsw.dts.vendor</name>
@@ -90786,7 +90786,7 @@ the requested settings for a module instance. -->
   </parameter>
   <parameter name="timestamp">
    <type>int</type>
-   <value>1627885135</value>
+   <value>1627983338</value>
    <derived>true</derived>
    <enabled>false</enabled>
    <visible>false</visible>
@@ -101385,7 +101385,7 @@ parameters are a RESULT of the module parameters. -->
   </parameter>
   <parameter name="baseAddress">
    <type>java.math.BigInteger</type>
-   <value>0x00012000</value>
+   <value>0x00011000</value>
    <derived>false</derived>
    <enabled>true</enabled>
    <visible>true</visible>
@@ -101436,7 +101436,7 @@ parameters are a RESULT of the module parameters. -->
   </parameter>
   <parameter name="baseAddress">
    <type>java.math.BigInteger</type>
-   <value>0x00012020</value>
+   <value>0x00011020</value>
    <derived>false</derived>
    <enabled>true</enabled>
    <visible>true</visible>
@@ -101487,7 +101487,7 @@ parameters are a RESULT of the module parameters. -->
   </parameter>
   <parameter name="baseAddress">
    <type>java.math.BigInteger</type>
-   <value>0x00012040</value>
+   <value>0x00011040</value>
    <derived>false</derived>
    <enabled>true</enabled>
    <visible>true</visible>
@@ -101538,7 +101538,7 @@ parameters are a RESULT of the module parameters. -->
   </parameter>
   <parameter name="baseAddress">
    <type>java.math.BigInteger</type>
-   <value>0x00010000</value>
+   <value>0x00012000</value>
    <derived>false</derived>
    <enabled>true</enabled>
    <visible>true</visible>
@@ -101640,7 +101640,7 @@ parameters are a RESULT of the module parameters. -->
   </parameter>
   <parameter name="baseAddress">
    <type>java.math.BigInteger</type>
-   <value>0x00011100</value>
+   <value>0x00010000</value>
    <derived>false</derived>
    <enabled>true</enabled>
    <visible>true</visible>
@@ -101691,7 +101691,7 @@ parameters are a RESULT of the module parameters. -->
   </parameter>
   <parameter name="baseAddress">
    <type>java.math.BigInteger</type>
-   <value>0x00011120</value>
+   <value>0x00010020</value>
    <derived>false</derived>
    <enabled>true</enabled>
    <visible>true</visible>
@@ -101742,7 +101742,7 @@ parameters are a RESULT of the module parameters. -->
   </parameter>
   <parameter name="baseAddress">
    <type>java.math.BigInteger</type>
-   <value>0x00011140</value>
+   <value>0x00010040</value>
    <derived>false</derived>
    <enabled>true</enabled>
    <visible>true</visible>

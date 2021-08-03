@@ -11,7 +11,9 @@ module delay_pulse_generator ( input wire clk
                                , input wire reset_n
                                , input wire [WIDTH-1:0] interval
                                , input delay_width_t user_delay_width_pairs [ NDELAY_CHANNELS ]
-                               , input wire user_data_valid
+                               , output delay_width_t delay_width_pairs [ NDELAY_CHANNELS ]
+                               , input wire  user_data_valid
+                               , output wire user_data_sync
                                , output wire [NDELAY_CHANNELS-1:0] pins
                                , output wire tp0
                                , output wire [WIDTH-1:0] delay_counter
@@ -25,6 +27,9 @@ module delay_pulse_generator ( input wire clk
    reg [WIDTH-1:0] counter = 0;
    reg             user_data_valid_latch, user_data_valid_ack;
    var delay_width_t delay_width_pairs_reg [ NDELAY_CHANNELS ];
+
+   assign user_data_sync = user_data_valid_ack;
+   assign delay_width_pairs = delay_width_pairs_reg;
 
    initial begin
       integer k;
@@ -78,7 +83,13 @@ module delay_pulse_generator ( input wire clk
       genvar i;
       for ( i = 0; i < NDELAY_CHANNELS; i = i + 1 ) begin : ctor
          delay_pulse #( .WIDTH(WIDTH) )
-         delay_pulse_i( .clk( clk ), .reset_n( reset_n ), .t0(t0), .delay(delay_width_pairs_reg[i].delay), .width(delay_width_pairs_reg[i].width), .pinout( pins[i] ) );
+         delay_pulse_i( .clk( clk )
+                        , .reset_n ( reset_n )
+                        , .t0      ( t0 )
+                        , .delay   ( delay_width_pairs_reg[i].delay )
+                        , .width   ( delay_width_pairs_reg[i].width )
+                        , .pinout  ( pins[ i ] )
+                        );
       end
    endgenerate
 

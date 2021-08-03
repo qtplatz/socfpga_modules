@@ -147,6 +147,33 @@ dgmod_proc_read( struct seq_file * m, void * v )
     return 0;
 }
 
+
+static void
+dgmod_dg_init( struct platform_device * pdev )
+{
+    struct dgmod_driver * drv = platform_get_drvdata( __pdev );
+    if ( drv ) {
+        __slave_data64( drv->regs,  0 )->user_datain =    0LL << 32 | 100000LL;     // flags = 0, interval = 1 ms
+        __slave_data64( drv->regs,  1 )->user_datain =  100LL << 32 | (0x100LL);    // p0  = 0 ns, 1 us width
+        __slave_data64( drv->regs,  2 )->user_datain =  200LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+        __slave_data64( drv->regs,  3 )->user_datain =  300LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+        __slave_data64( drv->regs,  4 )->user_datain =  400LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+        __slave_data64( drv->regs,  5 )->user_datain =  500LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+        __slave_data64( drv->regs,  6 )->user_datain =  600LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+        __slave_data64( drv->regs,  7 )->user_datain =  700LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+        __slave_data64( drv->regs,  8 )->user_datain =  800LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+        __slave_data64( drv->regs,  9 )->user_datain =  900LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+        __slave_data64( drv->regs, 10 )->user_datain = 1000LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+        __slave_data64( drv->regs, 11 )->user_datain = 1100LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+        __slave_data64( drv->regs, 12 )->user_datain = 1200LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+        __slave_data64( drv->regs, 13 )->user_datain = 1300LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+        __slave_data64( drv->regs, 14 )->user_datain = 1400LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+
+        // set page 0 (actual monitor), and commit value
+        __slave_data64( drv->regs, 15 )->user_datain = 0x0LL << 32 | 0x01;
+    }
+}
+
 static ssize_t
 dgmod_proc_write( struct file * filep, const char * user, size_t size, loff_t * f_off )
 {
@@ -162,22 +189,30 @@ dgmod_proc_write( struct file * filep, const char * user, size_t size, loff_t * 
     struct dgmod_driver * drv = platform_get_drvdata( __pdev );
     if ( drv ) {
         if ( strncmp( readbuf, "write", 5 ) == 0 ) {
-            __slave_data64( drv->regs,  2 )->user_datain = 0x1122334455667788LL;
-            __slave_data64( drv->regs,  2 )->user_datain = (1000000LL) << 32 | (0x11111111LL);
-            __slave_data64( drv->regs,  3 )->user_datain = (1000000LL) << 32 | (0x11111111LL);
-            __slave_data64( drv->regs,  4 )->user_datain = (1000000LL) << 32 | (0x11111111LL);
-            __slave_data64( drv->regs,  5 )->user_datain = (1000000LL) << 32 | (0x11111111LL);
-            __slave_data64( drv->regs,  6 )->user_datain = (1000000LL) << 32 | (0x11111111LL);
-            __slave_data64( drv->regs,  7 )->user_datain = (1000000LL) << 32 | (0x11111111LL);
-            __slave_data64( drv->regs,  8 )->user_datain = (1000000LL) << 32 | (0x11111111LL);
-            __slave_data64( drv->regs,  9 )->user_datain = (1000000LL) << 32 | (0x11111111LL);
-            __slave_data64( drv->regs, 10 )->user_datain = (1000000LL) << 32 | (0x11111111LL);
-            __slave_data64( drv->regs, 11 )->user_datain = (1000000LL) << 32 | (0x11111111LL);
-            __slave_data64( drv->regs, 12 )->user_datain = (1000000LL) << 32 | (0x11111111LL);
-            __slave_data64( drv->regs, 13 )->user_datain = (1000000LL) << 32 | (0x11111111LL);
-            __slave_data64( drv->regs, 14 )->user_datain = (1000000LL) << 32 | (0x11111111LL);
-            __slave_data64( drv->regs, 15 )->user_datain = (1000000LL) << 32 | (0x11111111LL);
-            __slave_data64( drv->regs,  1 )->user_datain = 0x11223344LL;
+            __slave_data64( drv->regs,  0 )->user_datain =    0LL << 32 | 100000LL;     // flags = 0, interval = 1 ms
+            __slave_data64( drv->regs,  1 )->user_datain =  100LL << 32 | (0x100LL);    // p0  = 0 ns, 1 us width
+            __slave_data64( drv->regs,  2 )->user_datain =  200LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+            __slave_data64( drv->regs,  3 )->user_datain =  300LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+            __slave_data64( drv->regs,  4 )->user_datain =  400LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+            __slave_data64( drv->regs,  5 )->user_datain =  500LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+            __slave_data64( drv->regs,  6 )->user_datain =  600LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+            __slave_data64( drv->regs,  7 )->user_datain =  700LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+            __slave_data64( drv->regs,  8 )->user_datain =  800LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+            __slave_data64( drv->regs,  9 )->user_datain =  900LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+            __slave_data64( drv->regs, 10 )->user_datain = 1000LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+            __slave_data64( drv->regs, 11 )->user_datain = 1100LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+            __slave_data64( drv->regs, 12 )->user_datain = 1200LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+            __slave_data64( drv->regs, 13 )->user_datain = 1300LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+            __slave_data64( drv->regs, 14 )->user_datain = 1400LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+        }
+        else if ( strncmp( readbuf, "commit", 6 ) == 0 ) {
+            __slave_data64( drv->regs, 15 )->user_datain = 0x01;
+        }
+        else if ( strncmp( readbuf, "p1", 2 ) == 0 ) {
+            __slave_data64( drv->regs, 15 )->user_datain = 1LL << 32;
+        }
+        else if ( strncmp( readbuf, "p0", 2 ) == 0 ) {
+            __slave_data64( drv->regs, 15 )->user_datain = 0LL << 32;
         }
     }
     return size;
@@ -321,7 +356,7 @@ dgmod_cdev_mmap( struct file * file, struct vm_area_struct * vma )
                            , size
                            , vma->vm_page_prot );
     if (ret < 0) {
-        printk(KERN_CRIT "%s: remap of shared memory failed, %d\n", __func__, ret);
+        dev_err(&__pdev->dev, "%s: remap of shared memory failed, %d\n", __func__, ret);
         return ret;
     }
 

@@ -100,6 +100,16 @@ inline static volatile slave_data64 * __slave_data64( void __iomem * regs, u32 i
     return ((volatile slave_data64 *)(regs)) + idx;
 }
 
+inline static u32 __slave_get_flags( void __iomem * regs )
+{
+    return (u32)( __slave_data64( regs, 0 )->user_dataout >> 32 );
+}
+
+inline static void __slave_set_flags( void __iomem * regs, u32 flags )
+{
+    __slave_data64( regs, 15 )->user_datain = (u64)flags << 32;
+}
+
 
 static irqreturn_t
 handle_interrupt( int irq, void *dev_id )
@@ -137,11 +147,31 @@ dgmod_proc_read( struct seq_file * m, void * v )
 
     if ( drv ) {
         seq_printf( m, "proc_read irqCount=%d\n", drv->irqCount );
-        for ( int i = 0; i < 16; ++i ) {
+
+        // current page can read from [0]
+        u64 save_page = __slave_data64( drv->regs, 0 )->user_dataout & ~0x0ffffffffL;
+
+        u64 data[ 16 ][ 2 ];
+        volatile struct slave_data64 * user_flags = __slave_data64( drv->regs, 15 );
+
+        user_flags->user_datain = 0x0000000000000000LL;
+        for ( size_t i = 0; i < 16; ++i ) {
             volatile struct slave_data64 * p = __slave_data64( drv->regs, i );
-            seq_printf( m, "[%2d] 0x%08x:%08x\t", i, (u32)(p->user_dataout >> 32), (u32)(p->user_dataout & 0xffffffff) );
-            seq_printf( m, "%08x:%08x\n", (u32)(p->user_datain >> 32), (u32)(p->user_datain & 0xffffffff) );
+            data[ i ][ 0 ] = p->user_dataout;
         }
+
+        user_flags->user_datain = 0x0000000100000000LL;
+        for ( size_t i = 0; i < 16; ++i ) {
+            volatile struct slave_data64 * p = __slave_data64( drv->regs, i );
+            data[ i ][ 1 ] = p->user_dataout;
+        }
+
+        seq_printf( m, "[id] <actuals (p0)>\t<setpoints (p1)>\n" );
+        for ( size_t i = 0; i < 16; ++i ) {
+            seq_printf( m, "[%2d] %016llx\t%016llx\n", i, data[ i ][ 0 ], data[ i ][ 1 ] );
+        }
+
+        user_flags->user_datain = save_page; // restore page
     }
 
     return 0;
@@ -150,6 +180,7 @@ dgmod_proc_read( struct seq_file * m, void * v )
 static void
 dgmod_dg_init( struct dgmod_driver * drv )
 {
+#if 0
     if ( drv ) {
         __slave_data64( drv->regs, 15 )->user_datain = 1LL << 32; // set page 1 (set point)
         int has_value = 0;
@@ -179,6 +210,7 @@ dgmod_dg_init( struct dgmod_driver * drv )
         // set page 0 (actual monitor), and commit value
         __slave_data64( drv->regs, 15 )->user_datain = 0x0LL << 32 | 0x01;
     }
+#endif
 }
 
 static ssize_t
@@ -259,7 +291,7 @@ static int dgmod_cdev_open(struct inode *inode, struct file *file)
                                      , GFP_KERNEL );
     if ( private_data ) {
         private_data->node =  MINOR( inode->i_rdev );
-        private_data->size = 16 * sizeof(u64);
+        private_data->size = 32 * sizeof(u64); // return p0, p1 (each of 16 items)
         private_data->mmap = 0;
         file->private_data = private_data;
     }
@@ -270,8 +302,6 @@ static int dgmod_cdev_open(struct inode *inode, struct file *file)
 static int dgmod_cdev_release(struct inode *inode, struct file *file)
 {
     if ( file->private_data ) {
-        // todo -- maybe refcount for mmap ?
-        // dev_info(&__pdev->dev, "dgmod_cdev_release inode=%d", MINOR( inode->i_rdev ) );
         devm_kfree( &__pdev->dev, file->private_data );
     }
     return 0;
@@ -295,23 +325,34 @@ static ssize_t dgmod_cdev_read(struct file *file, char __user *data, size_t size
         }
 
         struct dgmod_cdev_private * private_data = file->private_data;
-
         // 64 bit align
         *f_pos &= ~07;
+
+        const u32 save_flags = __slave_get_flags( drv->regs );
+        u32 pn = *f_pos / ( 16 * sizeof(u64) );
+        __slave_set_flags( drv->regs, pn );
+        // dev_info(&__pdev->dev, "%s: pn = %x\n", __func__, pn );
 
         if ( *f_pos < private_data->size ) {
             size_t dsize = private_data->size - *f_pos;
             for ( size_t i = *f_pos / sizeof(u64); i < dsize / sizeof(u64); ++i ) {
-                u64 d = __slave_data64( drv->regs, i )->user_dataout;
+                u64 d = __slave_data64( drv->regs, i % 16 )->user_dataout;
                 if ( copy_to_user( data, (const char *)&d, sizeof(u64) ) ) {
                     up( &__sem );
                     return -EFAULT;
                 }
-                data += sizeof(u64);
+                data += sizeof( u64 );
+                *f_pos += sizeof( u64 );
+                u32 pnn = *f_pos / ( 16 * sizeof( u64 ) );
+                // dev_info(&__pdev->dev, "%s: pnn = %x, %x\n", __func__, pnn, pn );
+                if ( pnn != pn ) {
+                    pn = pnn;
+                    __slave_set_flags( drv->regs, pn );
+                }
             }
-            *f_pos += dsize;
             count = dsize;
         }
+        __slave_set_flags( drv->regs, save_flags );
         up( &__sem );
     }
     return count;
@@ -335,6 +376,9 @@ static ssize_t dgmod_cdev_write(struct file *file, const char __user *data, size
                 up( &__sem );
                 return -EFAULT;
             }
+            size_t idx = *f_pos / (16 * sizeof( u64 ) );
+            __slave_data64( drv->regs, idx % 16 )->user_dataout = d;
+
             *f_pos += sizeof( u64 );
             count += sizeof( u64 );
             size -= sizeof( u64 );
@@ -343,6 +387,7 @@ static ssize_t dgmod_cdev_write(struct file *file, const char __user *data, size
     }
     return count;
 }
+
 
 static ssize_t
 dgmod_cdev_mmap( struct file * file, struct vm_area_struct * vma )
@@ -364,10 +409,10 @@ dgmod_cdev_mmap( struct file * file, struct vm_area_struct * vma )
     dev_info( &__pdev->dev, "----------- resource %x, %x, %x PAGE_SHIFT=%x\n"
               , drv->mem_resource->start, drv->mem_resource->end
               , drv->mem_resource->end - drv->mem_resource->start + 1, PAGE_SHIFT );
-    dev_info( &__pdev->dev, "pfn: %x\n", drv->mem_resource->start >> PAGE_SHIFT);
+
     if ( ( ret = remap_pfn_range( vma
                                   , vma->vm_start
-                                  , drv->mem_resource->start >> PAGE_SHIFT;
+                                  , (drv->mem_resource->start >> PAGE_SHIFT)
                                   , size
                                   , vma->vm_page_prot ) ) ) {
         dev_err(&__pdev->dev, "%s: remap of shared memory failed, %d\n", __func__, ret);

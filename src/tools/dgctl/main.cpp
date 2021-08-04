@@ -82,7 +82,8 @@ main( int argc, char **argv )
         };
 
         std::cerr << "-------------- memory map test ------------- file: "
-                  <<  vm[ "device" ].as< std::string >() << std::endl;
+                  <<  vm[ "device" ].as< std::string >() << "unit size: " << sizeof( slave_data64 ) << std::endl;
+
         int fd = ::open( vm[ "device" ].as< std::string >().c_str(), O_RDWR );
         if ( fd > 0 ) {
             void * mp = mmap(0, 0x1000, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
@@ -93,21 +94,18 @@ main( int argc, char **argv )
             }
 
             std::cout << "mapped address = " << std::hex << mp << std::endl;
-#if 1
-            volatile uint64_t * p = reinterpret_cast< volatile uint64_t * > ( mp );
-            for ( size_t i = 0; i < 15; ++i ) {
-                std::cout << boost::format( "[%2d] %016x\t%016x\t%016x\t%016x" )
-                    % i % *p % *(p + 1) % *(p + 2 ) % *(p + 3) << std::endl;
-                p += 16;
-            }
-#else
             volatile slave_data64 * iop = reinterpret_cast< volatile slave_data64 *>( mp );
-            for ( size_t i = 0; i < 15; ++i ) {
+            iop[ 15 ].user_datain = 0x00000001LL << 32;
+            for ( size_t i = 0; i < 16; ++i ) {
                 auto p = &iop[ i ];
                 std::cout << boost::format( "[%2d] %016x\t%016x\t%016x\t%016x" )
-                    % i % p->user_dataout % p->user_datain % p->irqmask % p->edge_capture << std::endl;
+                    % i
+                    % p->user_dataout
+                    % p->user_datain
+                    % p->irqmask
+                    % p->edge_capture
+                          << std::endl;
             }
-#endif
         } else {
             perror("open failed");
         }
@@ -115,33 +113,30 @@ main( int argc, char **argv )
         return 0;
     }
 
-    std::array< uint32_t, 32 > data[ 2 ] = { 0 };
+    std::array< uint64_t, 16 > data[ 2 ] = { 0 };
     std::pair< size_t, size_t > sz; // altera de0-nano-soc only returns 32 dwords (16 x 64 bit)
     do {
         std::ifstream in( vm[ "device" ].as< std::string >(), std::ios::binary | std::ios::in );
-        sz.first = in.read( reinterpret_cast< char * >( data[ 0 ].data() ), data[0].size() * sizeof( uint32_t ) ).gcount();
-        sz.second = in.read( reinterpret_cast< char * >( data[ 1 ].data() ), data[1].size() * sizeof( uint32_t ) ).gcount();
+        sz.first = in.read( reinterpret_cast< char * >( data[ 0 ].data() ), data[0].size() * sizeof( uint64_t ) ).gcount();
+        sz.second = in.read( reinterpret_cast< char * >( data[ 1 ].data() ), data[1].size() * sizeof( uint64_t ) ).gcount();
     } while ( 0 );
 
     if ( vm.count( "list" ) || argc == 1 ) {
         if ( sz.second ) {
-            for ( size_t i = 0; i < data[ 0 ].size(); i += 2 ) {
+            for ( size_t i = 0; i < data[ 0 ].size(); ++i ) {
                 std::cout <<
-                    boost::format( "%d\t0x%08x\t0x%08x\t|\t0x%08x\t%08x" )
+                    boost::format( "%d\t0x%016x\t0x%016x" )
                     % i
                     % data[ 0 ].at( i )
-                    % data[ 0 ].at( i + 1 )
                     % data[ 1 ].at( i )
-                    % data[ 1 ].at( i + 1 )
                           << std::endl;
             }
         } else {
-            for ( size_t i = 0; i < data[ 0 ].size(); i += 2 ) {
+            for ( size_t i = 0; i < data[ 0 ].size(); ++i ) {
                 std::cout <<
-                    boost::format( "%d\t0x%08x\t0x%08x" )
+                    boost::format( "%d\t0x%016x" )
                     % i
                     % data[ 0 ].at( i )
-                    % data[ 0 ].at( i + 1 )
                           << std::endl;
             }
         }

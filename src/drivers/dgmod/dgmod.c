@@ -75,7 +75,7 @@ struct dgmod_driver {
 struct dgmod_cdev_private {
     u32 node;
     u32 size;
-    u64 user_data [ 16 ];
+    void * mmap;
 };
 
 
@@ -252,8 +252,7 @@ static const struct file_operations dgmod_proc_file_fops = {
 
 static int dgmod_cdev_open(struct inode *inode, struct file *file)
 {
-    dev_info(&__pdev->dev, "dgmod_cdev_open inode=%d", MINOR( inode->i_rdev ) );
-
+    // dev_info(&__pdev->dev, "dgmod_cdev_open inode=%d", MINOR( inode->i_rdev ) );
     struct dgmod_cdev_private *
         private_data = devm_kzalloc( &__pdev->dev
                                      , sizeof( struct dgmod_cdev_private )
@@ -261,6 +260,7 @@ static int dgmod_cdev_open(struct inode *inode, struct file *file)
     if ( private_data ) {
         private_data->node =  MINOR( inode->i_rdev );
         private_data->size = 16 * sizeof(u64);
+        private_data->mmap = 0;
         file->private_data = private_data;
     }
 
@@ -270,7 +270,8 @@ static int dgmod_cdev_open(struct inode *inode, struct file *file)
 static int dgmod_cdev_release(struct inode *inode, struct file *file)
 {
     if ( file->private_data ) {
-        dev_info(&__pdev->dev, "dgmod_cdev_release inode=%d", MINOR( inode->i_rdev ) );
+        // todo -- maybe refcount for mmap ?
+        // dev_info(&__pdev->dev, "dgmod_cdev_release inode=%d", MINOR( inode->i_rdev ) );
         devm_kfree( &__pdev->dev, file->private_data );
     }
     return 0;
@@ -366,7 +367,6 @@ dgmod_cdev_mmap( struct file * file, struct vm_area_struct * vma )
     struct page * page = virt_to_page( (u32)(drv->regs) + (vma->vm_pgoff << PAGE_SHIFT));
     u32 pfn = page_to_pfn( page );
     dev_info( &__pdev->dev, "pfn: %x\n", pfn );
-
     if ( ( ret = remap_pfn_range( vma
                                   , vma->vm_start
                                   , pfn

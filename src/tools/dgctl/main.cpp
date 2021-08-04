@@ -85,9 +85,7 @@ main( int argc, char **argv )
                   <<  vm[ "device" ].as< std::string >() << std::endl;
         int fd = ::open( vm[ "device" ].as< std::string >().c_str(), O_RDWR );
         if ( fd > 0 ) {
-            // flags = MAP_SHARED;
-            int flags = MAP_PRIVATE;
-            void * mp = mmap(0, 0x1000, PROT_READ | PROT_WRITE, flags, fd, 0);
+            void * mp = mmap(0, 0x1000, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
             if( mp == reinterpret_cast< void * >(-1) ){
                 perror( "mmap error" );
                 close(fd);

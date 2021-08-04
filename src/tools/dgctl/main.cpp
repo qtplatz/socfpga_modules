@@ -36,6 +36,13 @@
 #include <iomanip>
 #include <memory>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <sys/mman.h>
+
 bool __verbose = true;
 
 int
@@ -51,6 +58,7 @@ main( int argc, char **argv )
             ( "list,l",        "list register" )
             ( "json,j",        "list register as json" )
             ( "commit,c",      "commit" )
+            ( "mmap",          "use mmap" )
             ( "set",           po::value<std::vector< uint32_t > >()->multitoken(),  "set timings" )
             ;
         po::positional_options_description p;
@@ -61,6 +69,42 @@ main( int argc, char **argv )
 
     if ( vm.count( "help" ) ) {
         std::cerr << description;
+        return 0;
+    }
+
+    if ( vm.count( "mmap" ) ) {
+        struct slave_data64 {
+            uint64_t user_dataout;    // 0x00
+            uint64_t user_datain;     // 0x08
+            uint64_t irqmask;         // 0x10
+            uint64_t edge_capture;    // 0x18
+            uint64_t resv[12];        //
+        };
+
+        std::cerr << "-------------- memory map test ------------- file: "
+                  <<  vm[ "device" ].as< std::string >() << std::endl;
+        int fd = ::open( vm[ "device" ].as< std::string >().c_str(), O_RDWR );
+        if ( fd > 0 ) {
+            // flags = MAP_SHARED;
+            int flags = MAP_PRIVATE;
+            void * mp = mmap(0, 0x1000, PROT_READ | PROT_WRITE, flags, fd, 0);
+            if( mp == reinterpret_cast< void * >(-1) ){
+                perror( "mmap error" );
+                close(fd);
+                exit(1);
+            }
+
+            std::cout << "mapped address = " << std::hex << mp << std::endl;
+            volatile slave_data64 * iop = reinterpret_cast< volatile slave_data64 *>( mp );
+            for ( size_t i = 0; i < 15; ++i ) {
+                auto p = &iop[ i ];
+                std::cout << boost::format( "[%2d] %016x\t%016x\t%016x\t%016x" )
+                    % i % p->user_dataout % p->user_datain % p->irqmask % p->edge_capture << std::endl;
+            }
+        } else {
+            perror("open failed");
+        }
+
         return 0;
     }
 

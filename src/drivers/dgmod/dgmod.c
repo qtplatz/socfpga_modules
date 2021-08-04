@@ -147,28 +147,35 @@ dgmod_proc_read( struct seq_file * m, void * v )
     return 0;
 }
 
-
 static void
-dgmod_dg_init( struct platform_device * pdev )
+dgmod_dg_init( struct dgmod_driver * drv )
 {
-    struct dgmod_driver * drv = platform_get_drvdata( __pdev );
     if ( drv ) {
-        __slave_data64( drv->regs,  0 )->user_datain =    0LL << 32 | 100000LL;     // flags = 0, interval = 1 ms
-        __slave_data64( drv->regs,  1 )->user_datain =  100LL << 32 | (0x100LL);    // p0  = 0 ns, 1 us width
-        __slave_data64( drv->regs,  2 )->user_datain =  200LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-        __slave_data64( drv->regs,  3 )->user_datain =  300LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-        __slave_data64( drv->regs,  4 )->user_datain =  400LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-        __slave_data64( drv->regs,  5 )->user_datain =  500LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-        __slave_data64( drv->regs,  6 )->user_datain =  600LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-        __slave_data64( drv->regs,  7 )->user_datain =  700LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-        __slave_data64( drv->regs,  8 )->user_datain =  800LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-        __slave_data64( drv->regs,  9 )->user_datain =  900LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-        __slave_data64( drv->regs, 10 )->user_datain = 1000LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-        __slave_data64( drv->regs, 11 )->user_datain = 1100LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-        __slave_data64( drv->regs, 12 )->user_datain = 1200LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-        __slave_data64( drv->regs, 13 )->user_datain = 1300LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-        __slave_data64( drv->regs, 14 )->user_datain = 1400LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-
+        __slave_data64( drv->regs, 15 )->user_datain = 1LL << 32; // set page 1 (set point)
+        int has_value = 0;
+        for ( int i = 1; i < 9; ++i ) {
+            if ( __slave_data64( drv->regs,  i )->user_dataout != 0LL ) {
+                has_value = 1;
+                break;
+            }
+        }
+        if ( ! has_value ) {
+            __slave_data64( drv->regs,  0 )->user_datain =    0LL << 32 | 100000LL;   // flags = 0, interval = 1 ms
+            __slave_data64( drv->regs,  1 )->user_datain =  100LL << 32 | (0x100LL);  // p0  = 0 ns, 1 us width
+            __slave_data64( drv->regs,  2 )->user_datain =  200LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+            __slave_data64( drv->regs,  3 )->user_datain =  300LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+            __slave_data64( drv->regs,  4 )->user_datain =  400LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+            __slave_data64( drv->regs,  5 )->user_datain =  500LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+            __slave_data64( drv->regs,  6 )->user_datain =  600LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+            __slave_data64( drv->regs,  7 )->user_datain =  700LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+            __slave_data64( drv->regs,  8 )->user_datain =  800LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+            __slave_data64( drv->regs,  9 )->user_datain =  900LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+            __slave_data64( drv->regs, 10 )->user_datain = 1000LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+            __slave_data64( drv->regs, 11 )->user_datain = 1100LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+            __slave_data64( drv->regs, 12 )->user_datain = 1200LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+            __slave_data64( drv->regs, 13 )->user_datain = 1300LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+            __slave_data64( drv->regs, 14 )->user_datain = 1400LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+        }
         // set page 0 (actual monitor), and commit value
         __slave_data64( drv->regs, 15 )->user_datain = 0x0LL << 32 | 0x01;
     }
@@ -349,17 +356,25 @@ dgmod_cdev_mmap( struct file * file, struct vm_area_struct * vma )
 
     // Map the allocated memory into the calling processes address space.
     u32 size = vma->vm_end - vma->vm_start;
+    if ( size > drv->mem_resource->end - drv->mem_resource->start + 1 )
+        return -EINVAL;
 
-    ret = remap_pfn_range( vma
-                           , vma->vm_start
-                           , drv->mem_resource->start
-                           , size
-                           , vma->vm_page_prot );
-    if (ret < 0) {
+    dev_info( &__pdev->dev, "vma %lx, %lx, %u, pgoff=%lx\n", vma->vm_start, vma->vm_end, size, vma->vm_pgoff );
+    dev_info( &__pdev->dev, "resource %x, %x, %x\n"
+              , drv->mem_resource->start, drv->mem_resource->end
+              , drv->mem_resource->end - drv->mem_resource->start + 1 );
+    struct page * page = virt_to_page( (u32)(drv->regs) + (vma->vm_pgoff << PAGE_SHIFT));
+    u32 pfn = page_to_pfn( page );
+    dev_info( &__pdev->dev, "pfn: %x\n", pfn );
+
+    if ( ( ret = remap_pfn_range( vma
+                                  , vma->vm_start
+                                  , pfn
+                                  , size
+                                  , vma->vm_page_prot ) ) ) {
         dev_err(&__pdev->dev, "%s: remap of shared memory failed, %d\n", __func__, ret);
         return ret;
     }
-
     return ret;
 }
 
@@ -401,7 +416,7 @@ static struct file_operations dgmod_cdev_fops = {
 
 static int dgmod_dev_uevent( struct device * dev, struct kobj_uevent_env * env )
 {
-    add_uevent_var( env, "DEVMODE=%#o", 0644 );
+    add_uevent_var( env, "DEVMODE=%#o", 0666 );
     return 0;
 }
 
@@ -424,6 +439,7 @@ static int dgmod_dtor( int errno )
 
     return errno;
 }
+
 
 static int __init
 dgmod_module_init( void )
@@ -526,6 +542,7 @@ dgmod_module_probe( struct platform_device * pdev )
             drv->mem_resource = res;
             drv->regs = devm_platform_ioremap_resource(pdev, i);
             dev_info( &pdev->dev, "res [%d] 0x%08x, 0x%x = %p\n", i, res->start, res->end - res->start + 1, drv->regs );
+            dgmod_dg_init( drv );
         }
     }
 

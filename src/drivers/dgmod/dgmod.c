@@ -361,15 +361,13 @@ dgmod_cdev_mmap( struct file * file, struct vm_area_struct * vma )
         return -EINVAL;
 
     dev_info( &__pdev->dev, "vma %lx, %lx, %u, pgoff=%lx\n", vma->vm_start, vma->vm_end, size, vma->vm_pgoff );
-    dev_info( &__pdev->dev, "resource %x, %x, %x\n"
+    dev_info( &__pdev->dev, "----------- resource %x, %x, %x PAGE_SHIFT=%x\n"
               , drv->mem_resource->start, drv->mem_resource->end
-              , drv->mem_resource->end - drv->mem_resource->start + 1 );
-    struct page * page = virt_to_page( (u32)(drv->regs) + (vma->vm_pgoff << PAGE_SHIFT));
-    u32 pfn = page_to_pfn( page );
-    dev_info( &__pdev->dev, "pfn: %x\n", pfn );
+              , drv->mem_resource->end - drv->mem_resource->start + 1, PAGE_SHIFT );
+    dev_info( &__pdev->dev, "pfn: %x\n", drv->mem_resource->start >> PAGE_SHIFT);
     if ( ( ret = remap_pfn_range( vma
                                   , vma->vm_start
-                                  , pfn
+                                  , drv->mem_resource->start >> PAGE_SHIFT;
                                   , size
                                   , vma->vm_page_prot ) ) ) {
         dev_err(&__pdev->dev, "%s: remap of shared memory failed, %d\n", __func__, ret);
@@ -585,10 +583,10 @@ dgmod_module_probe( struct platform_device * pdev )
 static int
 dgmod_module_remove( struct platform_device * pdev )
 {
-    int irqNumber;
-    if ( ( irqNumber = platform_get_irq( pdev, 0 ) ) > 0 ) {
-        dev_info( &pdev->dev, "IRQ %d about to be freed\n", irqNumber );
-        free_irq( irqNumber, 0 );
+    struct dgmod_driver * drv = platform_get_drvdata( pdev );
+    if ( drv && drv->irq ) {
+        dev_info( &pdev->dev, "IRQ %d about to be freed\n", drv->irq );
+        devm_free_irq( &pdev->dev, drv->irq, 0 );
     }
     __pdev = 0;
     return 0;

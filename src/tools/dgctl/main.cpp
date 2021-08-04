@@ -93,12 +93,21 @@ main( int argc, char **argv )
             }
 
             std::cout << "mapped address = " << std::hex << mp << std::endl;
+#if 1
+            volatile uint64_t * p = reinterpret_cast< volatile uint64_t * > ( mp );
+            for ( size_t i = 0; i < 15; ++i ) {
+                std::cout << boost::format( "[%2d] %016x\t%016x\t%016x\t%016x" )
+                    % i % *p % *(p + 1) % *(p + 2 ) % *(p + 3) << std::endl;
+                p += 16;
+            }
+#else
             volatile slave_data64 * iop = reinterpret_cast< volatile slave_data64 *>( mp );
             for ( size_t i = 0; i < 15; ++i ) {
                 auto p = &iop[ i ];
                 std::cout << boost::format( "[%2d] %016x\t%016x\t%016x\t%016x" )
                     % i % p->user_dataout % p->user_datain % p->irqmask % p->edge_capture << std::endl;
             }
+#endif
         } else {
             perror("open failed");
         }

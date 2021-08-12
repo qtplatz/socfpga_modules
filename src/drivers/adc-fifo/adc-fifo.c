@@ -59,17 +59,10 @@ static struct platform_driver __adc_fifo_platform_driver;
 
 struct platform_device * __pdevice = 0;
 
-enum dma { dmalen = 16*sizeof(u32) }; // 512bits
-
-enum direction { dma_r = 0 /*dma_w = 1 */};
-/**
-enum dma_ingress_egress {
-    ingress_address     = adc_fifo_ingress_address // 0x3feff800
-    , ingress_size      = adc_fifo_ingress_size    // 0x800 : 0x3feff800 -- 0x3ff00000-1
-    , ingress_stream    = 0x00000000
-    , egress_stream     = 0x00000000
+enum dma {
+    dmalen = 16*sizeof(u32)  // 512bits
+    , dma_bufsize = dmalen * 32
 };
-**/
 
 struct adc_fifo_driver {
     uint32_t irq;
@@ -83,18 +76,21 @@ struct adc_fifo_driver {
     wait_queue_head_t queue;
     int queue_condition;
     struct semaphore sem;
-    uint32_t wp;     // next effective dma phys addr
-    uint32_t readp;  // fpga read phys addr
-    struct resource * mem_resource;
+    u32 wp;         // next effective dma phys addr
+    u32 wlapc;         // write count, steady
+    u32 readp;      // fpga read phys addr
+    u32 rlapc;
     dma_addr_t dma_handle;
     u32 dma_alloc_size;
-    void * dma_cpu_addr;
+    void * dma_vaddr;
     struct dma_pool * dma_pool;
 };
 
 struct adc_fifo_cdev_reader {
-    struct adc_fifo_driver * driver;
+    struct adc_fifo_driver * drv;
     u32 rp;
+    u32 rlapc;
+    u32 node;
 };
 
 enum { dg_data_irq_mask = 2 };
@@ -108,27 +104,13 @@ adc_fifo_transfer( struct platform_device * pdev
                        , u32 octets
                        , int packet_enabled )
 {
-#if 0
     struct adc_fifo_driver * drv = platform_get_drvdata( pdev );
     if ( drv ) {
-        u32 * csr = drv->reg_csr;
-        u32 * descriptor = drv->reg_descriptor;
-
-        if ( __debug_level__ > 5 ) {
-            /*
-            if ( phys_source_address != 0 && drv->dma_ptr ) {
-                u32 offs = ( phys_source_address - ingress_address ) / sizeof(u32);
-                dev_dbg( &pdev->dev
-                         , "transfer CSR:%04x %04x %08x %08x; %08x -> %08x\ttx data=0x%08x\n"
-                         , csr[ 0 ], csr[ 1 ], csr[ 2 ], csr[ 3 ]
-                         , phys_source_address, phys_destination_address
-                         , drv->dma_ptr[offs] );
-            }
-            */
-        }
+        // u32 * csr = drv->reg_csr;
         drv->phys_source_address = phys_source_address;
         drv->phys_destination_address = phys_destination_address;
 
+        u32 * descriptor = drv->reg_descriptor;
         descriptor[ 0 ] = phys_source_address;
         descriptor[ 1 ] = phys_destination_address;
         descriptor[ 2 ] = octets;
@@ -137,7 +119,6 @@ adc_fifo_transfer( struct platform_device * pdev
             Go |= 0x1000; // 'end on eop'
         descriptor[ 3 ] = Go;
     }
-#endif
 }
 
 void
@@ -181,7 +162,6 @@ adc_fifo_clear_irq( uint32_t * csr )
     csr[0] = 0x200;
 }
 
-
 static void
 adc_fifo_fetch( struct adc_fifo_driver * drv )
 {
@@ -190,11 +170,40 @@ adc_fifo_fetch( struct adc_fifo_driver * drv )
 
     if ( drv ) {
         adc_fifo_transfer_r( 0x00000000, drv->wp, dmalen /* 64o */, packet_enable );
+        drv->wp        = ( drv->wp + dmalen ) % dma_bufsize; // set next valid write pointer
+        if ( ( drv->wp + dmalen ) / dma_bufsize )
+            drv->wlapc++;
+        /*
         if ( ( drv->wp + dmalen ) < ( drv->dma_handle + drv->dma_alloc_size ) ) {
             drv->wp += dmalen;
         } else {
             drv->wp = drv->dma_handle;
         }
+        */
+
+#if 0
+        // [511:256] := accumulated_data
+        // [255:244] = num. aded; [243:192] = adc_counter, data[24bit][8]
+        const u64 * p64 = (const u64 *)((const char * )(drv->dma_vaddr) + ( drv->readp - drv->dma_handle ));
+        const u16 * p16 = (const u16 *)(p64);
+        const u64 adc_counter = be64_to_cpu( *p64 ) & ~0xfff0000000000000;
+        const u16 n_samples = (be16_to_cpu( *p16 ) >> 4) + 1;
+
+        const u8 * dp = (const u8 *)(p64 + 1);
+        u32 data[ 8 ];
+        for ( int i = 0; i < countof(data); ++i ) {
+            data[ i ] = dp[ i * 3 + 0 ] << 16 | dp[ i * 3 + 1 ] << 8 | dp[ i * 3 + 2 ];
+        }
+
+        const u64 * meta_data64 = p64 + 4;
+        u64 clock_counter = be64_to_cpu( meta_data64[0] );
+        u64 latch_tp = be64_to_cpu( meta_data64[1] );
+        u32 flags = be32_to_cpu( (u32)(meta_data64[2] >> 32 ));
+        u32 cmd_latch = be32_to_cpu( (u32)(meta_data64[2] & 0xffffffff ));
+
+        dev_info( &__pdevice->dev, "n=%d, adc_counter=%lld\t%x\t%x\t%x\t%x|\t%llx\t%llx\t%x\t%x\n"
+                  , n_samples, adc_counter, data[ 0 ], data[ 1 ], data[ 2 ], data[ 3 ], clock_counter, latch_tp, flags, cmd_latch );
+#endif
     }
 }
 
@@ -202,62 +211,30 @@ adc_fifo_fetch( struct adc_fifo_driver * drv )
 static irqreturn_t
 handle_interrupt( int irq, void *dev_id )
 {
-    dev_info( &__pdevice->dev, "handle_interrupt(%d)\n", irq );
+    // dev_info( &__pdevice->dev, "handle_interrupt(%d)\n", irq );
+    struct adc_fifo_driver * drv = dev_id ? platform_get_drvdata( dev_id ) : 0;
+    if ( drv && drv->reg_csr ) {
 
-    struct adc_fifo_driver * driver = dev_id ? platform_get_drvdata( dev_id ) : 0;
-    if ( driver && driver->reg_csr ) {
-
-        adc_fifo_clear_irq( driver->reg_csr );
+        adc_fifo_clear_irq( drv->reg_csr );
         u32 resp_length = 0, resp_status = 0;
-        volatile const u32 * resp = driver->reg_response;  // should not read twice
+        volatile const u32 * resp = drv->reg_response;  // should not read twice
         if ( resp ) {
             resp_length = resp[0];
             resp_status = resp[1];
         }
 
-        if ( driver->phys_source_address == 0 && driver->phys_destination_address != 0 ) { // stream -> memory
-            driver->readp = driver->phys_destination_address;
-            // u64 * tx = (u64*)(&driver->dma_ptr[ ( driver->readp - driver->mem_resource->start ) / sizeof(u32) ]);
-            // tx[7] = cpu_to_be64( ktime_get_tai_ns() ); // override kernel time
+        if ( drv->phys_source_address == 0 && drv->phys_destination_address != 0 ) { // stream -> memory
+            drv->readp = drv->phys_destination_address;
+            drv->rlapc = drv->wlapc; // at this moment, rp == wp until return from interrupt
+
+            u64 * p64 = (u64 *)((char *)(drv->dma_vaddr) + ( drv->readp - drv->dma_handle ));
+            p64[ 7 ] = cpu_to_be64( ktime_get_clocktai_ns() ); // override kernel time
         }
 
-        driver->queue_condition++;
-        wake_up_interruptible( &driver->queue );
+        drv->queue_condition++;
+        wake_up_interruptible( &drv->queue );
 
-        adc_fifo_fetch( driver );  // start next dma cycle
-
-#ifndef NDEBUG
-#if 0
-        if ( __debug_level__ && driver->dma_ptr ) {
-
-            if ( driver->phys_destination_address ) {
-                const u32 * rx = &driver->dma_ptr[ (driver->phys_destination_address - ingress_address ) / sizeof(u32) ];
-                const u64 tp = be64_to_cpu( *(u64*)(rx) );
-                const u16 nacc = ((u16)(tp >> 52)) + 1;
-                u8 * bp = ((u8 *)(rx)) + 8;
-                u32 data[8];
-
-                for ( int i = 0; i < sizeof(data)/sizeof(data[0]); ++i ) {
-                    data[i] = ((u32)(*bp++)) << 16;
-                    data[i] |= ((u32)(*bp++)) << 8;
-                    data[i] |= ((u32)(*bp++));
-                }
-
-                dev_dbg( &((struct platform_device *)dev_id)->dev
-                         , "handle_interrupt ST->MM (0x%-4x octets)\t0x%x\t%d,\t0x%08llx\n"
-                         , resp_length, driver->phys_destination_address, nacc, tp & ~0xfff0000000000000 );
-
-                dev_dbg( &((struct platform_device *)dev_id)->dev
-                         , "\t%06x\t%06x\t%06x\t%06x\t\t%06x\t%06x\t%06x\t%06x"
-                         , data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7] );
-                dev_dbg( &((struct platform_device *)dev_id)->dev
-                         , "\t%d\t%d\t%d\t%d\t\t%d\t%d\t%d\t%d"
-                         , data[0]/nacc, data[1]/nacc, data[2]/nacc, data[3]/nacc
-                         , data[4]/nacc, data[5]/nacc, data[6]/nacc, data[7]/nacc );
-            }
-        }
-#endif
-#endif
+        adc_fifo_fetch( drv );  // start next dma cycle
     }
     return IRQ_HANDLED;
 }
@@ -265,7 +242,7 @@ handle_interrupt( int irq, void *dev_id )
 static int
 adc_fifo_proc_read( struct seq_file * m, void * v )
 {
-    seq_printf( m, "adc_fifo debug level = %d\n", __debug_level__ );
+    seq_printf( m, "adc-fifo debug level = %d\n", __debug_level__ );
 
     struct adc_fifo_driver * drv = platform_get_drvdata( __pdevice );
     if ( drv ) {
@@ -322,10 +299,28 @@ adc_fifo_proc_read( struct seq_file * m, void * v )
                             , desc[0], desc[1], desc[2], desc[3] );
             }
 
-            const u64 * rx = (u64*)(drv->dma_cpu_addr); // ptr[ ( drv->readp - drv->mem_resource->start ) / sizeof(u32) ]);
+            // most recent data
+            const u64 * p64 = (const u64 *)((const char * )(drv->dma_vaddr) + ( drv->readp - drv->dma_handle ));
+            const u16 * p16 = (const u16 *)(p64);
+            const u64 adc_counter = be64_to_cpu( *p64 ) & ~0xfff0000000000000;
+            const u16 n_samples = (be16_to_cpu( *p16 ) >> 4) + 1;
 
-            for ( int i = 0; i < 4; ++i )
-                seq_printf( m, "\t0x%016llx", be64_to_cpu( rx[i] ) );
+            const u8 * dp = (const u8 *)(p64 + 1);
+            u32 data[ 8 ];
+            for ( int i = 0; i < countof(data); ++i )
+                data[ i ] = dp[ i*3 + 0 ] << 16 | dp[ i*3 + 1 ] << 8 | dp[  i*3 + 2 ];
+
+            const u64 * meta_data64 = p64 + 4;
+            u64 clock_counter = be64_to_cpu( meta_data64[0] );
+            u64 latch_tp = be64_to_cpu( meta_data64[1] );
+            u32 flags = be32_to_cpu( (u32)(meta_data64[2] >> 32 ));
+            // u32 cmd_latch = be32_to_cpu( (u32)(meta_data64[2] & 0xffffffff ));
+
+            seq_printf( m, "N:%d, data#%lld\ttp:%llx\tflag_tp:%llx\tflags:%x"
+                        , n_samples, adc_counter, clock_counter, latch_tp, flags );
+            for ( int i = 0; i < 8; ++i )
+                seq_printf( m, "\t[%d]%d", i, data[ i ] );
+
             seq_printf( m, "\n" );
         }
     }
@@ -395,16 +390,15 @@ static int adc_fifo_cdev_open(struct inode *inode, struct file *file)
 
         struct adc_fifo_cdev_reader * reader = devm_kzalloc( &__pdevice->dev
                                                              , sizeof( struct adc_fifo_cdev_reader ), GFP_KERNEL );
-        reader->driver = platform_get_drvdata( __pdevice );
-        reader->rp     = 0; //reader->driver->readp;  // <- most recent recv data pointer (phys)
+        reader->drv       = platform_get_drvdata( __pdevice );
+        reader->node      = node;
+        reader->rp        = 0; //reader->driver->readp;  // <- most recent recv data pointer (phys)
+        reader->rlapc     = 0;
 
         file->private_data = reader;
 
-        if ( __debug_level__ )
-            printk( KERN_INFO "cdev_open " MODNAME " node=%d, %p, %x\n", node, file->private_data, reader->rp );
-
     } else {
-        printk( KERN_INFO "cdev_open " MODNAME " node=%d, failed\n", node );
+        // dev_err( &__pdevice->dev, "failed dma alloc_coherent %p\n", drv->dma_vaddr );
     }
 
     return 0;
@@ -431,48 +425,54 @@ static long adc_fifo_cdev_ioctl( struct file * file, unsigned int code, unsigned
     return 0;
 }
 
-static inline u32
-adc_fifo_nextp( struct adc_fifo_driver const * drv, u32 xp, u32 length )
-{
-    if ( xp >= drv->mem_resource->end )
-        return drv->mem_resource->start;
-
-    if ( ( drv->mem_resource->end - xp ) <= (length - 1) )
-        return drv->mem_resource->start;
-
-    return xp + length;
-}
-
 
 static ssize_t adc_fifo_cdev_read( struct file * file, char __user *data, size_t size, loff_t *f_pos )
 {
     ssize_t count = 0;
-#if 0
     struct adc_fifo_cdev_reader * reader = file->private_data;
     if ( reader ) {
-        struct adc_fifo_driver * drv = reader->driver;
+        struct adc_fifo_driver * drv = reader->drv;
         if ( drv ) {
             if ( down_interruptible( &drv->sem ) ) {
-                printk(KERN_INFO "%s: down_interruptible for read faild\n", __func__ );
+                dev_err( &__pdevice->dev,  "%s: down_interruptible for read faild\n", __func__ );
                 return -ERESTARTSYS;
             }
+
+            while ( size >= dmalen && reader->rp && ( reader->rp != drv->readp ) ) {
+                const void * fp = (const void *)((const char * )(drv->dma_vaddr) + ( reader->rp - drv->dma_handle ));
+                if ( copy_to_user( data, fp, size ) ) {
+                    up( &drv->sem );
+                    return -EFAULT;
+                }
+                count += dmalen;
+                size -= dmalen;
+                *f_pos += dmalen;
+                reader->rp = ( reader->rp + dmalen ) % dma_bufsize;
+            };
+            if ( count ) {
+                up( &drv->sem );
+                return count;
+            }
+
             wait_event_interruptible( drv->queue, drv->queue_condition != 0 );
             drv->queue_condition = 0;
 
             if ( size >= dmalen )
                 size = dmalen;
 
-            if ( reader->rp == 0 )
+            if ( reader->rp == 0 ) {
                 reader->rp = drv->readp;
+                reader->rlapc = drv->rlapc;
+            }
 
-            const u32 * rx = &drv->dma_ptr[ ( reader->rp - drv->mem_resource->start ) / sizeof(u32) ];
+            const void * fp = (const void *)((const char * )(drv->dma_vaddr) + ( reader->rp - drv->dma_handle ));
 
-            if ( copy_to_user( data, ( const void * )( rx ), size ) ) {
+            if ( copy_to_user( data, fp, size ) ) {
                 up( &drv->sem );
                 return -EFAULT;
             }
 
-            reader->rp = adc_fifo_nextp( drv, reader->rp, size );
+            reader->rp = ( reader->rp + dmalen ) % dma_bufsize;
             count += size;
             data  += size;
 
@@ -480,7 +480,7 @@ static ssize_t adc_fifo_cdev_read( struct file * file, char __user *data, size_t
             up( &drv->sem );
         }
     }
-#endif
+
     return count;
 }
 
@@ -602,7 +602,7 @@ adc_fifo_module_init( void )
     }
     __adc_fifo_class->dev_uevent = msgdma_dev_uevent;
 
-    // make_nod /dev/adc_fifo
+    // make_nod /dev/adc-fifo
     if ( !device_create( __adc_fifo_class, NULL, adc_fifo_dev_t, NULL, MODNAME "%d", MINOR( adc_fifo_dev_t ) ) ) {
         printk( KERN_ERR "" MODNAME " failed to create device\n" );
         return msgdma_dtor( -1 );
@@ -657,16 +657,16 @@ adc_fifo_module_probe( struct platform_device * pdev )
     platform_set_drvdata( pdev, drv );
     __pdevice = pdev;
     drv->label = label;
-    drv->dma_alloc_size = 0x800;
+    drv->dma_alloc_size = dma_bufsize;
 
     // drv->dma_pool = dma_pool_create( MODNAME, &pdev->dev, dmalen, 4, 64 );
 
-    if ( !(drv->dma_cpu_addr = dma_alloc_coherent( &pdev->dev, drv->dma_alloc_size, &drv->dma_handle, GFP_KERNEL )) ) {
-        dev_err( &pdev->dev, "failed dma alloc_coherent %p\n", drv->dma_cpu_addr );
+    if ( !(drv->dma_vaddr = dma_alloc_coherent( &pdev->dev, dma_bufsize, &drv->dma_handle, GFP_KERNEL )) ) {
+        dev_err( &pdev->dev, "failed dma alloc_coherent %p\n", drv->dma_vaddr );
         return -ENOMEM;
     }
 
-    dev_info( &pdev->dev, "dma alloc_coherent %p\t%x\n", drv->dma_cpu_addr, drv->dma_handle );
+    dev_info( &pdev->dev, "dma alloc_coherent %p\t%x\n", drv->dma_vaddr, drv->dma_handle );
     drv->wp = drv->dma_handle; // physical addr
 
     for ( int i = 0; i < pdev->num_resources; ++i ) {
@@ -718,7 +718,7 @@ adc_fifo_module_remove( struct platform_device * pdev )
             adc_fifo_disable_irq( drv->reg_csr );
     }
 
-    dma_free_coherent( &pdev->dev, 0x800, drv->dma_cpu_addr, drv->dma_handle );
+    dma_free_coherent( &pdev->dev, 0x800, drv->dma_vaddr, drv->dma_handle );
 
     dev_info( &pdev->dev, "Unregistered '%s'\n", drv->label );
 

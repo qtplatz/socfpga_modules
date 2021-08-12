@@ -22,13 +22,10 @@
 **
 **************************************************************************/
 
-#ifndef SOCFPGA_DRIVERS_MSGDMA_H
-#define SOCFPGA_DRIVERS_MSGDMA_H
+#pragma once
 
 #include <linux/version.h>
 #include <linux/cdev.h>
 
 #define MODNAME     "adc-fifo"
 #define CDEV_NAME   MODNAME
-
-#endif

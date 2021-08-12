@@ -164,20 +164,6 @@ adc_fifo_clear_irq( uint32_t * csr )
 }
 
 static inline u32
-adc_fifo_nextp_dbg( struct adc_fifo_driver * drv, u32 cp, u32 * clap )
-{
-    u32 npos = ( ( cp - drv->dma_handle ) / dmalen ) + 1;
-    u32 prev = *clap;
-
-    if ( npos & ~(dma_bufcount - 1) )
-        (*clap)++;
-
-    dev_info( &__pdevice->dev, "clap %d --> %d, npos=%x&~%x -> %x ret: %x"
-              , prev, *clap, npos, (dma_bufcount-1), (npos & ~(dma_bufcount-1)), (npos % dma_bufcount) );
-    return drv->dma_handle + dmalen * (npos % dma_bufcount);
-}
-
-static inline u32
 adc_fifo_nextp( struct adc_fifo_driver * drv, u32 cp, u32 * clap )
 {
     u32 npos = ( ( cp - drv->dma_handle ) / dmalen ) + 1;
@@ -203,30 +189,6 @@ adc_fifo_fetch( struct adc_fifo_driver * drv )
     if ( drv ) {
         adc_fifo_transfer_r( 0x00000000, drv->wp, dmalen /* 64o */, packet_enable );
         drv->wp = adc_fifo_nextp( drv, drv->wp, &drv->wlapc );
-
-#if 0
-        // [511:256] := accumulated_data
-        // [255:244] = num. aded; [243:192] = adc_counter, data[24bit][8]
-        const u64 * p64 = (const u64 *)((const char * )(drv->dma_vaddr) + ( drv->readp - drv->dma_handle ));
-        const u16 * p16 = (const u16 *)(p64);
-        const u64 adc_counter = be64_to_cpu( *p64 ) & ~0xfff0000000000000;
-        const u16 n_samples = (be16_to_cpu( *p16 ) >> 4) + 1;
-
-        const u8 * dp = (const u8 *)(p64 + 1);
-        u32 data[ 8 ];
-        for ( int i = 0; i < countof(data); ++i ) {
-            data[ i ] = dp[ i * 3 + 0 ] << 16 | dp[ i * 3 + 1 ] << 8 | dp[ i * 3 + 2 ];
-        }
-
-        const u64 * meta_data64 = p64 + 4;
-        u64 clock_counter = be64_to_cpu( meta_data64[0] );
-        u64 latch_tp = be64_to_cpu( meta_data64[1] );
-        u32 flags = be32_to_cpu( (u32)(meta_data64[2] >> 32 ));
-        u32 cmd_latch = be32_to_cpu( (u32)(meta_data64[2] & 0xffffffff ));
-
-        dev_info( &__pdevice->dev, "n=%d, adc_counter=%lld\t%x\t%x\t%x\t%x|\t%llx\t%llx\t%x\t%x\n"
-                  , n_samples, adc_counter, data[ 0 ], data[ 1 ], data[ 2 ], data[ 3 ], clock_counter, latch_tp, flags, cmd_latch );
-#endif
     }
 }
 
@@ -463,16 +425,25 @@ static ssize_t adc_fifo_cdev_read( struct file * file, char __user *data, size_t
                 u32 dev_count = adc_fifo_read_count(drv, drv->readp, drv->rlapc );
                 u32 reader_count = adc_fifo_read_count(drv, reader->rp, reader->rlapc );
                 if ( dev_count > reader_count ) {
-                    dev_info( &__pdevice->dev,  "rp (%x,%x) != readp (%x,%x)\ttotal: %x, %x\n"
-                              , (reader->rp - drv->dma_handle)/dmalen, reader->rlapc
-                              , (drv->readp - drv->dma_handle)/dmalen, drv->rlapc
-                              , reader_count, dev_count );
-                    const void * fp = (const void *)((const char * )(drv->dma_vaddr) + ( reader->rp - drv->dma_handle ));
-                    if ( copy_to_user( data, fp, dmalen ) == 0 ) {
+                    do {
+                        dev_dbg( &__pdevice->dev,  "rp (%x,%x) != readp (%x,%x)\ttotal: %x, %x\n"
+                                 , (reader->rp - drv->dma_handle)/dmalen, reader->rlapc
+                                 , (drv->readp - drv->dma_handle)/dmalen, drv->rlapc
+                                 , reader_count, dev_count );
+                        const void * fp = (const void *)((const char * )(drv->dma_vaddr) + ( reader->rp - drv->dma_handle ));
+                        if ( copy_to_user( data, fp, dmalen ) ) {
+                            up( &drv->sem );
+                            return -EFAULT;
+                        }
+                        size -= dmalen;
                         count += dmalen;
                         *f_pos += dmalen;
-                        reader->rp = adc_fifo_nextp_dbg( drv, reader->rp, &reader->rlapc );
+                        data += dmalen;
+                        reader->rp = adc_fifo_nextp( drv, reader->rp, &reader->rlapc );
+                    } while ( size >= dmalen && dev_count > adc_fifo_read_count( drv, reader->rp, reader->rlapc ) );
+                    if ( count ) {
                         up( &drv->sem );
+                        dev_info( &__pdevice->dev,  "-- cdev_read %d octets\n", count );
                         return count;
                     }
                 }
@@ -496,7 +467,7 @@ static ssize_t adc_fifo_cdev_read( struct file * file, char __user *data, size_t
                 return -EFAULT;
             }
 
-            reader->rp = adc_fifo_nextp_dbg( drv, reader->rp, &reader->rlapc );
+            reader->rp = adc_fifo_nextp( drv, reader->rp, &reader->rlapc );
             count += size;
             data  += size;
 

@@ -61,7 +61,8 @@ struct platform_device * __pdevice = 0;
 
 enum dma {
     dmalen = 16*sizeof(u32)  // 512bits
-    , dma_bufsize = dmalen * 32
+    , dma_bufcount = 32
+    , dma_bufsize = dmalen * dma_bufcount
 };
 
 struct adc_fifo_driver {
@@ -163,27 +164,34 @@ adc_fifo_clear_irq( uint32_t * csr )
 }
 
 static inline u32
+adc_fifo_nextp_dbg( struct adc_fifo_driver * drv, u32 cp, u32 * clap )
+{
+    u32 npos = ( ( cp - drv->dma_handle ) / dmalen ) + 1;
+    u32 prev = *clap;
+
+    if ( npos & ~(dma_bufcount - 1) )
+        (*clap)++;
+
+    dev_info( &__pdevice->dev, "clap %d --> %d, npos=%x&~%x -> %x ret: %x"
+              , prev, *clap, npos, (dma_bufcount-1), (npos & ~(dma_bufcount-1)), (npos % dma_bufcount) );
+    return drv->dma_handle + dmalen * (npos % dma_bufcount);
+}
+
+static inline u32
 adc_fifo_nextp( struct adc_fifo_driver * drv, u32 cp, u32 * clap )
 {
-    u32 npos = ( ( cp - drv->dma_handle ) / dmalen ) + 1; //  % (dma_bufsize/dmalen); // ((cp - drv->dma_handle) >> 6) & ~1f
-    if ( ( npos > (dma_bufsize/dmalen) ) && clap )
+    u32 npos = ( ( cp - drv->dma_handle ) / dmalen ) + 1;
+
+    if ( npos & ~(dma_bufcount - 1) )
         (*clap)++;
-    return drv->dma_handle + (npos % (dma_bufsize/dmalen));
-/*
-    if ( ( cp + dmalen ) < ( drv->dma_handle + dma_bufsize ) ) {
-        return cp + dmalen;
-    } else {
-        if ( lapc )
-            (*lapc)++;
-        return drv->dma_handle;
-    }
-*/
+
+    return drv->dma_handle + dmalen * (npos % dma_bufcount);
 }
 
 static inline u32
 adc_fifo_read_count( struct adc_fifo_driver * drv, u32 cp, u32 clap )
 {
-    return (( cp - drv->dma_handle ) / dmalen) + clap * (dma_bufsize / dmalen);
+    return (( cp - drv->dma_handle ) / dmalen) + ( clap * dma_bufcount );
 }
 
 static void
@@ -456,16 +464,14 @@ static ssize_t adc_fifo_cdev_read( struct file * file, char __user *data, size_t
                 u32 reader_count = adc_fifo_read_count(drv, reader->rp, reader->rlapc );
                 if ( dev_count > reader_count ) {
                     dev_info( &__pdevice->dev,  "rp (%x,%x) != readp (%x,%x)\ttotal: %x, %x\n"
-                              , (reader->rp - drv->dma_handle)/dmalen
-                              , reader->rlapc
-                              , (drv->readp - drv->dma_handle)/dmalen
-                              , drv->rlapc
+                              , (reader->rp - drv->dma_handle)/dmalen, reader->rlapc
+                              , (drv->readp - drv->dma_handle)/dmalen, drv->rlapc
                               , reader_count, dev_count );
                     const void * fp = (const void *)((const char * )(drv->dma_vaddr) + ( reader->rp - drv->dma_handle ));
                     if ( copy_to_user( data, fp, dmalen ) == 0 ) {
                         count += dmalen;
                         *f_pos += dmalen;
-                        reader->rp = adc_fifo_nextp( drv, reader->rp, &reader->rlapc );
+                        reader->rp = adc_fifo_nextp_dbg( drv, reader->rp, &reader->rlapc );
                         up( &drv->sem );
                         return count;
                     }
@@ -490,7 +496,7 @@ static ssize_t adc_fifo_cdev_read( struct file * file, char __user *data, size_t
                 return -EFAULT;
             }
 
-            reader->rp = adc_fifo_nextp( drv, reader->rp, &reader->rlapc );
+            reader->rp = adc_fifo_nextp_dbg( drv, reader->rp, &reader->rlapc );
             count += size;
             data  += size;
 

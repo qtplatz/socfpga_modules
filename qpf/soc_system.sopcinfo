@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <EnsembleReport name="soc_system" kind="soc_system" version="1.0" fabric="QSYS">
  <!-- Format version 20.1 720 (Future versions may contain additional information.) -->
- <!-- 2021.08.03.18:35:45 -->
+ <!-- 2021.08.12.13:27:47 -->
  <!-- A collection of modules and connections -->
  <parameter name="AUTO_GENERATION_ID">
   <type>java.lang.Integer</type>
-  <value>1627983338</value>
+  <value>1628742460</value>
   <derived>false</derived>
   <enabled>true</enabled>
   <visible>false</visible>
@@ -503,7 +503,7 @@ the requested settings for a module instance. -->
   </parameter>
   <parameter name="AUTO_MM_WRITE_ADDRESS_MAP">
    <type>com.altera.entityinterfaces.moduleext.AddressMap</type>
-   <value></value>
+   <value><![CDATA[<address-map><slave name='hps_0_axi_sdram.axi_slave0' start='0x0' end='0x80000000' /><slave name='hps_0_gmac0.axi_slave0' start='0xFF700000' end='0xFF702000' /><slave name='hps_0_gmac1.axi_slave0' start='0xFF702000' end='0xFF704000' /><slave name='hps_0_sdmmc.axi_slave0' start='0xFF704000' end='0xFF705000' /><slave name='hps_0_qspi.axi_slave0' start='0xFF705000' end='0xFF705100' /><slave name='hps_0_fpgamgr.axi_slave0' start='0xFF706000' end='0xFF707000' /><slave name='hps_0_gpio0.axi_slave0' start='0xFF708000' end='0xFF708100' /><slave name='hps_0_gpio1.axi_slave0' start='0xFF709000' end='0xFF709100' /><slave name='hps_0_gpio2.axi_slave0' start='0xFF70A000' end='0xFF70A100' /><slave name='hps_0_l3regs.axi_slave0' start='0xFF800000' end='0xFF801000' /><slave name='hps_0_nand0.axi_slave0' start='0xFF900000' end='0xFF910000' /><slave name='hps_0_qspi.axi_slave1' start='0xFFA00000' end='0xFFA00100' /><slave name='hps_0_usb0.axi_slave0' start='0xFFB00000' end='0xFFB40000' /><slave name='hps_0_usb1.axi_slave0' start='0xFFB40000' end='0xFFB80000' /><slave name='hps_0_nand0.axi_slave1' start='0xFFB80000' end='0xFFB90000' /><slave name='hps_0_fpgamgr.axi_slave1' start='0xFFB90000' end='0xFFB90100' /><slave name='hps_0_dcan0.axi_slave0' start='0xFFC00000' end='0xFFC01000' /><slave name='hps_0_dcan1.axi_slave0' start='0xFFC01000' end='0xFFC02000' /><slave name='hps_0_uart0.axi_slave0' start='0xFFC02000' end='0xFFC02100' /><slave name='hps_0_uart1.axi_slave0' start='0xFFC03000' end='0xFFC03100' /><slave name='hps_0_i2c0.axi_slave0' start='0xFFC04000' end='0xFFC04100' /><slave name='hps_0_i2c1.axi_slave0' start='0xFFC05000' end='0xFFC05100' /><slave name='hps_0_i2c2.axi_slave0' start='0xFFC06000' end='0xFFC06100' /><slave name='hps_0_i2c3.axi_slave0' start='0xFFC07000' end='0xFFC07100' /><slave name='hps_0_timer0.axi_slave0' start='0xFFC08000' end='0xFFC08100' /><slave name='hps_0_timer1.axi_slave0' start='0xFFC09000' end='0xFFC09100' /><slave name='hps_0_sdrctl.axi_slave0' start='0xFFC25000' end='0xFFC26000' /><slave name='hps_0_timer2.axi_slave0' start='0xFFD00000' end='0xFFD00100' /><slave name='hps_0_timer3.axi_slave0' start='0xFFD01000' end='0xFFD01100' /><slave name='hps_0_clkmgr.axi_slave0' start='0xFFD04000' end='0xFFD05000' /><slave name='hps_0_rstmgr.axi_slave0' start='0xFFD05000' end='0xFFD05100' /><slave name='hps_0_sysmgr.axi_slave0' start='0xFFD08000' end='0xFFD08400' /><slave name='hps_0_dma.axi_slave0' start='0xFFE01000' end='0xFFE02000' /><slave name='hps_0_spim0.axi_slave0' start='0xFFF00000' end='0xFFF00100' /><slave name='hps_0_spim1.axi_slave0' start='0xFFF01000' end='0xFFF01100' /><slave name='hps_0_arm_gic_0.axi_slave1' start='0xFFFEC100' end='0xFFFEC200' /><slave name='hps_0_timer.axi_slave0' start='0xFFFEC600' end='0xFFFEC700' /><slave name='hps_0_arm_gic_0.axi_slave0' start='0xFFFED000' end='0xFFFEE000' /><slave name='hps_0_L2.axi_slave0' start='0xFFFEF000' end='0xFFFF0000' /><slave name='hps_0_axi_ocram.axi_slave0' start='0xFFFF0000' end='0x100000000' /></address-map>]]></value>
    <derived>false</derived>
    <enabled>true</enabled>
    <visible>false</visible>
@@ -513,7 +513,7 @@ the requested settings for a module instance. -->
   </parameter>
   <parameter name="AUTO_MM_WRITE_ADDRESS_WIDTH">
    <type>com.altera.entityinterfaces.moduleext.AddressWidthType</type>
-   <value>AddressWidth = -1</value>
+   <value>AddressWidth = 32</value>
    <derived>false</derived>
    <enabled>true</enabled>
    <visible>false</visible>
@@ -870,6 +870,334 @@ parameters are a RESULT of the module parameters. -->
     <width>1</width>
     <role>waitrequest</role>
    </port>
+   <memoryBlock>
+    <isBridge>true</isBridge>
+    <moduleName>hps_0_bridges</moduleName>
+    <slaveName>f2h</slaveName>
+    <name>hps_0_bridges.f2h</name>
+    <baseAddress>0</baseAddress>
+    <span>4294967296</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_arm_gic_0</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_arm_gic_0.axi_slave0</name>
+    <baseAddress>4294889472</baseAddress>
+    <span>4096</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_arm_gic_0</moduleName>
+    <slaveName>axi_slave1</slaveName>
+    <name>hps_0_arm_gic_0.axi_slave1</name>
+    <baseAddress>4294885632</baseAddress>
+    <span>256</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_L2</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_L2.axi_slave0</name>
+    <baseAddress>4294897664</baseAddress>
+    <span>4096</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_dma</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_dma.axi_slave0</name>
+    <baseAddress>4292874240</baseAddress>
+    <span>4096</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_sysmgr</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_sysmgr.axi_slave0</name>
+    <baseAddress>4291854336</baseAddress>
+    <span>1024</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_clkmgr</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_clkmgr.axi_slave0</name>
+    <baseAddress>4291837952</baseAddress>
+    <span>4096</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_rstmgr</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_rstmgr.axi_slave0</name>
+    <baseAddress>4291842048</baseAddress>
+    <span>256</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_fpgamgr</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_fpgamgr.axi_slave0</name>
+    <baseAddress>4285554688</baseAddress>
+    <span>4096</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_fpgamgr</moduleName>
+    <slaveName>axi_slave1</slaveName>
+    <name>hps_0_fpgamgr.axi_slave1</name>
+    <baseAddress>4290314240</baseAddress>
+    <span>256</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_uart0</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_uart0.axi_slave0</name>
+    <baseAddress>4290781184</baseAddress>
+    <span>256</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_uart1</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_uart1.axi_slave0</name>
+    <baseAddress>4290785280</baseAddress>
+    <span>256</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_timer0</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_timer0.axi_slave0</name>
+    <baseAddress>4290805760</baseAddress>
+    <span>256</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_timer1</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_timer1.axi_slave0</name>
+    <baseAddress>4290809856</baseAddress>
+    <span>256</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_timer2</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_timer2.axi_slave0</name>
+    <baseAddress>4291821568</baseAddress>
+    <span>256</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_timer3</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_timer3.axi_slave0</name>
+    <baseAddress>4291825664</baseAddress>
+    <span>256</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_gpio0</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_gpio0.axi_slave0</name>
+    <baseAddress>4285562880</baseAddress>
+    <span>256</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_gpio1</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_gpio1.axi_slave0</name>
+    <baseAddress>4285566976</baseAddress>
+    <span>256</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_gpio2</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_gpio2.axi_slave0</name>
+    <baseAddress>4285571072</baseAddress>
+    <span>256</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_i2c0</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_i2c0.axi_slave0</name>
+    <baseAddress>4290789376</baseAddress>
+    <span>256</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_i2c1</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_i2c1.axi_slave0</name>
+    <baseAddress>4290793472</baseAddress>
+    <span>256</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_i2c2</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_i2c2.axi_slave0</name>
+    <baseAddress>4290797568</baseAddress>
+    <span>256</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_i2c3</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_i2c3.axi_slave0</name>
+    <baseAddress>4290801664</baseAddress>
+    <span>256</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_nand0</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_nand0.axi_slave0</name>
+    <baseAddress>4287627264</baseAddress>
+    <span>65536</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_nand0</moduleName>
+    <slaveName>axi_slave1</slaveName>
+    <name>hps_0_nand0.axi_slave1</name>
+    <baseAddress>4290248704</baseAddress>
+    <span>65536</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_spim0</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_spim0.axi_slave0</name>
+    <baseAddress>4293918720</baseAddress>
+    <span>256</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_spim1</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_spim1.axi_slave0</name>
+    <baseAddress>4293922816</baseAddress>
+    <span>256</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_qspi</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_qspi.axi_slave0</name>
+    <baseAddress>4285550592</baseAddress>
+    <span>256</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_qspi</moduleName>
+    <slaveName>axi_slave1</slaveName>
+    <name>hps_0_qspi.axi_slave1</name>
+    <baseAddress>4288675840</baseAddress>
+    <span>256</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_sdmmc</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_sdmmc.axi_slave0</name>
+    <baseAddress>4285546496</baseAddress>
+    <span>4096</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_usb0</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_usb0.axi_slave0</name>
+    <baseAddress>4289724416</baseAddress>
+    <span>262144</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_usb1</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_usb1.axi_slave0</name>
+    <baseAddress>4289986560</baseAddress>
+    <span>262144</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_gmac0</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_gmac0.axi_slave0</name>
+    <baseAddress>4285530112</baseAddress>
+    <span>8192</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_gmac1</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_gmac1.axi_slave0</name>
+    <baseAddress>4285538304</baseAddress>
+    <span>8192</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_axi_ocram</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_axi_ocram.axi_slave0</name>
+    <baseAddress>4294901760</baseAddress>
+    <span>65536</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_axi_sdram</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_axi_sdram.axi_slave0</name>
+    <baseAddress>0</baseAddress>
+    <span>2147483648</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_timer</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_timer.axi_slave0</name>
+    <baseAddress>4294886912</baseAddress>
+    <span>256</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_dcan0</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_dcan0.axi_slave0</name>
+    <baseAddress>4290772992</baseAddress>
+    <span>4096</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_dcan1</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_dcan1.axi_slave0</name>
+    <baseAddress>4290777088</baseAddress>
+    <span>4096</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_l3regs</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_l3regs.axi_slave0</name>
+    <baseAddress>4286578688</baseAddress>
+    <span>4096</span>
+   </memoryBlock>
+   <memoryBlock>
+    <isBridge>false</isBridge>
+    <moduleName>hps_0_sdrctl</moduleName>
+    <slaveName>axi_slave0</slaveName>
+    <name>hps_0_sdrctl.axi_slave0</name>
+    <baseAddress>4290924544</baseAddress>
+    <span>4096</span>
+   </memoryBlock>
   </interface>
   <interface name="clock" kind="clock_sink" version="20.1">
    <!-- The connection points exposed by a module instance for the
@@ -90750,7 +91078,7 @@ the requested settings for a module instance. -->
   </assignment>
   <assignment>
    <name>embeddedsw.CMacro.TIMESTAMP</name>
-   <value>1627983338</value>
+   <value>1628742460</value>
   </assignment>
   <assignment>
    <name>embeddedsw.dts.compatible</name>
@@ -90770,7 +91098,7 @@ the requested settings for a module instance. -->
   </assignment>
   <assignment>
    <name>embeddedsw.dts.params.timestamp</name>
-   <value>1627983338</value>
+   <value>1628742460</value>
   </assignment>
   <assignment>
    <name>embeddedsw.dts.vendor</name>
@@ -90786,7 +91114,7 @@ the requested settings for a module instance. -->
   </parameter>
   <parameter name="timestamp">
    <type>int</type>
-   <value>1627983338</value>
+   <value>1628742460</value>
    <derived>true</derived>
    <enabled>false</enabled>
    <visible>false</visible>
@@ -102492,6 +102820,57 @@ parameters are a RESULT of the module parameters. -->
   <endConnectionPoint>s1</endConnectionPoint>
  </connection>
  <connection
+   name="adc_fifo_0.mm_write/hps_0_bridges.f2h"
+   kind="avalon"
+   version="20.1"
+   start="adc_fifo_0.mm_write"
+   end="hps_0_bridges.f2h">
+  <parameter name="arbitrationPriority">
+   <type>int</type>
+   <value>1</value>
+   <derived>false</derived>
+   <enabled>true</enabled>
+   <visible>true</visible>
+   <valid>true</valid>
+  </parameter>
+  <parameter name="baseAddress">
+   <type>java.math.BigInteger</type>
+   <value>0x0000</value>
+   <derived>false</derived>
+   <enabled>true</enabled>
+   <visible>true</visible>
+   <valid>true</valid>
+  </parameter>
+  <parameter name="defaultConnection">
+   <type>boolean</type>
+   <value>false</value>
+   <derived>false</derived>
+   <enabled>true</enabled>
+   <visible>true</visible>
+   <valid>true</valid>
+  </parameter>
+  <parameter name="deviceFamily">
+   <type>java.lang.String</type>
+   <value>UNKNOWN</value>
+   <derived>false</derived>
+   <enabled>true</enabled>
+   <visible>true</visible>
+   <valid>true</valid>
+  </parameter>
+  <parameter name="generateLegacySim">
+   <type>boolean</type>
+   <value>false</value>
+   <derived>false</derived>
+   <enabled>true</enabled>
+   <visible>true</visible>
+   <valid>true</valid>
+  </parameter>
+  <startModule>adc_fifo_0</startModule>
+  <startConnectionPoint>mm_write</startConnectionPoint>
+  <endModule>hps_0_bridges</endModule>
+  <endConnectionPoint>f2h</endConnectionPoint>
+ </connection>
+ <connection
    name="clk_0.clk/hps_only_master.clk"
    kind="clock"
    version="20.1"
@@ -104318,7 +104697,7 @@ parameters are a RESULT of the module parameters. -->
   <version>20.1</version>
  </plugin>
  <plugin>
-  <instanceCount>152</instanceCount>
+  <instanceCount>153</instanceCount>
   <name>avalon</name>
   <type>com.altera.entityinterfaces.IElementClass</type>
   <subtype>com.altera.entityinterfaces.IConnection</subtype>

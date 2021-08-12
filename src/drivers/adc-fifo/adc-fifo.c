@@ -162,6 +162,19 @@ adc_fifo_clear_irq( uint32_t * csr )
     csr[0] = 0x200;
 }
 
+static inline u32
+adc_fifo_nextp( struct adc_fifo_driver * drv, u32 cp, u32 * lapc )
+{
+    if ( ( cp + dmalen ) < ( drv->dma_handle + dma_bufsize ) ) {
+        return cp + dmalen;
+    } else {
+        if ( lapc )
+            (*lapc)++;
+        return drv->dma_handle;
+    }
+}
+
+
 static void
 adc_fifo_fetch( struct adc_fifo_driver * drv )
 {
@@ -170,16 +183,10 @@ adc_fifo_fetch( struct adc_fifo_driver * drv )
 
     if ( drv ) {
         adc_fifo_transfer_r( 0x00000000, drv->wp, dmalen /* 64o */, packet_enable );
-        drv->wp        = ( drv->wp + dmalen ) % dma_bufsize; // set next valid write pointer
-        if ( ( drv->wp + dmalen ) / dma_bufsize )
-            drv->wlapc++;
-        /*
-        if ( ( drv->wp + dmalen ) < ( drv->dma_handle + drv->dma_alloc_size ) ) {
-            drv->wp += dmalen;
-        } else {
-            drv->wp = drv->dma_handle;
-        }
-        */
+        //drv->wp        = ( drv->wp + dmalen ) % dma_bufsize; // set next valid write pointer
+        //if ( ( drv->wp + dmalen ) / dma_bufsize )
+        //    drv->wlapc++;
+        drv->wp = adc_fifo_nextp( drv, drv->wp, &drv->wlapc );
 
 #if 0
         // [511:256] := accumulated_data
@@ -438,6 +445,8 @@ static ssize_t adc_fifo_cdev_read( struct file * file, char __user *data, size_t
                 return -ERESTARTSYS;
             }
 
+            dev_info( &__pdevice->dev,  "rp (%x) != readp (%x)\n", reader->rp, drv->readp );
+            /*
             while ( size >= dmalen && reader->rp && ( reader->rp != drv->readp ) ) {
                 const void * fp = (const void *)((const char * )(drv->dma_vaddr) + ( reader->rp - drv->dma_handle ));
                 if ( copy_to_user( data, fp, size ) ) {
@@ -453,6 +462,7 @@ static ssize_t adc_fifo_cdev_read( struct file * file, char __user *data, size_t
                 up( &drv->sem );
                 return count;
             }
+            */
 
             wait_event_interruptible( drv->queue, drv->queue_condition != 0 );
             drv->queue_condition = 0;
@@ -472,7 +482,7 @@ static ssize_t adc_fifo_cdev_read( struct file * file, char __user *data, size_t
                 return -EFAULT;
             }
 
-            reader->rp = ( reader->rp + dmalen ) % dma_bufsize;
+            reader->rp = adc_fifo_nextp( drv, reader->rp, &reader->rlapc );
             count += size;
             data  += size;
 

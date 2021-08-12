@@ -4,7 +4,7 @@ project( adc-fifo )
 set ( MODNAME adc-fifo )
 
 set ( OBJM ${MODNAME}.o )
-set ( SRCS ${MODNAME}.c ${MODNAME}.h "../include/dma_ingress.h" )
+set ( SRCS ${MODNAME}.c ${MODNAME}.h )
 set ( PACKAGE_VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}.${VERSION_TWEAK} )
 set ( CCFLAGS-Y "-I${CMAKE_CURRENT_SOURCE_DIR}/../include" )
 

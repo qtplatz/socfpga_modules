@@ -163,8 +163,13 @@ adc_fifo_clear_irq( uint32_t * csr )
 }
 
 static inline u32
-adc_fifo_nextp( struct adc_fifo_driver * drv, u32 cp, u32 * lapc )
+adc_fifo_nextp( struct adc_fifo_driver * drv, u32 cp, u32 * clap )
 {
+    u32 npos = ( ( cp - drv->dma_handle ) / dmalen ) + 1; //  % (dma_bufsize/dmalen); // ((cp - drv->dma_handle) >> 6) & ~1f
+    if ( ( npos > (dma_bufsize/dmalen) ) && clap )
+        (*clap)++;
+    return drv->dma_handle + (npos % (dma_bufsize/dmalen));
+/*
     if ( ( cp + dmalen ) < ( drv->dma_handle + dma_bufsize ) ) {
         return cp + dmalen;
     } else {
@@ -172,8 +177,14 @@ adc_fifo_nextp( struct adc_fifo_driver * drv, u32 cp, u32 * lapc )
             (*lapc)++;
         return drv->dma_handle;
     }
+*/
 }
 
+static inline u32
+adc_fifo_read_count( struct adc_fifo_driver * drv, u32 cp, u32 clap )
+{
+    return (( cp - drv->dma_handle ) / dmalen) + clap * (dma_bufsize / dmalen);
+}
 
 static void
 adc_fifo_fetch( struct adc_fifo_driver * drv )
@@ -183,9 +194,6 @@ adc_fifo_fetch( struct adc_fifo_driver * drv )
 
     if ( drv ) {
         adc_fifo_transfer_r( 0x00000000, drv->wp, dmalen /* 64o */, packet_enable );
-        //drv->wp        = ( drv->wp + dmalen ) % dma_bufsize; // set next valid write pointer
-        //if ( ( drv->wp + dmalen ) / dma_bufsize )
-        //    drv->wlapc++;
         drv->wp = adc_fifo_nextp( drv, drv->wp, &drv->wlapc );
 
 #if 0
@@ -432,7 +440,6 @@ static long adc_fifo_cdev_ioctl( struct file * file, unsigned int code, unsigned
     return 0;
 }
 
-
 static ssize_t adc_fifo_cdev_read( struct file * file, char __user *data, size_t size, loff_t *f_pos )
 {
     ssize_t count = 0;
@@ -444,25 +451,26 @@ static ssize_t adc_fifo_cdev_read( struct file * file, char __user *data, size_t
                 dev_err( &__pdevice->dev,  "%s: down_interruptible for read faild\n", __func__ );
                 return -ERESTARTSYS;
             }
-
-            dev_info( &__pdevice->dev,  "rp (%x) != readp (%x)\n", reader->rp, drv->readp );
-            /*
-            while ( size >= dmalen && reader->rp && ( reader->rp != drv->readp ) ) {
-                const void * fp = (const void *)((const char * )(drv->dma_vaddr) + ( reader->rp - drv->dma_handle ));
-                if ( copy_to_user( data, fp, size ) ) {
-                    up( &drv->sem );
-                    return -EFAULT;
+            if ( reader->rp && size >= dmalen ) {
+                u32 dev_count = adc_fifo_read_count(drv, drv->readp, drv->rlapc );
+                u32 reader_count = adc_fifo_read_count(drv, reader->rp, reader->rlapc );
+                if ( dev_count > reader_count ) {
+                    dev_info( &__pdevice->dev,  "rp (%x,%x) != readp (%x,%x)\ttotal: %x, %x\n"
+                              , (reader->rp - drv->dma_handle)/dmalen
+                              , reader->rlapc
+                              , (drv->readp - drv->dma_handle)/dmalen
+                              , drv->rlapc
+                              , reader_count, dev_count );
+                    const void * fp = (const void *)((const char * )(drv->dma_vaddr) + ( reader->rp - drv->dma_handle ));
+                    if ( copy_to_user( data, fp, dmalen ) == 0 ) {
+                        count += dmalen;
+                        *f_pos += dmalen;
+                        reader->rp = adc_fifo_nextp( drv, reader->rp, &reader->rlapc );
+                        up( &drv->sem );
+                        return count;
+                    }
                 }
-                count += dmalen;
-                size -= dmalen;
-                *f_pos += dmalen;
-                reader->rp = ( reader->rp + dmalen ) % dma_bufsize;
-            };
-            if ( count ) {
-                up( &drv->sem );
-                return count;
             }
-            */
 
             wait_event_interruptible( drv->queue, drv->queue_condition != 0 );
             drv->queue_condition = 0;

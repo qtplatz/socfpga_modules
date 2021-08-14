@@ -2,9 +2,8 @@
 var ws = null;
 
 $( document ).ready( function() {
-    var url = "ws://" + window.location.host;
-    console.log( "url: " + url );
-    $("#uri").val( url );
+    var uri = "ws://" + window.location.host;
+    $("#uri").val( uri );
 });
 
 function showMessage(msg) {

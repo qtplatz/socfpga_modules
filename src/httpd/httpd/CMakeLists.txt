@@ -27,9 +27,16 @@ if ( ${CMAKE_SYSTEM_NAME} MATCHES "Linux" )
   configure_file( "${PROJECT_SOURCE_DIR}/prerm.in" "${PROJECT_BINARY_DIR}/prerm" @ONLY )
 endif()
 
+configure_file (
+  "${PROJECT_SOURCE_DIR}/version.h.in"
+  "${PROJECT_BINARY_DIR}/version.h"
+  )
+
+set ( CMAKE_INCLUDE_CURRENT_DIR ON )
+
 include_directories(
-  ${CMAKE_CURRENT_SOURCE_DIR}
   ${Boost_INCLUDE_DIRS}
+  ${CMAKE_CURRENT_SOURCE_DIR}
   ${QTPLATZ_INCLUDE_DIRS}
   )
 

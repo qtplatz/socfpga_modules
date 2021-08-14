@@ -9,6 +9,8 @@
 
 #include "http_session.hpp"
 #include "websocket_session.hpp"
+#include "log.hpp"
+#include <adportable/debug.hpp>
 #include <boost/config.hpp>
 #include <iostream>
 

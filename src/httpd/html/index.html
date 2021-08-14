@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <title>Timing &amp; Event Controller</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.min.css">
+    <!-- Our Custom CSS -->
+    <!-- <link rel="stylesheet" href="style.css"> -->
+    <!-- jQuery -->
+    <script src="/node_modules/jquery/dist/jquery.min.js"></script>
+    <!-- Bootstrap Js -->
+    <script src="/node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+
+    <!-- <script type="text/javascript" src="showhint.js"></script> -->
+    <script type="text/javascript" src="loadbanner.js"></script>
+    <script type="text/javascript" src="websock.js"></script>
+  </head>
+
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+      <a class="navbar-brand" href="#">DE0-nano-SoC</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item active"> <a class="nav-link" href="#">Home <span class="sr-only">(current)</span></a> </li>
+          <li class="nav-item"> <a class="nav-link" href="/hv/tune/index.html">infiTOF(HV)</a> </li>
+          <li class="nav-item"> <a class="nav-link" href="/hv/tune/delta.html">infiTOF(&delta;HV)</a> </li>
+          <li class="nav-item"> <a class="nav-link" href="/hv/tune/advanced.html">Vacuum&amp;Valve</a> </li>
+          <li class="nav-item"> <a class="nav-link" href="/dg/index.html">Rapid protocols</a>   </li>
+          <li class="nav-item"> <a class="nav-link" href="/evbox/index.html">FSM and events</a> </li>
+          <li class="nav-item"> <a class="nav-link" href="/misc/index.html">MCP&amp;Climate</a> </li>
+        </ul>
+      </div>
+    </nav>
+
+      <div class="jumbotron text-center">
+        <h1>Timing &amp; Event Controller</h1>
+        <p>Rapid protocol switing, HV and finite-state-machine controller</p>
+      </div>
+
+      <div id = "sse">
+        <a href = "javascript:WebSocketTest()">Run WebSocket</a>
+      </div>
+      <div>
+        <p>
+	  <img src="multi-turn-mode.png" height=250 />
+        </p>
+      </div>
+
+      <img src="logo-osaka-u.png" alt="Smiley face" height="31" width="280">
+      <img src="logo.png" alt="Smiley face" height="60" width="200">
+      <hr>
+      <div id="banner"><h2>DG-PR $Id$</h2></div>
+      <hr>
+  </body>
+
+</html>

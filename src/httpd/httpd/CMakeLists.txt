@@ -12,6 +12,7 @@ set ( OPENSSL_ROOT_DIR "/usr/lib" )
 
 endif()
 
+find_package( Threads REQUIRED)
 find_package( OpenSSL 1.1.1 REQUIRED )
 
 message( STATUS "## OpenSSL_FOUND:            ${OpenSSL_FOUND}" )
@@ -29,31 +30,41 @@ endif()
 include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${Boost_INCLUDE_DIRS}
+  ${QTPLATZ_INCLUDE_DIRS}
   )
 
 add_definitions( -DPID_NAME="/var/run/${PROJECT_NAME}.pid" -DDOC_ROOT="${HTML_INSTALL_DIR}/html" )
 
-add_executable (
-  ${PROJECT_NAME}
-  ${BOOST_BEAST_FILES}
-  common/server_certificate.hpp
-  #advanced_server_flex.cpp
-  advanced_server.cpp
-  )
+if ( FALSE )
+  add_executable (
+    ${PROJECT_NAME}
+    ${BOOST_BEAST_FILES}
+    common/server_certificate.hpp
+    advanced_server_flex.cpp
+    #advanced_server.cpp
+    )
+else()
+  add_executable (
+    ${PROJECT_NAME}
+    ${BOOST_BEAST_FILES}
+    common/server_certificate.hpp
+    main.cpp
+    listener.cpp
+    http_session.cpp
+    websocket_session.cpp
+    shared_state.cpp
+    )
+endif()
 
 target_link_libraries (
   ${PROJECT_NAME}
-  ${Boost_LIBRARIES}
   OpenSSL::Crypto
   OpenSSL::SSL
+  ${Boost_LIBRARIES}
+  adportable
+  crypto
+  ssl
   )
 
-
-#[[
-target_link_libraries (advanced-server-flex
-  OpenSSL::SSL OpenSSL::Crypto
-  lib-asio
-  lib-asio-ssl
-  lib-beast
-  )
-]]
+install( TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin COMPONENT httpd )
+install( FILES ${PROJECT_BINARY_DIR}/${PROJECT_NAME} DESTINATION /etc/init.d COMPONENT httpd )

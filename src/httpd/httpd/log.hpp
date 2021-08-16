@@ -25,6 +25,9 @@
 #pragma once
 
 #include <sstream>
+#if defined __LINUX__
+# include <syslot.h>
+#endif
 
 namespace httpd {
 

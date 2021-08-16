@@ -12,7 +12,7 @@
 case "$1" in
 	start)
         echo -n "Starting delay-generator daemon: @PROJECT_NAME@"
-		@CMAKE_INSTALL_PREFIX@/bin/@PROJECT_NAME@ --port 80 --doc_root @HTML_INSTALL_DIR@/html --event_receiver='event_receiver' > /dev/null 2>&1 &
+		@CMAKE_INSTALL_PREFIX@/bin/@PROJECT_NAME@ --port 80 --doc_root @HTML_INSTALL_DIR@ --event_receiver='event_receiver' > /dev/null 2>&1 &
         echo "."
 		;;
 	stop)
@@ -24,7 +24,7 @@ case "$1" in
         echo -n "Restarting delay-generator daemon: @PROJECT_NAME@"
 		kill -HUP `cat /var/run/@PROJECT_NAME@.pid`
 		sleep 3
-		@CMAKE_INSTALL_PREFIX@/bin/@PROJECT_NAME@ --port 80 --doc_root @HTML_INSTALL_DIR@/html --event_receiver='event_receiver' > /dev/null 2>&1 &
+		@CMAKE_INSTALL_PREFIX@/bin/@PROJECT_NAME@ --port 80 --doc_root @HTML_INSTALL_DIR@ --event_receiver='event_receiver' > /dev/null 2>&1 &
         echo "."
         ;;
 

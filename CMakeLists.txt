@@ -26,8 +26,8 @@ find_file( QTPLATZ_CONFIG "qtplatz-config.cmake" HINTS  "${QTPLATZ_BUILD_DIR}" "
 include( "${QTPLATZ_CONFIG}" )
 
 set ( CMAKE_INSTALL_PREFIX "/usr/local" )            # override qtplatz
-set ( HTML_INSTALL_PREFIX "/opt" )
-set ( HTML_INSTALL_DIR "${HTML_INSTALL_DIR}/html" )  # referenced in src/httpd/httpd/CMakeList.txt
+set ( HTTPD_INSTALL_PREFIX "/opt" )
+set ( HTML_INSTALL_DIR "${HTTPD_INSTALL_PREFIX}/html" )  # referenced in src/httpd/httpd/CMakeList.txt
 
 file( STRINGS "${CMAKE_SOURCE_DIR}/config.sh" configs )
 foreach( i ${configs} )
@@ -74,6 +74,7 @@ find_package( Boost 1.75 REQUIRED COMPONENTS
   regex
   system
   thread
+  log
   )
 
 set ( DKMS_PACKAGES ) # This variable will be filled via drivers/dkms/dkms.cmake

@@ -44,7 +44,7 @@ log::log( priority level, const char * file, int line ) : level_( level )
 {
 #ifdef __linux__
     if ( !_is_syslog_open.test_and_set( std::memory_order_acquire ) )
-        openlog( "httpd-dg", LOG_CONS | LOG_PID, LOG_DAEMON );
+        openlog( "httpd", LOG_CONS | LOG_PID, LOG_DAEMON );
 #endif
     if ( file )
         o_ << file << ":" << line << "\t";

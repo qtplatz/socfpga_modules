@@ -12,6 +12,8 @@ set ( OPENSSL_ROOT_DIR "/usr/lib" )
 
 endif()
 
+set ( CMAKE_INSTALL_PREFIX "${HTTPD_INSTALL_PREFIX}" ) # override top level cmake
+
 find_package( Threads REQUIRED)
 find_package( OpenSSL 1.1.1 REQUIRED )
 
@@ -39,6 +41,8 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${QTPLATZ_INCLUDE_DIRS}
   )
+
+message( STATUS "############3 ${QTPLATZ_INCLUDE_DIRS}" )
 
 add_definitions( -DPID_NAME="/var/run/${PROJECT_NAME}.pid" -DDOC_ROOT="${HTML_INSTALL_DIR}/html" )
 
@@ -69,9 +73,12 @@ target_link_libraries (
   OpenSSL::SSL
   ${Boost_LIBRARIES}
   adportable
+  adlog
   crypto
   ssl
   )
+
+message( STATUS "##### CMAKE_INSTALL_PREFIX(httpd/httpd) ${CMAKE_INSTALL_PREFIX}" )
 
 install( TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin COMPONENT httpd )
 install( FILES ${PROJECT_BINARY_DIR}/${PROJECT_NAME} DESTINATION /etc/init.d COMPONENT httpd )

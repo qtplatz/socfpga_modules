@@ -21,10 +21,12 @@
 #include "listener.hpp"
 #include "shared_state.hpp"
 #include "version.h"
+#include <adlog/logger.hpp>
 #include <adportable/debug.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/program_options.hpp>
+#include <boost/log/attributes/current_process_name.hpp>
 #include <iostream>
 #include <vector>
 
@@ -65,15 +67,18 @@ main( int argc, char *argv[] )
         __debug_mode__ = vm.count( "debug" ) > 0 ;
         __simulate__ = vm.count( "simulate" ) > 0 ;
 
+        adlog::logger::enable( adlog::logger::logging_syslog );
+        ADTRACE() << "## ADTRACE adlog::logger test: " << boost::log::attributes::current_process_name().get();
+
         if ( ! __debug_mode__ ) {
             int fd = open( PID_NAME, O_RDWR|O_CREAT, 0644 );
             if ( fd < 0 ) {
-                std::cerr << "Can't open " PID_NAME << std::endl;
+                ADERROR() << "Can't open " PID_NAME;
                 exit(1);
             }
             int lock = lockf( fd, F_TLOCK, 0 );
             if ( lock < 0 ) {
-                std::cerr << "Process " << argv[0] << " already running" << std::endl;
+                ADERROR() << "Process " << argv[0] << " already running";
                 exit(1);
             }
             std::ostringstream o;
@@ -81,17 +86,10 @@ main( int argc, char *argv[] )
             write( fd, o.str().c_str(), o.str().size() );
         }
     }  catch (std::exception& e)  {
-        std::cerr << "exception: " << e.what() << "\n";
+        ADERROR() << "exception: " << e.what();
     }
     // Initialise the server.
 
-    // Check command line arguments.
-    // if ( argc != 5 ) {
-    //     std::cerr << "Usage: websocket-chat-multi <address> <port> <doc_root> <threads>\n"
-    //               << "Example:\n"
-    //               << "    websocket-chat-server 0.0.0.0 8080 . 5\n";
-    //     return EXIT_FAILURE;
-    // }
     auto address = net::ip::make_address( vm[ "recv" ].as<std::string>() );
     auto port = vm[ "port" ].as< std::string >(); // static_cast<unsigned short>( std::atoi( argv[2] ) );
     auto doc_root = vm[ "doc_root" ].as< std::string >(); // argv[3];
@@ -105,7 +103,7 @@ main( int argc, char *argv[] )
     auto endpoint = *resolver.resolve( query );
     uint16_t port_number = static_cast< const boost::asio::ip::tcp::endpoint& >(endpoint).port();
 
-    ADDEBUG() << "hostname: " << endpoint.host_name() << ":"
+    ADTRACE() << "hostname: " << endpoint.host_name() << ":"
               << static_cast< const boost::asio::ip::tcp::endpoint& >(endpoint).port();
 
     // Create and launch a listening port

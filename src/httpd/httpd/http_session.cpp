@@ -197,7 +197,7 @@ struct http_session::send_lambda {
 
 //------------------------------------------------------------------------------
 
-http_session::http_session( tcp::socket &&socket, boost::shared_ptr<shared_state> const &state )
+http_session::http_session( tcp::socket &&socket, std::shared_ptr<shared_state> const &state )
     : stream_( std::move( socket ) )
     , state_( state )
 {
@@ -262,7 +262,7 @@ http_session::on_read( beast::error_code ec, std::size_t )
         }
         // Create a websocket session, transferring ownership
         // of both the socket and the HTTP request.
-        boost::make_shared<websocket_session>( stream_.release_socket(), state_ )->run( req ); // parser_->release() );
+        std::make_shared<websocket_session>( stream_.release_socket(), state_ )->run( req ); // parser_->release() );
         return;
     }
 

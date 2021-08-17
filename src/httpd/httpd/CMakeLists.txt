@@ -5,11 +5,16 @@ project( httpd CXX )
 
 if ( CMAKE_CROSSCOMPILING )
 
-set ( OPENSSL_CRYPTO_LIBRARY "/usr/lib/arm-linux-gnueabihf/libcrypt.so" )
-set ( OPENSSL_SSL_LIBRARY "/usr/lib/arm-linux-gnueabihf/libssl.so" )
-set ( OPENSSL_INCLUDE_DIR "/usr/include" ) #arm-linux-gnueabihf/include" )
-set ( OPENSSL_ROOT_DIR "/usr/lib" )
+  set ( OPENSSL_CRYPTO_LIBRARY "/usr/lib/arm-linux-gnueabihf/libcrypt.so" )
+  set ( OPENSSL_SSL_LIBRARY "/usr/lib/arm-linux-gnueabihf/libssl.so" )
+  set ( OPENSSL_INCLUDE_DIR "/usr/include" ) #arm-linux-gnueabihf/include" )
+  set ( OPENSSL_ROOT_DIR "/usr/lib" )
 
+elseif( APPLE )
+
+#  find_library( OPENSSL_CRYPTO_LIBRARY crypto HINT "/usr/local/Cellar/openssl@1.1/1.1.1k" )
+#  find_library( OPENSSL_SSL_LIBRARY ssl HINT "/usr/local/Cellar/openssl@1.1/1.1.1k" )
+  set( OPENSSL_ROOT_DIR "/usr/local/opt/openssl" )
 endif()
 
 set ( CMAKE_INSTALL_PREFIX "${HTTPD_INSTALL_PREFIX}" ) # override top level cmake
@@ -69,15 +74,18 @@ else()
     )
 endif()
 
+if ( ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  set ( LINUX_SSL_LIBRARIES "crypto" "ssl" )
+endif()
+
 target_link_libraries (
   ${PROJECT_NAME}
+  ${Boost_LIBRARIES}
   OpenSSL::Crypto
   OpenSSL::SSL
-  ${Boost_LIBRARIES}
   adportable
   adlog
-  crypto
-  ssl
+  ${LINUX_SSL_LIBRARIES} # workaround
   )
 
 message( STATUS "##### CMAKE_INSTALL_PREFIX(httpd/httpd) ${CMAKE_INSTALL_PREFIX}" )

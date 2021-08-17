@@ -17,12 +17,12 @@ if ( CMAKE_CROSSCOMPILING )
   message( STATUS "------------- CROSSCOMPILING -------------" )
   set ( VERBOSE TRUE )
   find_path( QTPLATZ_SOURCE_DIR "qtplatz.cmake" HINTS "$ENV{HOME}/src/qtplatz" NO_CMAKE_FIND_ROOT_PATH REQUIRED )
-  find_path( QTPLATZ_BUILD_DIR  "qtplatz-config.cmake" HINTS "${BUILD_ROOT}/qtplatz.release" )
   message( STATUS "## QTPLATZ_SOURCE_DIR : " ${QTPLATZ_SOURCE_DIR} )
   message( STATUS "## QTPLATZ_BUILD_DIR : " ${QTPLATZ_BUILD_DIR} )
 endif()
 
-find_file( QTPLATZ_CONFIG "qtplatz-config.cmake" HINTS  "${QTPLATZ_BUILD_DIR}" "/opt/qtplatz" REQUIRED )
+find_path( QTPLATZ_BUILD_DIR  "qtplatz-config.cmake" HINTS "${BUILD_ROOT}/qtplatz.release" )
+find_file( QTPLATZ_CONFIG     "qtplatz-config.cmake" HINTS  "${QTPLATZ_BUILD_DIR}" "/opt/qtplatz" REQUIRED )
 include( "${QTPLATZ_CONFIG}" )
 
 set ( CMAKE_INSTALL_PREFIX "/usr/local" )            # override qtplatz

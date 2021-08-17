@@ -104,9 +104,9 @@ main( int argc, char *argv[] )
               << endpoint.host_name()  << ":" << static_cast< const boost::asio::ip::tcp::endpoint& >(endpoint).port();
 
     // Create and launch a listening port
-    boost::make_shared< listener >( ioc
-                                    , endpoint // tcp::endpoint{ address, port_number }
-                                    , boost::make_shared< shared_state >( doc_root ) )->run();
+    std::make_shared< listener >( ioc
+                                  , endpoint // tcp::endpoint{ address, port_number }
+                                  , std::make_shared< shared_state >( doc_root ) )->run();
 
     // Capture SIGINT and SIGTERM to perform a clean shutdown
     net::signal_set signals( ioc, SIGINT, SIGTERM );

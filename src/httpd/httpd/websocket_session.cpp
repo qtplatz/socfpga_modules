@@ -12,7 +12,7 @@
 #include <iostream>
 
 websocket_session::websocket_session( tcp::socket &&socket
-                                      , boost::shared_ptr<shared_state> const &state )
+                                      , std::shared_ptr<shared_state> const &state )
     : ws_( std::move( socket ) )
     , state_( state )
 {
@@ -70,7 +70,7 @@ websocket_session::on_read( beast::error_code ec
 }
 
 void
-websocket_session::send( boost::shared_ptr<std::string const> const &ss )
+websocket_session::send( std::shared_ptr<std::string const> const &ss )
 {
     // Post our work to the strand, this ensures
     // that the members of `this` will not be
@@ -80,7 +80,7 @@ websocket_session::send( boost::shared_ptr<std::string const> const &ss )
 }
 
 void
-websocket_session::on_send( boost::shared_ptr<std::string const> const &ss )
+websocket_session::on_send( std::shared_ptr<std::string const> const &ss )
 {
     // Always add to queue
     queue_.push_back( ss );

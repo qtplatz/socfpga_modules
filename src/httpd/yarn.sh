@@ -1,4 +1,10 @@
-#!/usr/bin/bash
+#!bash
+
+if ! command -v npm &> /dev/null
+then
+	echo "npm not installed.  to do following on macOS"
+	echo "sudo brew install node"
+fi
 
 if ! command -v yarn &> /dev/null
 then

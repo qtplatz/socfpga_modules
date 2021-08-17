@@ -74,10 +74,6 @@ else()
     )
 endif()
 
-if ( ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  set ( LINUX_SSL_LIBRARIES "crypto" "ssl" )
-endif()
-
 target_link_libraries (
   ${PROJECT_NAME}
   ${Boost_LIBRARIES}
@@ -85,7 +81,6 @@ target_link_libraries (
   OpenSSL::SSL
   adportable
   adlog
-  ${LINUX_SSL_LIBRARIES} # workaround
   )
 
 message( STATUS "##### CMAKE_INSTALL_PREFIX(httpd/httpd) ${CMAKE_INSTALL_PREFIX}" )

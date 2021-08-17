@@ -8,6 +8,7 @@
 //
 
 #include "websocket_session.hpp"
+#include <adlog/logger.hpp>
 #include <iostream>
 
 websocket_session::websocket_session( tcp::socket &&socket
@@ -31,7 +32,7 @@ websocket_session::fail( beast::error_code ec
     if ( ec == net::error::operation_aborted || ec == websocket::error::closed )
         return;
 
-    std::cerr << what << ": " << ec.message() << "\n";
+    ADERROR() << what << ": " << ec.message();
 }
 
 void

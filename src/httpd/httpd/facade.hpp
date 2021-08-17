@@ -1,6 +1,6 @@
+// -*- C++ -*-
 /**************************************************************************
-** Copyright (C) 2010-2017 Toshinobu Hondo, Ph.D.
-** Copyright (C) 2013-2017 MS-Cheminformatics LLC
+** Copyright (C) 2021 MS-Cheminformatics LLC
 *
 ** Contact: toshi.hondo@qtplatz.com
 **
@@ -22,39 +22,30 @@
 **
 **************************************************************************/
 
-#include "log.hpp"
+#pragma once
 
-#if defined __linux__
-# include <syslog.h>
-#endif
-
-#include <iostream>
-#include <atomic>
+#include <boost/asio.hpp>
+#include <boost/beast/core.hpp>
+#include <boost/beast/http.hpp>
+#include <boost/signals2.hpp>
+#include <boost/optional.hpp>
+#include <boost/beast/version.hpp>
+#include <memory>
 #include <mutex>
+#include <string>
 
-extern bool __debug_mode__;
+class facade {
+    facade( const facade& ) = delete;
+    facade& operator = ( const facade& ) = delete;
+    facade();
+    boost::asio::io_context ioc_;
+    std::mutex mutex_;
+    static std::unique_ptr< facade > instance_;
+public:
+    ~facade();
+    static facade * instance();
 
-namespace httpd {
-    static std::atomic_flag _is_syslog_open = { 0 }; // ATOMIC_FLAG_INIT );
-}
+    typedef boost::beast::http::response<boost::beast::http::string_body> response_type;
+    boost::optional< response_type > handle_request( const boost::beast::http::request<boost::beast::http::string_body>& req );
 
-using namespace httpd;
-
-log::log( priority level, const char * file, int line ) : level_( level )
-{
-#ifdef __linux__
-    if ( !_is_syslog_open.test_and_set( std::memory_order_acquire ) )
-        openlog( "httpd", LOG_CONS | LOG_PID, LOG_DAEMON );
-#endif
-    if ( file )
-        o_ << file << ":" << line << "\t";
-}
-
-log::~log()
-{
-#if defined __linux__
-    syslog( level_, "%s", o_.str().c_str() );
-#endif
-    if ( __debug_mode__ )
-        std::cerr << o_.str() << std::endl;
-}
+};

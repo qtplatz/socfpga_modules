@@ -14,9 +14,9 @@ function showMessage(msg) {
 $(function() {
     $( '#connect' ).on( 'click', function( e ) {
         console.log( 'clicked' );
-        ws = new WebSocket(uri.value);
+        ws = new WebSocket(uri.value, 'chat')
         ws.onopen = function(ev) {
-            showMessage("[connection opened]");
+            showMessage("[connection opened]" + uri.value );
         };
         ws.onclose = function(ev) {
             showMessage("[connection closed]");
@@ -25,7 +25,7 @@ $(function() {
             showMessage(ev.data);
         };
         ws.onerror = function(ev) {
-            showMessage("[error]");
+            showMessage("[error]" + ev );
             console.log(ev);
         };
     });

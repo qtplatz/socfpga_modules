@@ -1,6 +1,6 @@
 // -*- C++ -*-
 /**************************************************************************
-** Copyright (C) 2013-2018 MS-Cheminformatics LLC
+** Copyright (C) 2021 MS-Cheminformatics LLC
 *
 ** Contact: toshi.hondo@qtplatz.com
 **
@@ -22,27 +22,14 @@
 **
 **************************************************************************/
 
-#pragma once
+#include "facade.hpp"
 
-#include <sstream>
-#if defined __LINUX__
-# include <syslot.h>
-#endif
+std::unique_ptr< facade > facade::instance_;
 
-namespace httpd {
+facade::facade()
+{
+}
 
-    class log {
-    public:
-        enum priority { EMERG, ALERT, CRIT, ERR, WARN, NOTICE, INFO, DEBUG };
-        log( priority level = INFO, const char * file = 0, int line = 0 );
-
-        ~log();
-        template<typename T> log& operator << (const T& t ) {
-            o_ << t;
-            return *this;
-        }
-    private:
-        std::ostringstream o_;
-        priority level_;
-    };
+facade::~facade()
+{
 }

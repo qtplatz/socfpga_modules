@@ -64,6 +64,8 @@ else()
     http_session.cpp
     websocket_session.cpp
     shared_state.cpp
+    facade.cpp
+    facade.hpp
     )
 endif()
 

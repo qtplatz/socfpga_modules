@@ -67,10 +67,10 @@ main( int argc, char *argv[] )
         __debug_mode__ = vm.count( "debug" ) > 0 ;
         __simulate__ = vm.count( "simulate" ) > 0 ;
 
-        adlog::logger::enable( adlog::logger::logging_syslog );
-        ADTRACE() << "## ADTRACE adlog::logger test: " << boost::log::attributes::current_process_name().get();
-
         if ( ! __debug_mode__ ) {
+
+            adlog::logger::enable( adlog::logger::logging_syslog );
+
             int fd = open( PID_NAME, O_RDWR|O_CREAT, 0644 );
             if ( fd < 0 ) {
                 ADERROR() << "Can't open " PID_NAME;
@@ -88,10 +88,10 @@ main( int argc, char *argv[] )
     }  catch (std::exception& e)  {
         ADERROR() << "exception: " << e.what();
     }
-    // Initialise the server.
 
-    auto address = net::ip::make_address( vm[ "recv" ].as<std::string>() );
-    auto port = vm[ "port" ].as< std::string >(); // static_cast<unsigned short>( std::atoi( argv[2] ) );
+    // Initialise the server.
+    auto host     = vm[ "recv" ].as<std::string>();
+    auto port     = vm[ "port" ].as< std::string >(); // static_cast<unsigned short>( std::atoi( argv[2] ) );
     auto doc_root = vm[ "doc_root" ].as< std::string >(); // argv[3];
     auto const threads = std::max<int>( 1, vm[ "threads" ].as< int >() ); // std::atoi( argv[4] ) );
 
@@ -99,16 +99,13 @@ main( int argc, char *argv[] )
     net::io_context ioc;
 
     boost::asio::ip::tcp::resolver resolver(ioc);
-    boost::asio::ip::tcp::resolver::query query( vm[ "recv" ].as< std::string >(), port ); // "daytime");
-    auto endpoint = *resolver.resolve( query );
-    uint16_t port_number = static_cast< const boost::asio::ip::tcp::endpoint& >(endpoint).port();
-
-    ADTRACE() << "hostname: " << endpoint.host_name() << ":"
-              << static_cast< const boost::asio::ip::tcp::endpoint& >(endpoint).port();
+    auto endpoint = *resolver.resolve( { host, port } );
+    ADTRACE() << "listening: "
+              << endpoint.host_name()  << ":" << static_cast< const boost::asio::ip::tcp::endpoint& >(endpoint).port();
 
     // Create and launch a listening port
     boost::make_shared< listener >( ioc
-                                    , tcp::endpoint{ address, port_number }
+                                    , endpoint // tcp::endpoint{ address, port_number }
                                     , boost::make_shared< shared_state >( doc_root ) )->run();
 
     // Capture SIGINT and SIGTERM to perform a clean shutdown
@@ -125,6 +122,7 @@ main( int argc, char *argv[] )
     v.reserve( threads - 1 );
     for ( auto i = threads - 1; i > 0; --i )
         v.emplace_back( [&ioc] { ioc.run(); } );
+
     ioc.run();
 
     // (If we get here, it means we got a SIGINT or SIGTERM)

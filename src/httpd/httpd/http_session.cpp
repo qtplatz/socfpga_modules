@@ -9,8 +9,7 @@
 
 #include "http_session.hpp"
 #include "websocket_session.hpp"
-#include "log.hpp"
-#include <adportable/debug.hpp>
+#include <adlog/logger.hpp>
 #include <boost/config.hpp>
 #include <iostream>
 
@@ -29,48 +28,27 @@ mime_type( beast::string_view path )
             return beast::string_view{};
         return path.substr( pos );
     }();
-    if ( iequals( ext, ".htm" ) )
-        return "text/html";
-    if ( iequals( ext, ".html" ) )
-        return "text/html";
-    if ( iequals( ext, ".php" ) )
-        return "text/html";
-    if ( iequals( ext, ".css" ) )
-        return "text/css";
-    if ( iequals( ext, ".txt" ) )
-        return "text/plain";
-    if ( iequals( ext, ".js" ) )
-        return "application/javascript";
-    if ( iequals( ext, ".json" ) )
-        return "application/json";
-    if ( iequals( ext, ".xml" ) )
-        return "application/xml";
-    if ( iequals( ext, ".swf" ) )
-        return "application/x-shockwave-flash";
-    if ( iequals( ext, ".flv" ) )
-        return "video/x-flv";
-    if ( iequals( ext, ".png" ) )
-        return "image/png";
-    if ( iequals( ext, ".jpe" ) )
-        return "image/jpeg";
-    if ( iequals( ext, ".jpeg" ) )
-        return "image/jpeg";
-    if ( iequals( ext, ".jpg" ) )
-        return "image/jpeg";
-    if ( iequals( ext, ".gif" ) )
-        return "image/gif";
-    if ( iequals( ext, ".bmp" ) )
-        return "image/bmp";
-    if ( iequals( ext, ".ico" ) )
-        return "image/vnd.microsoft.icon";
-    if ( iequals( ext, ".tiff" ) )
-        return "image/tiff";
-    if ( iequals( ext, ".tif" ) )
-        return "image/tiff";
-    if ( iequals( ext, ".svg" ) )
-        return "image/svg+xml";
-    if ( iequals( ext, ".svgz" ) )
-        return "image/svg+xml";
+    if ( iequals( ext, ".htm"   ) )        return "text/html";
+    if ( iequals( ext, ".html"  ) )        return "text/html";
+    if ( iequals( ext, ".php"   ) )        return "text/html";
+    if ( iequals( ext, ".css"   ) )        return "text/css";
+    if ( iequals( ext, ".txt"   ) )        return "text/plain";
+    if ( iequals( ext, ".js"    ) )        return "application/javascript";
+    if ( iequals( ext, ".json"  ) )        return "application/json";
+    if ( iequals( ext, ".xml"   ) )        return "application/xml";
+    if ( iequals( ext, ".swf"   ) )        return "application/x-shockwave-flash";
+    if ( iequals( ext, ".flv"   ) )        return "video/x-flv";
+    if ( iequals( ext, ".png"   ) )        return "image/png";
+    if ( iequals( ext, ".jpe"   ) )        return "image/jpeg";
+    if ( iequals( ext, ".jpeg"  ) )        return "image/jpeg";
+    if ( iequals( ext, ".jpg"   ) )        return "image/jpeg";
+    if ( iequals( ext, ".gif"   ) )        return "image/gif";
+    if ( iequals( ext, ".bmp"   ) )        return "image/bmp";
+    if ( iequals( ext, ".ico"   ) )        return "image/vnd.microsoft.icon";
+    if ( iequals( ext, ".tiff"  ) )        return "image/tiff";
+    if ( iequals( ext, ".tif"   ) )        return "image/tiff";
+    if ( iequals( ext, ".svg"   ) )        return "image/svg+xml";
+    if ( iequals( ext, ".svgz"  ) )        return "image/svg+xml";
     return "application/text";
 }
 
@@ -153,6 +131,8 @@ handle_request( beast::string_view doc_root, http::request<Body, http::basic_fie
     if ( req.target().back() == '/' )
         path.append( "index.html" );
 
+    ADTRACE() << req;
+
     // Attempt to open the file
     beast::error_code ec;
     http::file_body::value_type body;
@@ -221,6 +201,7 @@ http_session::http_session( tcp::socket &&socket, boost::shared_ptr<shared_state
     : stream_( std::move( socket ) )
     , state_( state )
 {
+    ADTRACE() << "listen::on_accept got accept";
 }
 
 void
@@ -237,7 +218,7 @@ http_session::fail( beast::error_code ec, char const *what )
     if ( ec == net::error::operation_aborted )
         return;
 
-    std::cerr << what << ": " << ec.message() << "\n";
+    ADERROR() << what << ": " << ec.message();
 }
 
 void
@@ -273,9 +254,15 @@ http_session::on_read( beast::error_code ec, std::size_t )
 
     // See if it is a WebSocket Upgrade
     if ( websocket::is_upgrade( parser_->get() ) ) {
+        auto req = parser_->release();
+        if ( ! req[http::field::sec_websocket_protocol].empty() ) {
+            ADTRACE() << "## upgrade to websocket -- subprotocol: " << req[http::field::sec_websocket_protocol];
+        } else {
+            ADTRACE() << "## upgrade to websocket -- no subprotocol";
+        }
         // Create a websocket session, transferring ownership
         // of both the socket and the HTTP request.
-        boost::make_shared<websocket_session>( stream_.release_socket(), state_ )->run( parser_->release() );
+        boost::make_shared<websocket_session>( stream_.release_socket(), state_ )->run( req ); // parser_->release() );
         return;
     }
 

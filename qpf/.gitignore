@@ -26,6 +26,9 @@
 #*.vhd
 #*.v
 
+# auto-generated file
+revision.v
+
 # ignore Quartus II generated files
 *sopc_*
 *.jdi

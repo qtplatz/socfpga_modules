@@ -1,6 +1,6 @@
 function loadBanner()
 {
-    $.ajax({ type: "GET", url: "/dg/ctl$banner", dataType: "html"
+    $.ajax({ type: "GET", url: "/fpga/revision", dataType: "html"
            }).done( function( response ) {
                $("#banner").html( response );
            }).fail( function( response ) {

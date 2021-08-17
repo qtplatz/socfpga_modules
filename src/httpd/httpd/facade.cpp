@@ -23,8 +23,34 @@
 **************************************************************************/
 
 #include "facade.hpp"
+#include "shared_state.hpp"
+#include "slave_io.hpp"
+#include <memory>
+#include <optional>
 
-std::unique_ptr< facade > facade::instance_;
+namespace {
+    struct null_t {};
+    template< typename ... T > struct peripheral_list_t {};
+
+    template< typename last >
+    struct peripheral_list_t< last > {
+        static std::optional< facade::response_type > // bool
+        can_handle( const boost::beast::http::request<boost::beast::http::string_body>& ) {
+            return {};
+        }
+    };
+
+    template< typename first, typename ... args >
+    struct peripheral_list_t< first, args ... > {
+        static std::optional< facade::response_type > // bool
+        can_handle( const boost::beast::http::request<boost::beast::http::string_body>& req ) {
+            if ( req.target().compare( 0, first::prefix_size, first::prefix ) == 0 )
+                return first::instance()->handle_request( req );
+            return peripheral_list_t< args ... >::can_handle( req );
+        }
+    };
+    using peripheral_list = peripheral_list_t< peripheral::slave_io, null_t >;
+}
 
 facade::facade()
 {
@@ -32,4 +58,25 @@ facade::facade()
 
 facade::~facade()
 {
+}
+
+facade *
+facade::instance()
+{
+    static facade __instance;
+    return &__instance;
+}
+
+std::shared_ptr< shared_state >
+facade::make_shared_state( const std::string& doc_root )
+{
+    auto state = std::make_shared< class shared_state >( doc_root );
+    instance()->state_ = state;
+    return state;
+}
+
+std::optional< facade::response_type >
+facade::handle_request( const boost::beast::http::request<boost::beast::http::string_body>& req )
+{
+    return {};
 }

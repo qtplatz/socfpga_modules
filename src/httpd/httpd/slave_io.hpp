@@ -1,6 +1,7 @@
 // -*- C++ -*-
 /**************************************************************************
-** Copyright (C) 2021 MS-Cheminformatics LLC
+** Copyright (C) 2010-2017 Toshinobu Hondo, Ph.D.
+** Copyright (C) 2013-2017 MS-Cheminformatics LLC
 *
 ** Contact: toshi.hondo@qtplatz.com
 **
@@ -24,32 +25,15 @@
 
 #pragma once
 
-#include "shared_state.hpp"
-#include <boost/asio.hpp>
-#include <boost/beast/core.hpp>
-#include <boost/beast/http.hpp>
-#include <boost/beast/version.hpp>
-#include <boost/signals2.hpp>
-#include <memory>
-#include <mutex>
-#include <optional>
-#include <string>
+#include "facade.hpp"
 
-class facade {
-    facade( const facade& ) = delete;
-    facade& operator = ( const facade& ) = delete;
-    facade();
-    boost::asio::io_context ioc_;
-    std::mutex mutex_;
-    std::weak_ptr< shared_state > state_;
+namespace peripheral {
 
-public:
-    ~facade();
-    static facade * instance();
-
-    static std::shared_ptr< shared_state > make_shared_state( const std::string& doc_root );
-
-    typedef boost::beast::http::response<boost::beast::http::string_body> response_type;
-    std::optional< response_type > handle_request( const boost::beast::http::request<boost::beast::http::string_body>& req );
+    class slave_io {
+    public:
+        std::optional< facade::response_type > handle_request( const boost::beast::http::request<boost::beast::http::string_body>& req );
+        constexpr static const char * const prefix = "/fpga/slave_io$";
+        constexpr static const size_t prefix_size = sizeof( "/fpga/slave_io$" );
+    };
 
 };

@@ -18,6 +18,7 @@
 */
 //------------------------------------------------------------------------------
 
+#include "facade.hpp"
 #include "listener.hpp"
 #include "shared_state.hpp"
 #include "version.h"
@@ -106,7 +107,8 @@ main( int argc, char *argv[] )
     // Create and launch a listening port
     std::make_shared< listener >( ioc
                                   , endpoint // tcp::endpoint{ address, port_number }
-                                  , std::make_shared< shared_state >( doc_root ) )->run();
+                                  , facade::make_shared_state( doc_root ) )->run();
+                                  // , std::make_shared< shared_state >( doc_root ) )->run();
 
     // Capture SIGINT and SIGTERM to perform a clean shutdown
     net::signal_set signals( ioc, SIGINT, SIGTERM );

@@ -71,6 +71,8 @@ else()
     shared_state.cpp
     facade.cpp
     facade.hpp
+    slave_io.cpp
+    slave_io.hpp
     )
 endif()
 

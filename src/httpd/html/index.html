@@ -18,8 +18,8 @@
     <script src="/node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
 
     <!-- <script type="text/javascript" src="showhint.js"></script> -->
+    <script type="text/javascript" src="chat.js"></script>
     <script type="text/javascript" src="loadbanner.js"></script>
-    <script type="text/javascript" src="websock.js"></script>
   </head>
 
   <body>
@@ -42,23 +42,40 @@
     </nav>
 
     <div class="jumbotron text-center">
-      <h1>Timing &amp; Event Controller</h1>
+      <h1>Timing &amp; Event Controller Log &amp; Chat</h1>
       <p>Rapid protocol switing, HV and finite-state-machine controller</p>
     </div>
 
-    <div id = "sse">
-      <a href = "javascript:WebSocketTest()">Run WebSocket</a>
-    </div>
-    <div>
-      <p>
-	<img src="multi-turn-mode.png" height=250 />
-      </p>
-    </div>
+    <div class="container">
+      <div class="row">
+        <div  class="col-8">
+          <div style="margin-bottom: 2px;margin-left:5px;">
+            Server URI: <input class="draw-border" id="uri" size="47" value="ws://localhost:8080" style="margin-bottom: 5px;">
+            <button class="echo-button" id="connect">Connect</button>
+            <button class="echo-button" id="disconnect">Disconnect</button><br>
+            Your Name: <input class="draw-border" id="userName" size=47 style="margin-bottom: 5px;"><br>
+          </div>
+          <div style="margin-bottom: 2px;margin-left:5px;">
+            <pre id="messages" style="width: 600px; height: 400px; white-space: normal; overflow: auto; border: solid 1px #cccccc; margin-bottom: 5px;"></pre>
+          </div>
+          <div style="margin-bottom: 5px;margin-left:5px;">
+            Message<br>
+            <input class="draw-border" id="sendMessage" size="74" value="">
+            <button class="echo-button" id="send">Send</button>
+          </div>
+        </div> <!-- col-xs-6 -->
 
+        <div  class="col-4">
+          <p>
+	    <img src="multi-turn-mode.png" height=250 />
+          </p>
+        </div>
+      </div> <!-- row -->
+    </div> <!-- container -->
+    <div id="banner"><h2>DG-PR $Id$</h2></div>
     <img src="logo-osaka-u.png" alt="Smiley face" height="31" width="280">
     <img src="logo.png" alt="Smiley face" height="60" width="200">
     <hr>
-    <div id="banner"><h2>DG-PR $Id$</h2></div>
     <hr>
   </body>
 

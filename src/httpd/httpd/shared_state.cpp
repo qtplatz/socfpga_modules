@@ -9,6 +9,7 @@
 
 #include "shared_state.hpp"
 #include "websocket_session.hpp"
+#include "facade.hpp"
 
 shared_state::shared_state( std::string doc_root ) : doc_root_( std::move( doc_root ) )
 {

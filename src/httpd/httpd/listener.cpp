@@ -7,6 +7,7 @@
 // Official repository: https://github.com/vinniefalco/CppCon2018
 //
 
+#include "facade.hpp"
 #include "listener.hpp"
 #include "http_session.hpp"
 #include <iostream>

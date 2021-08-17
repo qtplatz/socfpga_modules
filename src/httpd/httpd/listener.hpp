@@ -18,9 +18,10 @@
 
 // Forward declaration
 class shared_state;
+class facade;
 
 // Accepts incoming connections and launches the sessions
-class listener : public boost::enable_shared_from_this< listener > {
+class listener : public std::enable_shared_from_this< listener > {
     net::io_context &ioc_;
     tcp::acceptor acceptor_;
     std::shared_ptr<shared_state> state_;
@@ -30,6 +31,7 @@ class listener : public boost::enable_shared_from_this< listener > {
 
   public:
     listener( net::io_context &ioc, tcp::endpoint endpoint, std::shared_ptr<shared_state> const &state );
+    void set_facade( facade * );
 
     // Start accepting incoming connections
     void run();

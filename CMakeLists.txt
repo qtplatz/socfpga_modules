@@ -27,7 +27,7 @@ include( "${QTPLATZ_CONFIG}" )
 
 set ( CMAKE_INSTALL_PREFIX "/usr/local" )            # override qtplatz
 set ( HTTPD_INSTALL_PREFIX "/opt" )
-set ( HTML_INSTALL_DIR "${HTTPD_INSTALL_PREFIX}/html" )  # referenced in src/httpd/httpd/CMakeList.txt
+set ( HTML_INSTALL_PREFIX "/opt" )
 
 file( STRINGS "${CMAKE_SOURCE_DIR}/config.sh" configs )
 foreach( i ${configs} )
@@ -103,7 +103,7 @@ set( CPACK_DEBIAN_PACKAGE_ARCHITECTURE armhf )
 cpack_add_component( socfpga  DISPLAY_NAME "socfpga" GROUP httpd )
 cpack_add_component_group( httpd )
 set ( CPACK_DEBIAN_HTTPD_PACKAGE_CONTROL_EXTRA
-  "${CMAKE_BINARY_DIR}/linux/httpd/httpd/postinst;${CMAKE_BINARY_DIR}/linux/httpd/httpd/prerm" )
+  "${CMAKE_BINARY_DIR}/src/httpd/httpd/postinst;${CMAKE_BINARY_DIR}/src/httpd/httpd/prerm" )
 set ( CPACK_DEBIAN_HTTPD_PACKAGE_DEPENDS "" )
 
 ###############################################

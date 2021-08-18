@@ -2,4 +2,4 @@
 
 add_subdirectory( httpd )
 
-install ( DIRECTORY html DESTINATION ${HTML_INSTALL_DIR} COMPONENT httpd )
+install ( DIRECTORY html DESTINATION "${HTML_INSTALL_PREFIX}" COMPONENT httpd )

@@ -24,7 +24,8 @@
 
 #include "facade.hpp"
 #include "shared_state.hpp"
-#include "slave_io.hpp"
+#include "dgmod.hpp"
+#include <adlog/logger.hpp>
 #include <memory>
 #include <optional>
 
@@ -35,7 +36,7 @@ namespace {
     template< typename last >
     struct peripheral_list_t< last > {
         static std::optional< facade::response_type > // bool
-        can_handle( const boost::beast::http::request<boost::beast::http::string_body>& ) {
+        do_handle( const boost::beast::http::request<boost::beast::http::string_body>& ) {
             return {};
         }
     };
@@ -43,13 +44,14 @@ namespace {
     template< typename first, typename ... args >
     struct peripheral_list_t< first, args ... > {
         static std::optional< facade::response_type > // bool
-        can_handle( const boost::beast::http::request<boost::beast::http::string_body>& req ) {
+        do_handle( const boost::beast::http::request<boost::beast::http::string_body>& req ) {
             if ( req.target().compare( 0, first::prefix_size, first::prefix ) == 0 )
-                return first::instance()->handle_request( req );
-            return peripheral_list_t< args ... >::can_handle( req );
+                return first().handle_request( req );
+            return peripheral_list_t< args ... >::do_handle( req );
         }
     };
-    using peripheral_list = peripheral_list_t< peripheral::slave_io, null_t >;
+
+    using peripheral_list = peripheral_list_t< peripheral::dgmod, null_t >;
 }
 
 facade::facade()
@@ -78,5 +80,8 @@ facade::make_shared_state( const std::string& doc_root )
 std::optional< facade::response_type >
 facade::handle_request( const boost::beast::http::request<boost::beast::http::string_body>& req )
 {
+    if ( req.target().compare( 0, 6, "/fpga/" ) == 0 ) {
+        return peripheral_list::do_handle( req );
+    }
     return {};
 }

@@ -29,11 +29,15 @@
 
 namespace peripheral {
 
-    class slave_io {
+    class dgmod {
     public:
-        std::optional< facade::response_type > handle_request( const boost::beast::http::request<boost::beast::http::string_body>& req );
-        constexpr static const char * const prefix = "/fpga/slave_io$";
-        constexpr static const size_t prefix_size = sizeof( "/fpga/slave_io$" );
+        std::optional< facade::response_type >
+        handle_request( const boost::beast::http::request<boost::beast::http::string_body>& req );
+
+        constexpr static const char * const prefix = "/fpga/dgmod/";
+        constexpr static const size_t prefix_size = sizeof( "/fpga/dgmod/" ) - 1;
+    private:
+        std::string GET_revision() const;
     };
 
 };

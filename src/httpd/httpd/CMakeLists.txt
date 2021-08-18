@@ -43,11 +43,10 @@ set ( CMAKE_INCLUDE_CURRENT_DIR ON )
 
 include_directories(
   ${Boost_INCLUDE_DIRS}
+  ${CMAKE_CURRENT_BINARY_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${QTPLATZ_INCLUDE_DIRS}
   )
-
-message( STATUS "############3 ${QTPLATZ_INCLUDE_DIRS}" )
 
 add_definitions( -DPID_NAME="/var/run/${PROJECT_NAME}.pid" -DDOC_ROOT="${HTML_INSTALL_DIR}/html" )
 
@@ -71,8 +70,8 @@ else()
     shared_state.cpp
     facade.cpp
     facade.hpp
-    slave_io.cpp
-    slave_io.hpp
+    dgmod.cpp
+    dgmod.hpp
     )
 endif()
 

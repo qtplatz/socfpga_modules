@@ -7,6 +7,7 @@
 // Official repository: https://github.com/vinniefalco/CppCon2018
 //
 
+#include "facade.hpp"
 #include "http_session.hpp"
 #include "websocket_session.hpp"
 #include <adlog/logger.hpp>
@@ -126,12 +127,16 @@ handle_request( beast::string_view doc_root, http::request<Body, http::basic_fie
     if ( req.target().empty() || req.target()[0] != '/' || req.target().find( ".." ) != beast::string_view::npos )
         return send( bad_request( "Illegal request-target" ) );
 
+
+    // Check if FPGA access
+    if ( auto res = facade::instance()->handle_request( req ) ) {
+        return send( std::move( *res ) );
+    }
+
     // Build the path to the requested file
     std::string path = path_cat( doc_root, req.target() );
     if ( req.target().back() == '/' )
         path.append( "index.html" );
-
-    ADTRACE() << req;
 
     // Attempt to open the file
     beast::error_code ec;
@@ -201,7 +206,6 @@ http_session::http_session( tcp::socket &&socket, std::shared_ptr<shared_state> 
     : stream_( std::move( socket ) )
     , state_( state )
 {
-    ADTRACE() << "listen::on_accept got accept";
 }
 
 void

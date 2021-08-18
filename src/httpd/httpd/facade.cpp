@@ -57,6 +57,8 @@ namespace {
     using peripheral_list = peripheral_list_t< peripheral::dgmod, null_t >;
 }
 
+using namespace std::chrono_literals;
+
 class facade::impl {
 public:
     boost::asio::io_context ioc_;
@@ -67,19 +69,23 @@ public:
     impl() : _1s_timer_( ioc_ ) {}
 
     void start_timer() {
-        _1s_timer_.expires_from_now( std::chrono::milliseconds( 1000 ) );
+        auto tp0 = std::chrono::steady_clock::now();
+        auto tp = std::chrono::time_point_cast< std::chrono::seconds >( tp0 ) + 3s;
+        _1s_timer_.expires_at ( tp + 3s ); //std::chrono::milliseconds( 1000 ) );
         _1s_timer_.async_wait( [this]( const boost::system::error_code& ec ){ on_timer(ec); } );
     };
 
 private:
     void on_timer( const boost::system::error_code& ec ) {
+        if ( ec )
+            ADTRACE() << ec;
+        auto dt = adportable::date_time::to_iso< std::chrono::microseconds >( std::chrono::steady_clock::now(), true );
         if ( auto state = state_.lock() ) {
-            auto dt = adportable::date_time::to_iso< std::chrono::microseconds >( std::chrono::system_clock::now(), true );
             state->send( "----- on_timer ----- " + dt );
-        } else {
-            ADTRACE() << "----- on_timer -----";
         }
-        _1s_timer_.expires_from_now( std::chrono::milliseconds( 1000 ) );
+
+        auto tp = std::chrono::floor< std::chrono::seconds >( std::chrono::steady_clock::now() ) + 1s;
+        _1s_timer_.expires_at ( tp );
         _1s_timer_.async_wait( [this]( const boost::system::error_code& ec ){ on_timer(ec); } );
     }
 
@@ -120,9 +126,9 @@ facade::handle_request( const boost::beast::http::request<boost::beast::http::st
 void
 facade::run()
 {
+    impl_->start_timer();
     for ( auto i = 0; i < 2; ++i )
         impl_->threads_.emplace_back( [&]{ impl_->ioc_.run(); } );
-    impl_->start_timer();
 }
 
 void

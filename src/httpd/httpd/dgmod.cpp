@@ -87,8 +87,8 @@ dgmod::GET_revision() const
     std::pair< size_t, size_t > sz; // read twice -- driver change io page by seek
     do {
         std::ifstream in( "/dev/dgmod0", std::ios::binary | std::ios::in );
-        sz.first = in.read( reinterpret_cast< char * >( data[ 0 ].data() ), data[0].size() * sizeof( uint64_t ) ).gcount();
-        sz.second = in.read( reinterpret_cast< char * >( data[ 1 ].data() ), data[1].size() * sizeof( uint64_t ) ).gcount();
+        sz.first = in.read( reinterpret_cast< char * >( data[ 0 ].data() ), data[0].size() * sizeof( uint64_t ) ).gcount(); // p0 := set points
+        sz.second = in.read( reinterpret_cast< char * >( data[ 1 ].data() ), data[1].size() * sizeof( uint64_t ) ).gcount(); // p1 := actuals
         if ( sz.first == data[0].size() * sizeof( uint64_t ) )
             rev = static_cast< uint32_t >( data[ 0 ].at( 15 ) & 0xffff'ffff );
     } while ( 0 );
@@ -97,5 +97,6 @@ dgmod::GET_revision() const
     o << "<h5>Delay Generator V" << PACKAGE_VERSION;
     o << boost::format(" FPGA Rev. %d.%d.%d-%d")
         % ( ( rev >> 24 ) & 0xff ) % ( ( rev >> 16 ) & 0xff ) % ( ( rev >> 8 ) & 0xff ) % ( rev & 0xff ) << "</h5>";
+
     return o.str();
 }

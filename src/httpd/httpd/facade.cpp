@@ -26,6 +26,9 @@
 #include "shared_state.hpp"
 #include "dgmod.hpp"
 #include <adlog/logger.hpp>
+#include <adportable/date_time.hpp>
+#include <adportable/iso8601.hpp>
+#include <boost/asio/steady_timer.hpp>
 #include <memory>
 #include <optional>
 
@@ -54,7 +57,35 @@ namespace {
     using peripheral_list = peripheral_list_t< peripheral::dgmod, null_t >;
 }
 
-facade::facade()
+class facade::impl {
+public:
+    boost::asio::io_context ioc_;
+    boost::asio::steady_timer _1s_timer_;
+    std::weak_ptr< shared_state > state_;
+    std::vector< std::thread > threads_;
+
+    impl() : _1s_timer_( ioc_ ) {}
+
+    void start_timer() {
+        _1s_timer_.expires_from_now( std::chrono::milliseconds( 1000 ) );
+        _1s_timer_.async_wait( [this]( const boost::system::error_code& ec ){ on_timer(ec); } );
+    };
+
+private:
+    void on_timer( const boost::system::error_code& ec ) {
+        if ( auto state = state_.lock() ) {
+            auto dt = adportable::date_time::to_iso< std::chrono::microseconds >( std::chrono::system_clock::now(), true );
+            state->send( "----- on_timer ----- " + dt );
+        } else {
+            ADTRACE() << "----- on_timer -----";
+        }
+        _1s_timer_.expires_from_now( std::chrono::milliseconds( 1000 ) );
+        _1s_timer_.async_wait( [this]( const boost::system::error_code& ec ){ on_timer(ec); } );
+    }
+
+};
+
+facade::facade() : impl_( std::make_unique< impl >() )
 {
 }
 
@@ -73,7 +104,7 @@ std::shared_ptr< shared_state >
 facade::make_shared_state( const std::string& doc_root )
 {
     auto state = std::make_shared< class shared_state >( doc_root );
-    instance()->state_ = state;
+    instance()->impl_->state_ = state;
     return state;
 }
 
@@ -84,4 +115,23 @@ facade::handle_request( const boost::beast::http::request<boost::beast::http::st
         return peripheral_list::do_handle( req );
     }
     return {};
+}
+
+void
+facade::run()
+{
+    for ( auto i = 0; i < 2; ++i )
+        impl_->threads_.emplace_back( [&]{ impl_->ioc_.run(); } );
+    impl_->start_timer();
+}
+
+void
+facade::stop()
+{
+    impl_->_1s_timer_.cancel();
+
+    impl_->ioc_.stop();
+
+    for ( auto& t: impl_->threads_ )
+        t.join();
 }

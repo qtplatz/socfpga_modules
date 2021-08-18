@@ -39,15 +39,16 @@ class facade {
     facade( const facade& ) = delete;
     facade& operator = ( const facade& ) = delete;
     facade();
-    boost::asio::io_context ioc_;
     std::mutex mutex_;
-    std::weak_ptr< shared_state > state_;
-
+    class impl;
+    std::unique_ptr< impl > impl_;
 public:
     ~facade();
     static facade * instance();
-
     static std::shared_ptr< shared_state > make_shared_state( const std::string& doc_root );
+
+    void run();
+    void stop();
 
     typedef boost::beast::http::response<boost::beast::http::string_body> response_type;
     std::optional< response_type > handle_request( const boost::beast::http::request<boost::beast::http::string_body>& req );

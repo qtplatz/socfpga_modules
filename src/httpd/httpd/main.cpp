@@ -119,15 +119,18 @@ main( int argc, char *argv[] )
         ioc.stop();
     } );
 
+    facade::instance()->run();
+
     // Run the I/O service on the requested number of threads
     std::vector<std::thread> v;
     v.reserve( threads - 1 );
     for ( auto i = threads - 1; i > 0; --i )
         v.emplace_back( [&ioc] { ioc.run(); } );
 
-    ioc.run();
+    ioc.run(); // <- this will block main thread
 
     // (If we get here, it means we got a SIGINT or SIGTERM)
+    facade::instance()->stop();
 
     // Block until all the threads exit
     for ( auto &t : v )

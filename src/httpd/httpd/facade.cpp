@@ -29,6 +29,7 @@
 #include <adportable/date_time.hpp>
 #include <adportable/iso8601.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/json.hpp>
 #include <memory>
 #include <optional>
 
@@ -65,8 +66,10 @@ public:
     boost::asio::steady_timer _1s_timer_;
     std::weak_ptr< shared_state > state_;
     std::vector< std::thread > threads_;
+    size_t tick_;
 
-    impl() : _1s_timer_( ioc_ ) {}
+    impl() : _1s_timer_( ioc_ )
+           , tick_( 0 ) {}
 
     void start_timer() {
         auto tp0 = std::chrono::steady_clock::now();
@@ -79,9 +82,15 @@ private:
     void on_timer( const boost::system::error_code& ec ) {
         if ( ec )
             ADTRACE() << ec;
-        auto dt = adportable::date_time::to_iso< std::chrono::microseconds >( std::chrono::steady_clock::now(), true );
-        if ( auto state = state_.lock() ) {
-            state->send( "----- on_timer ----- " + dt );
+
+        if ( ( tick_++ % 10 ) == 0 ) {
+            auto dt = adportable::date_time::to_iso< std::chrono::microseconds >( std::chrono::steady_clock::now(), true );
+            boost::json::object obj{
+                { "tick", {{ "counts", tick_ }, { "tp", dt }} }
+            };
+            if ( auto state = state_.lock() ) {
+                state->send( boost::json::serialize( obj ) );
+            }
         }
 
         auto tp = std::chrono::floor< std::chrono::seconds >( std::chrono::steady_clock::now() ) + 1s;

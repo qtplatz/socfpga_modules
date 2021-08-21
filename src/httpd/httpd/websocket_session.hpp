@@ -29,6 +29,7 @@ class websocket_session : public std::enable_shared_from_this< websocket_session
     websocket::stream<beast::tcp_stream> ws_;
     std::shared_ptr<shared_state> state_;
     std::vector<std::shared_ptr<std::string const>> queue_;
+    std::string subprotocol_;
 
     void fail( beast::error_code ec, char const * what );
     void on_accept( beast::error_code ec );
@@ -47,6 +48,8 @@ public:
 
     // Send a message
     void send( std::shared_ptr<std::string const> const& ss );
+
+    const std::string& subprotocol() const { return subprotocol_; };
 
 private:
     void on_send( std::shared_ptr<std::string const> const& ss );
@@ -75,6 +78,7 @@ websocket_session::run( http::request<Body, http::basic_fields<Allocator>> req )
                 [&](http::response_header<> &hdr) {
                     hdr.set( http::field::sec_websocket_protocol, req[http::field::sec_websocket_protocol] );
                 }));
+        subprotocol_ = req[http::field::sec_websocket_protocol].to_string();
     }
 
     // Accept the websocket handshake

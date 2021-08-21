@@ -42,6 +42,8 @@ websocket_session::on_accept( beast::error_code ec )
     if ( ec )
         return fail( ec, "accept" );
 
+    ADTRACE() << "Sec-WebSocket-Protocol: " << subprotocol_;
+
     // Add this session to the list of active sessions
     state_->join( this );
 

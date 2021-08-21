@@ -258,15 +258,9 @@ http_session::on_read( beast::error_code ec, std::size_t )
 
     // See if it is a WebSocket Upgrade
     if ( websocket::is_upgrade( parser_->get() ) ) {
-        auto req = parser_->release();
-        if ( ! req[http::field::sec_websocket_protocol].empty() ) {
-            ADTRACE() << "## upgrade to websocket -- subprotocol: " << req[http::field::sec_websocket_protocol];
-        } else {
-            ADTRACE() << "## upgrade to websocket -- no subprotocol";
-        }
         // Create a websocket session, transferring ownership
         // of both the socket and the HTTP request.
-        std::make_shared<websocket_session>( stream_.release_socket(), state_ )->run( req ); // parser_->release() );
+        std::make_shared<websocket_session>( stream_.release_socket(), state_ )->run( parser_->release() );
         return;
     }
 

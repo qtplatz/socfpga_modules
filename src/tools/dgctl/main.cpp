@@ -113,7 +113,7 @@ main( int argc, char **argv )
         return 0;
     }
 
-    std::array< uint64_t, 16 > data[ 2 ] = { 0 };
+    std::array< uint64_t, 16 > data[ 2 ] = {{ 0 }};
     std::pair< size_t, size_t > sz; // altera de0-nano-soc only returns 32 dwords (16 x 64 bit)
     do {
         std::ifstream in( vm[ "device" ].as< std::string >(), std::ios::binary | std::ios::in );

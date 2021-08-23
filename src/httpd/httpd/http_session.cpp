@@ -120,18 +120,17 @@ handle_request( beast::string_view doc_root, http::request<Body, http::basic_fie
     };
 
     // Make sure we can handle the method
-    if ( req.method() != http::verb::get && req.method() != http::verb::head )
+    if ( req.method() != http::verb::get && req.method() != http::verb::head && req.method() != http::verb::post ) {
         return send( bad_request( "Unknown HTTP-method" ) );
+    }
 
     // Request path must be absolute and not contain "..".
     if ( req.target().empty() || req.target()[0] != '/' || req.target().find( ".." ) != beast::string_view::npos )
         return send( bad_request( "Illegal request-target" ) );
 
-
     // Check if FPGA access
-    if ( auto res = facade::instance()->handle_request( req ) ) {
+    if ( auto res = facade::instance()->handle_request( req ) )
         return send( std::move( *res ) );
-    }
 
     // Build the path to the requested file
     std::string path = path_cat( doc_root, req.target() );

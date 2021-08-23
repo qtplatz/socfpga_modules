@@ -188,6 +188,8 @@ module system_top(
    reg [ 1:0]             dg_protocol_number_reg;  // actual
    reg [ 31:0]            user_dg_interval;
    reg [ 31:0]            view_dg_interval;
+   reg [ 31:0]            user_dg_replicates;
+   reg [ 31:0]            view_dg_replicates;
    wire [31:0]            user_flags;
    wire [31:0]            user_commit;
    var delay_width_t      user_delay_width_pairs [ NDELAY_PAIRS ];
@@ -350,8 +352,8 @@ module system_top(
 		  , .slave_io_0_user_interface_dataout_9    ( { user_delay_width_pairs[ 8  ].delay, user_delay_width_pairs[ 8  ].width } )  // delay_7
 		  , .slave_io_0_user_interface_dataout_10   ()
 		  , .slave_io_0_user_interface_dataout_11   ()  // output wire [63:0]                                .dataout_11
-		  , .slave_io_0_user_interface_dataout_12   ()  // output wire [63:0]                                .dataout_12
-		  , .slave_io_0_user_interface_dataout_13   ()  // output wire [63:0]                                .dataout_13
+		  , .slave_io_0_user_interface_dataout_12   ( { 32'b0, user_dg_replicates } )
+		  , .slave_io_0_user_interface_dataout_13   ()
 		  , .slave_io_0_user_interface_dataout_14   ( { 62'b0, user_protocol_number } )  // output wire [63:0]                                .dataout_15
 		  , .slave_io_0_user_interface_dataout_15   ( { user_flags, user_commit } ) // write only, cannot read
                   // fpga -> hps
@@ -367,7 +369,7 @@ module system_top(
                   , .slave_io_0_user_interface_datain_9     ( { view_delay_width_pairs[ 8  ].delay, view_delay_width_pairs[ 8  ].width } )  // delay_7
                   , .slave_io_0_user_interface_datain_10    ()
 		  , .slave_io_0_user_interface_datain_11    ()   // input  wire [63:0]
-		  , .slave_io_0_user_interface_datain_12    ()
+		  , .slave_io_0_user_interface_datain_12    ( { 32'b0, view_dg_replicates } )
 		  , .slave_io_0_user_interface_datain_13    (   timestamp                                             )
 		  , .slave_io_0_user_interface_datain_14    ( { t0_counter, 30'b0,             user_protocol_number } )
 		  , .slave_io_0_user_interface_datain_15    ( { model_number,                  revision_number } )
@@ -472,7 +474,8 @@ module system_top(
                             );
 
    assign view_delay_width_pairs = user_flags[ 0 ] ? user_delay_width_pairs : delay_width_pairs;
-   assign view_dg_interval = user_flags[ 0 ] ? user_dg_interval : dg_interval;
+   assign view_dg_interval       = user_flags[ 0 ] ? user_dg_interval : dg_interval;
+   assign view_dg_replicates     = user_dg_replicates;
 
    // ------------
    always @( posedge clk100 ) begin

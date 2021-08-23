@@ -38,6 +38,8 @@ namespace peripheral {
         constexpr static const size_t prefix_size = sizeof( "/fpga/dgmod/" ) - 1;
     private:
         std::string GET_revision() const;
+        std::string GET_status() const;
+        std::string POST_commit( const std::string& ) const;
     };
 
 };

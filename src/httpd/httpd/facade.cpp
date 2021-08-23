@@ -72,9 +72,14 @@ public:
            , tick_( 0 ) {}
 
     void start_timer() {
-        auto tp0 = std::chrono::steady_clock::now();
-        auto tp = std::chrono::time_point_cast< std::chrono::seconds >( tp0 ) + 3s;
-        _1s_timer_.expires_at ( tp + 3s ); //std::chrono::milliseconds( 1000 ) );
+        auto tpi = std::chrono::floor< std::chrono::seconds >( std::chrono::steady_clock::now() ) + 5s;
+        auto tp = std::chrono::steady_clock::time_point(
+            std::chrono::seconds( ( tpi.time_since_epoch().count() / 5 ) * 5 ) );
+
+        // auto t = std::chrono::steady_clock::time_point( std::chrono::seconds( tp.time_since_epoch().count() + 1 ) );
+        // auto tp0 = std::chrono::steady_clock::now();
+        // auto tp = std::chrono::time_point_cast< std::chrono::seconds >( tp0 ) + 3s;
+        _1s_timer_.expires_at ( tp + 5s ); //std::chrono::milliseconds( 1000 ) );
         _1s_timer_.async_wait( [this]( const boost::system::error_code& ec ){ on_timer(ec); } );
     };
 
@@ -83,17 +88,24 @@ private:
         if ( ec )
             ADTRACE() << ec;
 
-        if ( ( tick_++ % 10 ) == 0 ) {
+        if ( ( ++tick_ % 10 ) == 0 ) {
             auto dt = adportable::date_time::to_iso< std::chrono::microseconds >( std::chrono::steady_clock::now(), true );
             boost::json::object obj{
                 { "tick", {{ "counts", tick_ }, { "tp", dt }} }
             };
             if ( auto state = state_.lock() ) {
-                state->send( boost::json::serialize( obj ) );
+                state->send( boost::json::serialize( obj ), "chat" );
             }
         }
 
         auto tp = std::chrono::floor< std::chrono::seconds >( std::chrono::steady_clock::now() ) + 1s;
+#if 0
+        auto tp1 = std::chrono::steady_clock::time_point( std::chrono::seconds( tp.time_since_epoch().count() + 1 ) );
+        ADTRACE() << std::chrono::steady_clock::now().time_since_epoch().count()
+                  << "\t"
+                  << tp.time_since_epoch().count();
+#endif
+
         _1s_timer_.expires_at ( tp );
         _1s_timer_.async_wait( [this]( const boost::system::error_code& ec ){ on_timer(ec); } );
     }

@@ -37,6 +37,7 @@ class shared_state {
     void join( websocket_session *session );
     void leave( websocket_session *session );
     void send( std::string message );
+    void send( std::string&& message, const std::string& subprotocol );
 };
 
 #endif

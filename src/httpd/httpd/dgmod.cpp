@@ -23,29 +23,61 @@
 **************************************************************************/
 
 #include "dgmod.hpp"
+#include "facade.hpp"
 #include "jsonhelper.hpp"
 #include "version.h"
 #include <adlog/logger.hpp>
 #include <boost/format.hpp>
 #include <boost/json.hpp>
 #include <fstream>
+#include <chrono>
+
+namespace peripheral {
+
+    class dgmod::impl {
+        dgmod& dgmod_;
+    public:
+        impl( dgmod& d ) : dgmod_( d ) {}
+
+        std::array< uint64_t, 16 > read( uint32_t page ) const {
+            std::array< uint64_t, 16 > data = { 0 };
+            std::ifstream in( "/dev/dgmod0", std::ios::binary | std::ios::in );
+            if ( in.is_open() ) {
+                in.seekg( page * ( 16 * sizeof( uint64_t ) ), std::ios::beg );
+                in.read( reinterpret_cast< char * >( data.data() ), data.size() * sizeof( uint64_t ) );
+            } else {
+                auto tp = std::chrono::duration_cast< std::chrono::seconds >( std::chrono::steady_clock::now().time_since_epoch() );
+                data[ 13 ] = tp.count();
+                data[ 14 ] = uint64_t( tp.count() ) << 32;
+            }
+            return data;
+        }
+
+        void operator()() const {
+            auto data = read( 1 );
+            boost::json::object obj{
+                { "dgmod"
+                  , {   { "timestamp", data.at( 13 ) }
+                      , { "t0_counter", uint32_t ( data.at( 14 ) >> 32 ) }
+                    }
+                }
+            };
+            facade::instance()->websock_forward( boost::json::serialize( obj ), "dgmod" );
+        }
+    };
+
+};
 
 using namespace peripheral;
 
-template< typename T >
-T to_value( const boost::json::value& jv )
+dgmod::dgmod() : impl_( new impl( *this ) )
 {
-    if ( jv.kind() == boost::json::kind::int64 )
-        return jv.as_int64();
-    if ( jv.kind() == boost::json::kind::uint64 )
-        return jv.as_uint64();
-    if ( jv.kind() == boost::json::kind::string ) {
-        if ( typeid( T ) == typeid( double ) )
-            return std::stod( jv.as_string().c_str() );
-        else
-            return std::stoi( jv.as_string().c_str() );
-    }
-    return {};
+    facade::instance()->register_tick_handler( *impl_ );
+}
+
+dgmod::~dgmod()
+{
+    delete impl_;
 }
 
 std::optional< facade::response_type >

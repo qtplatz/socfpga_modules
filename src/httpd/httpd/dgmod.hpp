@@ -31,6 +31,9 @@ namespace peripheral {
 
     class dgmod {
     public:
+        dgmod();
+        ~dgmod();
+
         std::optional< facade::response_type >
         handle_request( const boost::beast::http::request<boost::beast::http::string_body>& req );
 
@@ -40,6 +43,8 @@ namespace peripheral {
         std::string GET_revision() const;
         std::string GET_status() const;
         std::string POST_commit( const std::string& ) const;
+        class impl;
+        impl * impl_;
     };
 
 };

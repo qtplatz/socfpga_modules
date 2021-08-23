@@ -30,6 +30,7 @@
 #include <adportable/iso8601.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/json.hpp>
+#include <boost/signals2.hpp>
 #include <memory>
 #include <optional>
 
@@ -67,45 +68,48 @@ public:
     std::weak_ptr< shared_state > state_;
     std::vector< std::thread > threads_;
     size_t tick_;
+    tick_handler_t tick_handler_;
 
     impl() : _1s_timer_( ioc_ )
            , tick_( 0 ) {}
 
     void start_timer() {
         auto tpi = std::chrono::floor< std::chrono::seconds >( std::chrono::steady_clock::now() ) + 5s;
-        auto tp = std::chrono::steady_clock::time_point(
-            std::chrono::seconds( ( tpi.time_since_epoch().count() / 5 ) * 5 ) );
+        // auto tp = std::chrono::steady_clock::time_point(
+        //     std::chrono::seconds( ( tpi.time_since_epoch().count() / 5 ) * 5 ) );
 
         // auto t = std::chrono::steady_clock::time_point( std::chrono::seconds( tp.time_since_epoch().count() + 1 ) );
         // auto tp0 = std::chrono::steady_clock::now();
         // auto tp = std::chrono::time_point_cast< std::chrono::seconds >( tp0 ) + 3s;
-        _1s_timer_.expires_at ( tp + 5s ); //std::chrono::milliseconds( 1000 ) );
+        _1s_timer_.expires_at ( tpi ); //std::chrono::milliseconds( 1000 ) );
         _1s_timer_.async_wait( [this]( const boost::system::error_code& ec ){ on_timer(ec); } );
     };
+
+    void __sse_forward( std::string&& msg, const std::string& protocol ) {
+        if ( auto state = state_.lock() ) {
+            state->send( std::move( msg ), protocol );
+        }
+    }
 
 private:
     void on_timer( const boost::system::error_code& ec ) {
         if ( ec )
             ADTRACE() << ec;
 
+        tick_handler_();
+
         if ( ( ++tick_ % 10 ) == 0 ) {
             auto dt = adportable::date_time::to_iso< std::chrono::microseconds >( std::chrono::steady_clock::now(), true );
             boost::json::object obj{
                 { "tick", {{ "counts", tick_ }, { "tp", dt }} }
             };
-            if ( auto state = state_.lock() ) {
-                state->send( boost::json::serialize( obj ), "chat" );
-            }
+            __sse_forward( boost::json::serialize( obj ), "chat" );
+            // if ( auto state = state_.lock() ) {
+            //     state->send( boost::json::serialize( obj ), "chat" );
+            // }
         }
 
         auto tp = std::chrono::floor< std::chrono::seconds >( std::chrono::steady_clock::now() ) + 1s;
-#if 0
-        auto tp1 = std::chrono::steady_clock::time_point( std::chrono::seconds( tp.time_since_epoch().count() + 1 ) );
-        ADTRACE() << std::chrono::steady_clock::now().time_since_epoch().count()
-                  << "\t"
-                  << tp.time_since_epoch().count();
-#endif
-
         _1s_timer_.expires_at ( tp );
         _1s_timer_.async_wait( [this]( const boost::system::error_code& ec ){ on_timer(ec); } );
     }
@@ -161,4 +165,16 @@ facade::stop()
 
     for ( auto& t: impl_->threads_ )
         t.join();
+}
+
+boost::signals2::connection
+facade::register_tick_handler( const tick_handler_t::slot_type& slot )
+{
+    return impl_->tick_handler_.connect( slot );
+}
+
+void
+facade::websock_forward( std::string&& msg, const std::string& protocol )
+{
+    impl_->__sse_forward( std::move( msg ), protocol );
 }

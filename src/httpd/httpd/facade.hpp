@@ -50,7 +50,11 @@ public:
     void run();
     void stop();
 
+    void websock_forward( std::string&&, const std::string& protocol );
+
     typedef boost::beast::http::response<boost::beast::http::string_body> response_type;
     std::optional< response_type > handle_request( const boost::beast::http::request<boost::beast::http::string_body>& req );
 
+    typedef boost::signals2::signal< void() > tick_handler_t;
+    boost::signals2::connection register_tick_handler( const tick_handler_t::slot_type& );
 };

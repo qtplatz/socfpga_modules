@@ -11,6 +11,7 @@ $( document ).ready( function() {
         console.log( "disconnected" );
     };
     ws.onmessage = function( ev ) {
-        console.log( ev );
+        obj = JSON.parse( ev.data );
+        $("#tick").html( obj.dgmod.timestamp );
     };
 });

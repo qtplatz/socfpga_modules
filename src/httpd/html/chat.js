@@ -12,31 +12,40 @@ function showMessage(msg) {
 };
 
 $(function() {
-    $( '#connect' ).on( 'click', function( e ) {
-        console.log( 'clicked' );
-        ws = new WebSocket(uri.value, 'chat')
-        ws.onopen = function(ev) {
-            showMessage("[connection opened]" + uri.value );
-        };
-        ws.onclose = function(ev) {
-            showMessage("[connection closed]");
-        };
-        ws.onmessage = function(ev) {
-            showMessage(ev.data);
-        };
-        ws.onerror = function(ev) {
-            showMessage("[error]" + ev );
-            console.log(ev);
-        };
-    });
-
-    $( '#disconnect' ).on( 'click', function( e ) {
-        console.log( 'disconnect clicked' );
-        ws.close();
+    $( '#websock-connect').change( function() {
+        console.log( 'toggled' + $(this).prop('checked'));
+        if ( $(this).prop('checked') == true ) {
+            ws = new WebSocket(uri.value, 'chat')
+            ws.onopen = function(ev) {
+                showMessage("[connection opened]" + uri.value );
+            };
+            ws.onclose = function(ev) {
+                showMessage("[connection closed]");
+            };
+            ws.onmessage = function(ev) {
+                try {
+                    obj = JSON.parse( ev.data );
+                    if ( obj.chat !== undefined )
+                        showMessage( obj.chat.user + " : " + obj.chat.msg );
+                    if ( obj.tick !== undefined ) {
+                        $("#timestamp").html( obj.tick.tp );
+                    }
+                } catch ( err ) {
+                    console.log( err );
+                }
+                // showMessage(ev.data);
+            };
+            ws.onerror = function(ev) {
+                showMessage("[error]" + ev );
+                console.log(ev);
+            };
+        } else {
+            ws.close();
+        }
     });
 
     $( '#send' ).on( 'click', function ( e ) {
-        ws.send(userName.value + ": " + sendMessage.value);
+        ws.send( JSON.stringify( { "chat": { "user": userName.value, "msg": sendMessage.value }} ) );
         sendMessage.value = "";
     });
 

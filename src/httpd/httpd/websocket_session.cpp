@@ -8,6 +8,7 @@
 //
 
 #include "websocket_session.hpp"
+#include "facade.hpp"
 #include <adlog/logger.hpp>
 #include <iostream>
 
@@ -62,7 +63,8 @@ websocket_session::on_read( beast::error_code ec
         return fail( ec, "read" );
 
     // Send to all connections
-    state_->send( beast::buffers_to_string( buffer_.data() ) );
+    // state_->send( beast::buffers_to_string( buffer_.data() ) );
+    facade::instance()->websock_onread( beast::buffers_to_string( buffer_.data() ), this );
 
     // Clear the buffer
     buffer_.consume( buffer_.size() );

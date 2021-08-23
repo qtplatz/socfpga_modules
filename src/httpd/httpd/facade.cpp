@@ -25,6 +25,7 @@
 #include "facade.hpp"
 #include "shared_state.hpp"
 #include "dgmod.hpp"
+#include "websocket_session.hpp"
 #include <adlog/logger.hpp>
 #include <adportable/date_time.hpp>
 #include <adportable/iso8601.hpp>
@@ -85,7 +86,7 @@ public:
         _1s_timer_.async_wait( [this]( const boost::system::error_code& ec ){ on_timer(ec); } );
     };
 
-    void __sse_forward( std::string&& msg, const std::string& protocol ) {
+    void __websock_forward( std::string&& msg, const std::string& protocol ) {
         if ( auto state = state_.lock() ) {
             state->send( std::move( msg ), protocol );
         }
@@ -98,16 +99,11 @@ private:
 
         tick_handler_();
 
-        if ( ( ++tick_ % 10 ) == 0 ) {
-            auto dt = adportable::date_time::to_iso< std::chrono::microseconds >( std::chrono::steady_clock::now(), true );
-            boost::json::object obj{
-                { "tick", {{ "counts", tick_ }, { "tp", dt }} }
-            };
-            __sse_forward( boost::json::serialize( obj ), "chat" );
-            // if ( auto state = state_.lock() ) {
-            //     state->send( boost::json::serialize( obj ), "chat" );
-            // }
-        }
+        auto dt = adportable::date_time::to_iso< std::chrono::microseconds >( std::chrono::steady_clock::now(), true );
+        boost::json::object obj{
+            { "tick", {{ "counts", tick_ }, { "tp", dt }} }
+        };
+        __websock_forward( boost::json::serialize( obj ), "chat" );
 
         auto tp = std::chrono::floor< std::chrono::seconds >( std::chrono::steady_clock::now() ) + 1s;
         _1s_timer_.expires_at ( tp );
@@ -174,7 +170,13 @@ facade::register_tick_handler( const tick_handler_t::slot_type& slot )
 }
 
 void
-facade::websock_forward( std::string&& msg, const std::string& protocol )
+facade::websock_forward( std::string&& msg, const std::string& subprotocol )
 {
-    impl_->__sse_forward( std::move( msg ), protocol );
+    impl_->__websock_forward( std::move( msg ), subprotocol );
+}
+
+void
+facade::websock_onread( std::string&& msg, websocket_session * ws )
+{
+    impl_->__websock_forward( std::move( msg ), ws->subprotocol() );
 }

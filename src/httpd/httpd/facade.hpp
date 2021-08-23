@@ -35,6 +35,8 @@
 #include <optional>
 #include <string>
 
+class websocket_session;
+
 class facade {
     facade( const facade& ) = delete;
     facade& operator = ( const facade& ) = delete;
@@ -50,6 +52,7 @@ public:
     void run();
     void stop();
 
+    void websock_onread( std::string&&, websocket_session * );
     void websock_forward( std::string&&, const std::string& protocol );
 
     typedef boost::beast::http::response<boost::beast::http::string_body> response_type;

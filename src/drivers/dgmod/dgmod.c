@@ -315,7 +315,7 @@ static long dgmod_cdev_ioctl( struct file* file, unsigned int code, unsigned lon
 static ssize_t dgmod_cdev_read(struct file *file, char __user *data, size_t size, loff_t *f_pos )
 {
     ssize_t count = 0;
-    dev_info( &__pdev->dev, "dgmod_cdev_read: fpos=%llx, size=%ud\n", *f_pos, size );
+    // dev_info( &__pdev->dev, "dgmod_cdev_read: fpos=%llx, size=%ud\n", *f_pos, size );
 
     struct dgmod_driver * drv = platform_get_drvdata( __pdev );
     if ( drv ) {
@@ -331,7 +331,8 @@ static ssize_t dgmod_cdev_read(struct file *file, char __user *data, size_t size
         const u32 save_flags = __slave_get_flags( drv->regs );
         u32 pn = *f_pos / ( 16 * sizeof(u64) );
         __slave_set_flags( drv->regs, pn );
-        // dev_info(&__pdev->dev, "%s: pn = %x\n", __func__, pn );
+
+        // dev_info(&__pdev->dev, "%s: pn = %x, f_pos=%llx, size=%ud\n", __func__, pn, *f_pos, size );
 
         if ( *f_pos < private_data->size ) {
             size_t dsize = private_data->size - *f_pos;
@@ -431,14 +432,15 @@ dgmod_cdev_llseek( struct file * file, loff_t offset, int orig )
         pos = offset;
         break;
     case 1: // SEEK_CUR
-        pos = pos + offset;
+        pos = file->f_pos + offset;
         break;
     case 2: // SEEK_END
-        pos = pos + offset;
+        pos = ((struct dgmod_cdev_private *)file->private_data)->size + offset;
         break;
     default:
         return -EINVAL;
     }
+    // dev_info(&__pdev->dev, "seek offs=%llx, orig=%d, f_pos = %llx -> %llx; ", offset, orig, file->f_pos, pos );
     if ( pos < 0 )
         return -EINVAL;
     file->f_pos = pos;

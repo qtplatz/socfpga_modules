@@ -151,26 +151,24 @@ dgmod_proc_read( struct seq_file * m, void * v )
         // current page can read from [0]
         u64 save_page = __slave_data64( drv->regs, 0 )->user_dataout & ~0x0ffffffffL;
 
-        u64 data[ 16 ][ 2 ];
+        u64 data[ 16 ][ 5 ];
         volatile struct slave_data64 * user_flags = __slave_data64( drv->regs, 15 );
 
-        user_flags->user_datain = 0x0000000000000000LL;
-        for ( size_t i = 0; i < 16; ++i ) {
-            volatile struct slave_data64 * p = __slave_data64( drv->regs, i );
-            data[ i ][ 0 ] = p->user_dataout;
-        }
-
-        user_flags->user_datain = 0x0000000100000000LL;
-        for ( size_t i = 0; i < 16; ++i ) {
-            volatile struct slave_data64 * p = __slave_data64( drv->regs, i );
-            data[ i ][ 1 ] = p->user_dataout;
+        for ( size_t k = 0; k < 5; ++k ) {
+            __slave_set_flags( drv->regs, k );
+            for ( size_t i = 0; i < 16; ++i ) {
+                volatile struct slave_data64 * p = __slave_data64( drv->regs, i );
+                data[ i ][ k ] = p->user_dataout;
+            }
         }
 
         seq_printf( m, "[id] <actuals (p0)>\t<setpoints (p1)>\n" );
         for ( size_t i = 0; i < 16; ++i ) {
-            seq_printf( m, "[%2d] %016llx\t%016llx\n", i, data[ i ][ 0 ], data[ i ][ 1 ] );
+            seq_printf( m, "[%2d] ", i );
+            for ( size_t k = 0; k < 5; ++k )
+                seq_printf( m, "%016llx\t", data[ i ][ k ] );
+            seq_printf( m, "\n" );
         }
-
         user_flags->user_datain = save_page; // restore page
     }
 
@@ -180,37 +178,6 @@ dgmod_proc_read( struct seq_file * m, void * v )
 static void
 dgmod_dg_init( struct dgmod_driver * drv )
 {
-#if 0
-    if ( drv ) {
-        __slave_data64( drv->regs, 15 )->user_datain = 1LL << 32; // set page 1 (set point)
-        int has_value = 0;
-        for ( int i = 1; i < 9; ++i ) {
-            if ( __slave_data64( drv->regs,  i )->user_dataout != 0LL ) {
-                has_value = 1;
-                break;
-            }
-        }
-        if ( ! has_value ) {
-            __slave_data64( drv->regs,  0 )->user_datain =    0LL << 32 | 100000LL;   // flags = 0, interval = 1 ms
-            __slave_data64( drv->regs,  1 )->user_datain =  100LL << 32 | (0x100LL);  // p0  = 0 ns, 1 us width
-            __slave_data64( drv->regs,  2 )->user_datain =  200LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-            __slave_data64( drv->regs,  3 )->user_datain =  300LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-            __slave_data64( drv->regs,  4 )->user_datain =  400LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-            __slave_data64( drv->regs,  5 )->user_datain =  500LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-            __slave_data64( drv->regs,  6 )->user_datain =  600LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-            __slave_data64( drv->regs,  7 )->user_datain =  700LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-            __slave_data64( drv->regs,  8 )->user_datain =  800LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-            __slave_data64( drv->regs,  9 )->user_datain =  900LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-            __slave_data64( drv->regs, 10 )->user_datain = 1000LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-            __slave_data64( drv->regs, 11 )->user_datain = 1100LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-            __slave_data64( drv->regs, 12 )->user_datain = 1200LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-            __slave_data64( drv->regs, 13 )->user_datain = 1300LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-            __slave_data64( drv->regs, 14 )->user_datain = 1400LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-        }
-        // set page 0 (actual monitor), and commit value
-        __slave_data64( drv->regs, 15 )->user_datain = 0x0LL << 32 | 0x01;
-    }
-#endif
 }
 
 static ssize_t
@@ -228,21 +195,29 @@ dgmod_proc_write( struct file * filep, const char * user, size_t size, loff_t * 
     struct dgmod_driver * drv = platform_get_drvdata( __pdev );
     if ( drv ) {
         if ( strncmp( readbuf, "write", 5 ) == 0 ) {
-            __slave_data64( drv->regs,  0 )->user_datain =    0LL << 32 | 100000LL;     // flags = 0, interval = 1 ms
-            __slave_data64( drv->regs,  1 )->user_datain =  100LL << 32 | (0x100LL);    // p0  = 0 ns, 1 us width
-            __slave_data64( drv->regs,  2 )->user_datain =  200LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-            __slave_data64( drv->regs,  3 )->user_datain =  300LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-            __slave_data64( drv->regs,  4 )->user_datain =  400LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-            __slave_data64( drv->regs,  5 )->user_datain =  500LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-            __slave_data64( drv->regs,  6 )->user_datain =  600LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-            __slave_data64( drv->regs,  7 )->user_datain =  700LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-            __slave_data64( drv->regs,  8 )->user_datain =  800LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-            __slave_data64( drv->regs,  9 )->user_datain =  900LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-            __slave_data64( drv->regs, 10 )->user_datain = 1000LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-            __slave_data64( drv->regs, 11 )->user_datain = 1100LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-            __slave_data64( drv->regs, 12 )->user_datain = 1200LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-            __slave_data64( drv->regs, 13 )->user_datain = 1300LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-            __slave_data64( drv->regs, 14 )->user_datain = 1400LL << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+            u32 save_flags = __slave_get_flags( drv->regs );
+
+            __slave_data64( drv->regs,  0 )->user_datain = 100000LL;  // h32 = ro; l32 = interval = 1 ms
+
+            for ( int k = 0; k < 4; ++k ) {
+                __slave_set_flags( drv->regs, k ); // set page
+                // interval [31:0]
+                __slave_data64( drv->regs,  1 )->user_datain = (k + 0x10LL) << 32 | (0x100LL);  // p0
+                __slave_data64( drv->regs,  2 )->user_datain = (k + 0x20LL) << 32 | (0x100LL);  // p1
+                __slave_data64( drv->regs,  3 )->user_datain = (k + 0x30LL) << 32 | (0x100LL);  // p2
+                __slave_data64( drv->regs,  4 )->user_datain = (k + 0x40LL) << 32 | (0x100LL);  // p3
+                __slave_data64( drv->regs,  5 )->user_datain = (k + 0x50LL) << 32 | (0x100LL);  // p4
+                __slave_data64( drv->regs,  6 )->user_datain = (k + 0x60LL) << 32 | (0x100LL);  // p5
+                __slave_data64( drv->regs,  7 )->user_datain = (k + 0x70LL) << 32 | (0x100LL);  // p6
+                __slave_data64( drv->regs,  8 )->user_datain = (k + 0x80LL) << 32 | (0x100LL);  // p7
+                __slave_data64( drv->regs,  9 )->user_datain = (k + 0x90LL) << 32 | (0x100LL);  // p8 <-- last
+                __slave_data64( drv->regs, 10 )->user_datain = (k + 0xa0LL) << 32 | (0x100LL);  // --
+                __slave_data64( drv->regs, 11 )->user_datain = (k + 0xb0LL) << 32 | (0x100LL);  // --
+                __slave_data64( drv->regs, 12 )->user_datain = (k + 10);  // replicates
+                __slave_data64( drv->regs, 13 )->user_datain = (k + 0x130LL) << 32 | (0x100LL);  // p1  = 1 us, 1 us width
+                __slave_data64( drv->regs, 14 )->user_datain = k; // user protocol number
+            }
+            __slave_set_flags( drv->regs, save_flags );
         }
         else if ( strncmp( readbuf, "commit", 6 ) == 0 ) {
             __slave_data64( drv->regs, 15 )->user_datain = 0x01;
@@ -291,7 +266,7 @@ static int dgmod_cdev_open(struct inode *inode, struct file *file)
                                      , GFP_KERNEL );
     if ( private_data ) {
         private_data->node =  MINOR( inode->i_rdev );
-        private_data->size = 32 * sizeof(u64); // return p0, p1 (each of 16 items)
+        private_data->size = 5 * 16 * sizeof(u64); // 5 pages, 16 ddwords
         private_data->mmap = 0;
         file->private_data = private_data;
     }

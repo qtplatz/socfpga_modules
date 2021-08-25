@@ -388,55 +388,55 @@ module system_top(
    // Debounce logic to clean out glitches within 1ms
    debounce #(.WIDTH( 2 ), .POLARITY( "LOW" ), .TIMEOUT( 50000 ), .TIMEOUT_WIDTH( 16 ) )            // ceil(log2(TIMEOUT))
    debounce_inst (
-                  .clk                                  (fpga_clk_50)
-                  , .reset_n                              (hps_fpga_reset_n)
-                  , .data_in                              (KEY)
-                  , .data_out                             (fpga_debounced_buttons)
+                  .clk                                  ( fpga_clk_50 )
+                  , .reset_n                            ( hps_fpga_reset_n )
+                  , .data_in                            ( KEY )
+                  , .data_out                           ( fpga_debounced_buttons )
                   );
 
    revision #( .MODEL_NUMBER( `MODEL_NUMBER )
                ) revision_0 ( .revision_number ( revision_number )
-                              , .model_number( model_number )
+                              , .model_number  ( model_number )
                               );
 
    // Source/Probe megawizard instance
    hps_reset hps_reset_inst (
-                             .source_clk (fpga_clk_50),
-                             .source     (hps_reset_req)
+                             .source_clk ( fpga_clk_50 )
+                             , .source     ( hps_reset_req )
                              );
 
    altera_edge_detector #(.PULSE_EXT( 6 ), .EDGE_TYPE( 1 ), .IGNORE_RST_WHILE_BUSY( 1 ) )
    pulse_cold_reset (
-                     .clk       (fpga_clk_50),
-                     .rst_n     (hps_fpga_reset_n),
-                     .signal_in (hps_reset_req[0]),
-                     .pulse_out (hps_cold_reset)
+                     .clk         ( fpga_clk_50 )
+                     , .rst_n     ( hps_fpga_reset_n )
+                     , .signal_in ( hps_reset_req[0] )
+                     , .pulse_out ( hps_cold_reset )
                      );
 
    altera_edge_detector #(.PULSE_EXT( 2 ), .EDGE_TYPE( 1 ), .IGNORE_RST_WHILE_BUSY( 1 ) )
    pulse_warm_reset (
-                     .clk       (fpga_clk_50),
-                     .rst_n     (hps_fpga_reset_n),
-                     .signal_in (hps_reset_req[1]),
-                     .pulse_out (hps_warm_reset)
+                     .clk         ( fpga_clk_50 )
+                     , .rst_n     ( hps_fpga_reset_n )
+                     , .signal_in ( hps_reset_req[1] )
+                     , .pulse_out ( hps_warm_reset )
                      );
 
    altera_edge_detector #(.PULSE_EXT( 32 ), .EDGE_TYPE( 1 ), .IGNORE_RST_WHILE_BUSY( 1 ) )
    pulse_debug_reset (
-                      .clk       (fpga_clk_50),
-                      .rst_n     (hps_fpga_reset_n),
-                      .signal_in (hps_reset_req[2]),
-                      .pulse_out (hps_debug_reset)
+                      .clk         ( fpga_clk_50 )
+                      , .rst_n     ( hps_fpga_reset_n )
+                      , .signal_in ( hps_reset_req[2] )
+                      , .pulse_out ( hps_debug_reset)
                       );
 
    generate
       genvar              i;
       for ( i = 0; i < 2; i = i + 1 ) begin : evbox
          evbox_in #( .N_FF(8), .PULSEWIDTH( 25000000 ) )
-         evbox_in_i ( .clk( fpga_clk_50 )
-                      , .data_in ( inject_in[ i ] )
-                      , .io_port( async_inject_in[ i ] )
-                      , .pulse_out( evbox_pulse[ i ] )
+         evbox_in_i ( .clk         ( fpga_clk_50 )
+                      , .data_in   ( inject_in[ i ] )
+                      , .io_port   ( async_inject_in[ i ] )
+                      , .pulse_out ( evbox_pulse[ i ] )
                       );
       end
    endgenerate
@@ -466,18 +466,25 @@ module system_top(
    assign pio_dg_external_connection_export = dg_t0;
 
    delay_pulse_generator #(.NDELAY_CHANNELS( NDELAY_PAIRS ) )
-   delay_pulse_generator_i( .clk( clk100 )
-                            , .reset_n( hps_fpga_reset_n )
-                            , .interval( dg_interval )
-                            , .user_delay_width_pairs( user_delay_width_pairs )
-                            , .delay_width_pairs( delay_width_pairs )
-                            , .user_data_valid( slave_io_commit_valid )
-                            , .pins( delay_pins )
-                            , .tp0 ( dg_t0 )
-                            , .delay_counter( delay_counter )
+   delay_pulse_generator_i( .clk                      ( clk100 )
+                            , .reset_n                ( hps_fpga_reset_n )
+                            , .interval               ( dg_interval )
+                            , .user_delay_width_pairs ( user_protocol[ dg_protocol_number_reg ].delay_width_pairs )
+                            , .delay_width_pairs      ( delay_width_pairs )
+                            , .user_data_valid        ( slave_io_commit_valid )
+                            , .pins                   ( delay_pins )
+                            , .tp0                    ( dg_t0 )
+                            , .delay_counter          ( delay_counter )
                             , .debug()
                             );
 
+   /**********************************************
+    *** MULTIPLEXING SLAVE_IO
+    * user_flags := input of slave_io_user_interface[ 63:32 ][15] --> output of slave_io_user_intaface[ 63:32][0]
+    * user_flags[ 2: 0] assigned to a page number
+    * 0..3 := select protocol number where protocol number is a 0..3
+    * expose internal actual delay_pulse status to slave_io_user_interface read operation on ARM when user_flags[ 2: 0] == 4
+    **/
    wire [ 8: 0 ] slave_io_chipselect;
    wire [ 1: 0 ] user_page;
 
@@ -535,26 +542,4 @@ module system_top(
       end
    end
 
-/* -----\/----- EXCLUDED -----\/-----
-   reg [25:0]             counter;
-   reg                    led_level;
-   always @	(posedge fpga_clk_50 or negedge hps_fpga_reset_n)
-     begin
-        if(~hps_fpga_reset_n)
-          begin
-	     counter<=0;
-	     led_level<=0;
-          end
-
-        else if(counter==24999999)
-	  begin
-	     counter<=0;
-	     led_level<=~led_level;
-	  end
-        else
-	  counter<=counter+1'b1;
-     end
-
-   assign LED[0] = led_level;
- -----/\----- EXCLUDED -----/\----- */
 endmodule

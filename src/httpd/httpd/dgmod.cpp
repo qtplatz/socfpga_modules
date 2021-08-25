@@ -43,13 +43,18 @@ namespace peripheral {
             std::array< uint64_t, 16 > data = { 0 };
             std::ifstream in( "/dev/dgmod0", std::ios::binary | std::ios::in );
             if ( in.is_open() ) {
-                in.seekg( page * ( 16 * sizeof( uint64_t ) ), std::ios::beg );
-                in.read( reinterpret_cast< char * >( data.data() ), data.size() * sizeof( uint64_t ) );
-            } else {
+                for ( size_t i = 0; i <= page; ++i ) {
+                    // in.seekg( page * ( 16 * sizeof( uint64_t ) ), std::ios::beg );
+                    in.read( reinterpret_cast< char * >( data.data() ), data.size() * sizeof( uint64_t ) );
+                }
+            } /*else {
                 auto tp = std::chrono::duration_cast< std::chrono::seconds >( std::chrono::steady_clock::now().time_since_epoch() );
                 data[ 13 ] = tp.count();
                 data[ 14 ] = uint64_t( tp.count() ) << 32;
-            }
+                }
+              */
+            for ( size_t i = 0; i < 16; ++i )
+                ADTRACE() << boost::format( "0x%016x" ) % data.at( i );
             return data;
         }
 
@@ -58,10 +63,12 @@ namespace peripheral {
             boost::json::object obj{
                 { "dgmod"
                   , {   { "timestamp", data.at( 13 ) }
-                      , { "t0_counter", uint32_t ( data.at( 14 ) >> 32 ) }
+                        , { "t0_counter", uint32_t ( data.at( 14 ) >> 32 ) }
+                        , { "d0", ( boost::format("%016x") % data.at( 0 ) ).str() }
                     }
                 }
             };
+            ADTRACE() << boost::json::serialize( obj );
             facade::instance()->websock_forward( boost::json::serialize( obj ), "dgmod" );
         }
     };

@@ -329,30 +329,32 @@ static ssize_t dgmod_cdev_read(struct file *file, char __user *data, size_t size
         *f_pos &= ~07;
 
         const u32 save_flags = __slave_get_flags( drv->regs );
-        u32 pn = *f_pos / ( 16 * sizeof(u64) );
+
+        u32 pn = *f_pos / ( 16 * sizeof(u64) ); // page number
         __slave_set_flags( drv->regs, pn );
 
         // dev_info(&__pdev->dev, "%s: pn = %x, f_pos=%llx, size=%ud\n", __func__, pn, *f_pos, size );
+        while ( ( *f_pos < private_data->size ) && (count + sizeof(u64)) <= size ) {
 
-        if ( *f_pos < private_data->size ) {
-            size_t dsize = private_data->size - *f_pos;
-            for ( size_t i = *f_pos / sizeof(u64); i < dsize / sizeof(u64); ++i ) {
-                u64 d = __slave_data64( drv->regs, i % 16 )->user_dataout;
-                if ( copy_to_user( data, (const char *)&d, sizeof(u64) ) ) {
-                    up( &__sem );
-                    return -EFAULT;
-                }
-                data += sizeof( u64 );
-                *f_pos += sizeof( u64 );
-                u32 pnn = *f_pos / ( 16 * sizeof( u64 ) );
-                // dev_info(&__pdev->dev, "%s: pnn = %x, %x\n", __func__, pnn, pn );
-                if ( pnn != pn ) {
-                    pn = pnn;
-                    __slave_set_flags( drv->regs, pn );
-                }
+            size_t idx = *f_pos / sizeof(u64);
+            u64 d = __slave_data64( drv->regs, idx % 16 )->user_dataout;
+            // dev_info(&__pdev->dev, "slave_io[%d] data=0x%016llx\tf_pos=%lld, page=%d\n", (idx%16), d, *f_pos, pn );
+
+            if ( copy_to_user( data, (const char *)&d, sizeof(u64) ) ) {
+                up( &__sem );
+                return -EFAULT;
             }
-            count = dsize;
+            count += sizeof( u64 );
+            data += sizeof( u64 );
+            *f_pos += sizeof( u64 );
+
+            u32 pn_next = *f_pos / ( 16 * sizeof( u64 ) );
+            if ( pn_next != pn ) {
+                pn = pn_next;
+                __slave_set_flags( drv->regs, pn );
+            }
         }
+        // restore page number and flags
         __slave_set_flags( drv->regs, save_flags );
         up( &__sem );
     }

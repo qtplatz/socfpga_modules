@@ -45,6 +45,18 @@
 
 bool __verbose = true;
 
+class protocol {
+public:
+    uint32_t user_flags;
+    double interval;
+    uint32_t replicates;
+    std::array< std::pair< double, double >, 9 > delay_pulse;
+    protocol() : user_flags( 0 )
+               , interval( 0 )
+               , replicates( 0 ) {
+    }
+};
+
 class dgmod {
 public:
     std::array< uint64_t, 16 > read( uint32_t page ) const {
@@ -59,6 +71,19 @@ public:
         }
         return data;
     }
+
+    protocol as_protocol( const std::array< uint64_t, 16 >& t ) const {
+        protocol p;
+        p.user_flags = t[ 0 ] >> 32;
+        p.interval = double( t[ 0 ] & 0xffffffff ) / ( std::micro::den / 10 );
+        for ( size_t i = 1; i <= 9; ++i ) {
+            p.delay_pulse[ i - 1 ] = std::make_pair(
+                double( t[ i ] >> 32 ) / ( std::micro::den / 10 )
+                , double( t[ i ] & 0xffff'ffff ) / ( std::micro::den / 10 )
+                );
+        }
+        return p;
+    }
 };
 
 int
@@ -72,7 +97,7 @@ main( int argc, char **argv )
             ( "help,h",        "Display this help message" )
             ( "device,d",      po::value< std::string >()->default_value("/dev/dgmod0"), "dgmod device" )
             ( "list,l",        "list register" )
-            ( "page,p",        po::value< int >(), "list specified io page" )
+            ( "pages,p",       po::value<std::vector< uint32_t > >()->multitoken(),  "pages [0..4] to be listed." )
             ( "json,j",        "list register as json" )
             ( "commit,c",      "commit" )
             ( "mmap",          "use mmap" )
@@ -126,77 +151,50 @@ main( int argc, char **argv )
         } else {
             perror("open failed");
         }
-
         return 0;
     }
 
-    if ( vm.count( "page" ) ) {
-        // read only specific page of slave_io
+    if ( vm.count( "pages" ) ) {
+        auto vec = vm[ "pages" ].as< std::vector< uint32_t > >();
         std::ifstream in( vm[ "device" ].as< std::string >(), std::ios::binary | std::ios::in );
         if ( in.is_open() ) {
-            auto page = vm[ "page" ].as< int >();
-            auto data = dgmod().read( page );
-            for ( size_t i = 0; i < data.size(); ++i ) {
-                std::cout <<
-                    boost::format( "%d.%d\t0x%016x" )
-                    % page
-                    % i
-                    % data.at( i )
-                          << std::endl;
+            std::vector< std::pair< uint32_t, std::array< uint64_t, 16 > > > data;
+            for ( auto& page: vec ) {
+                if ( page <= 4 )
+                    data.emplace_back( page, dgmod().read( page ) );
+            }
+            for ( size_t i = 0; i < 16; ++i ) {
+                std::cout << boost::format( "%2d" ) % i;
+                for ( size_t k = 0; k < data.size(); ++k )
+                    std::cout << boost::format( "\t0x%016x" ) % data.at(  k ).second.at( i );
+                std::cout << std::endl;
             }
         }
         return 0;
-    }
-
-    std::array< uint64_t, 16 > data[ 2 ] = {{ 0 }};
-    std::pair< size_t, size_t > sz; // altera de0-nano-soc only returns 32 dwords (16 x 64 bit)
-    do {
-        std::ifstream in( vm[ "device" ].as< std::string >(), std::ios::binary | std::ios::in );
-        sz.first = in.read( reinterpret_cast< char * >( data[ 0 ].data() ), data[0].size() * sizeof( uint64_t ) ).gcount();
-        sz.second = in.read( reinterpret_cast< char * >( data[ 1 ].data() ), data[1].size() * sizeof( uint64_t ) ).gcount();
-    } while ( 0 );
-
-    if ( vm.count( "list" ) || argc == 1 ) {
-        if ( sz.second ) {
-            for ( size_t i = 0; i < data[ 0 ].size(); ++i ) {
-                std::cout <<
-                    boost::format( "%d\t0x%016x\t0x%016x" )
-                    % i
-                    % data[ 0 ].at( i )
-                    % data[ 1 ].at( i )
-                          << std::endl;
-            }
-        } else {
-            for ( size_t i = 0; i < data[ 0 ].size(); ++i ) {
-                std::cout <<
-                    boost::format( "%d\t0x%016x" )
-                    % i
-                    % data[ 0 ].at( i )
-                          << std::endl;
-            }
-        }
     }
 
     if ( vm.count( "json" ) ) {
         boost::json::array ja;
-        boost::json::value jv = {
-            { { "flags", data[0].at( 0 ) }, { "t0_set", data[0].at( 1 ) } }
-                , { { "flags", data[1].at( 0 ) }, { "t0", data[1].at ( 1 ) } }
-        };
-        // std::cout << boost::json::serialize( jv ) << std::endl;
-        ja.push_back( jv );
-        for ( size_t i = 1; i < data[ 0 ].size(); i += 2 ) {
-            boost::json::value jv = {
-                { { "delay_s", data[ 0 ].at( i ) }, { "width_s", data[ 0 ].at( i + 1 ) } }
-                , { { "delay", data[ 1 ].at( i ) }, { "width", data[ 1 ].at( i + 1 ) } }
-            };
-            ja.push_back( jv );
+        for ( size_t i = 0; i < 4; ++i ) {
+            auto proto = dgmod().as_protocol( dgmod().read( i ) );
+            boost::json::array a;
+            for ( auto& value: proto.delay_pulse ) {
+                a.emplace_back( boost::json::object{ {"delay", value.first}, {"width", value.second} } );
+            }
+
+            ja.emplace_back(
+                boost::json::object{ { "protocol"
+                        , {
+                            { "user_flags", proto.user_flags }
+                            , { "interval", proto.interval   }
+                            , { "pulses", a }
+                        }
+                    } } );
         }
-        //boost::json::object jobj;
-        //jobj[ "dgmod" ] = ja;
-        //std::cout << boost::json::serialize( jobj ) << std::endl;
-        std::cout << boost::json::serialize( ja ) << std::endl;
-    }
+        boost::json::object json{{ "user_protocol", ja }};
+        std::cout << boost::json::serialize( json ) << std::endl;
+        return 0;
+    };
 
     if ( vm.count( "set" ) ) {
         auto vec = vm[ "set" ].as< std::vector< uint32_t > >();
@@ -213,7 +211,10 @@ main( int argc, char **argv )
 
     if ( vm.count( "commit" ) ) {
         std::ofstream out( vm[ "device" ].as< std::string >(), std::ios::binary | std::ios::out );
-        out.write( reinterpret_cast< const char * >( data[ 0 ].at( 0 ) ), sizeof( uint32_t ) );
+        if ( out.is_open() ) {
+            out.seekp( sizeof( uint64_t ) * 15, std::ios::beg );
+            out.write( "\0\0\0\0", 4 );
+        }
     }
     return 0;
 }

@@ -49,6 +49,10 @@
 parameter NDELAY_PAIRS = 9;
 parameter NDELAY_PINS  = 7;
 
+typedef struct {
+   bit [31:0]  replicates;
+   delay_width_t delay_width_pairs[ NDELAY_PAIRS ];
+} protocol_t;
 
 module system_top(
 
@@ -192,6 +196,7 @@ module system_top(
    reg [ 31:0]            view_dg_replicates;
    wire [31:0]            user_flags;
    wire [31:0]            user_commit;
+   var protocol_t         user_protocol[ 4 ];
    var delay_width_t      user_delay_width_pairs [ NDELAY_PAIRS ];
    var delay_width_t      view_delay_width_pairs [ NDELAY_PAIRS ];
    var delay_width_t      delay_width_pairs [ NDELAY_PAIRS ];
@@ -354,7 +359,7 @@ module system_top(
 		  , .slave_io_0_user_interface_dataout_11   ()  // output wire [63:0]                                .dataout_11
 		  , .slave_io_0_user_interface_dataout_12   ( { 32'b0, user_dg_replicates } )
 		  , .slave_io_0_user_interface_dataout_13   ()
-		  , .slave_io_0_user_interface_dataout_14   ( { 62'b0, user_protocol_number } )  // output wire [63:0]                                .dataout_15
+		  , .slave_io_0_user_interface_dataout_14   ( { 62'b0, user_protocol_number } )  // output wire [63:0]
 		  , .slave_io_0_user_interface_dataout_15   ( { user_flags, user_commit } ) // write only, cannot read
                   // fpga -> hps
 		  , .slave_io_0_user_interface_datain_0     ( { user_flags,                         view_dg_interval } )   // input  wire [63:0]
@@ -473,9 +478,34 @@ module system_top(
                             , .debug()
                             );
 
-   assign view_delay_width_pairs = user_flags[ 0 ] ? user_delay_width_pairs : delay_width_pairs;
-   assign view_dg_interval       = user_flags[ 0 ] ? user_dg_interval : dg_interval;
-   assign view_dg_replicates     = user_dg_replicates;
+   wire [ 8: 0 ] slave_io_chipselect;
+   wire [ 1: 0 ] user_page;
+
+   assign slave_io_chipselect = slave_io_0_user_interface_chipselect[ 9:1 ];
+   assign user_page = user_flags[ 1: 0 ];
+
+   always @* begin
+      if ( hps_fpga_reset_n == 0 ) begin
+         user_protocol = '{default:'0};
+      end
+      else if ( slave_io_0_user_interface_write && user_flags[ 2 ] == 0 ) begin
+         casex ( slave_io_chipselect )
+           9'bxxxxxxxx1: user_protocol[ user_page ].delay_width_pairs[ 0 ] = user_delay_width_pairs[ 0 ];
+           9'bxxxxxxx1x: user_protocol[ user_page ].delay_width_pairs[ 1 ] = user_delay_width_pairs[ 1 ];
+           9'bxxxxxx1xx: user_protocol[ user_page ].delay_width_pairs[ 2 ] = user_delay_width_pairs[ 2 ];
+           9'bxxxxx1xxx: user_protocol[ user_page ].delay_width_pairs[ 3 ] = user_delay_width_pairs[ 3 ];
+           9'bxxxx1xxxx: user_protocol[ user_page ].delay_width_pairs[ 4 ] = user_delay_width_pairs[ 4 ];
+           9'bxxx1xxxxx: user_protocol[ user_page ].delay_width_pairs[ 5 ] = user_delay_width_pairs[ 5 ];
+           9'bxx1xxxxxx: user_protocol[ user_page ].delay_width_pairs[ 6 ] = user_delay_width_pairs[ 6 ];
+           9'bx1xxxxxxx: user_protocol[ user_page ].delay_width_pairs[ 7 ] = user_delay_width_pairs[ 7 ];
+           9'b1xxxxxxxx: user_protocol[ user_page ].delay_width_pairs[ 8 ] = user_delay_width_pairs[ 8 ];
+         endcase
+      end // if ( slave_io_0_user_interface_write && user_flags[ 2 ] == 0 )
+   end
+
+   assign view_delay_width_pairs = user_flags[ 2 ] ? delay_width_pairs : user_protocol[ user_flags[ 1:0 ] ].delay_width_pairs;
+   assign view_dg_interval       = user_flags[ 2 ] ? dg_interval : user_dg_interval;
+   assign view_dg_replicates     = user_protocol[ user_flags[ 1:0 ] ].replicates;
 
    // ------------
    always @( posedge clk100 ) begin

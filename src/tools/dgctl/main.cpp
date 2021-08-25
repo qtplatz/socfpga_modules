@@ -45,6 +45,22 @@
 
 bool __verbose = true;
 
+class dgmod {
+public:
+    std::array< uint64_t, 16 > read( uint32_t page ) const {
+        std::array< uint64_t, 16 > data = { 0 };
+        std::ifstream in( "/dev/dgmod0", std::ios::binary | std::ios::in );
+        if ( in.is_open() ) {
+            ssize_t pos = page * (16 * sizeof( uint64_t ));
+            in.seekg( pos, std::ios::beg );
+            auto gcount = in.read( reinterpret_cast< char * >( data.data() ), data.size() * sizeof( uint64_t ) ).gcount();
+            if ( gcount != data.size() * sizeof( uint64_t ) )
+                std::cerr << "read count " << gcount << " does not match with " << data.size() * sizeof( uint64_t );
+        }
+        return data;
+    }
+};
+
 int
 main( int argc, char **argv )
 {
@@ -56,6 +72,7 @@ main( int argc, char **argv )
             ( "help,h",        "Display this help message" )
             ( "device,d",      po::value< std::string >()->default_value("/dev/dgmod0"), "dgmod device" )
             ( "list,l",        "list register" )
+            ( "page,p",        po::value< int >(), "list specified io page" )
             ( "json,j",        "list register as json" )
             ( "commit,c",      "commit" )
             ( "mmap",          "use mmap" )
@@ -110,6 +127,24 @@ main( int argc, char **argv )
             perror("open failed");
         }
 
+        return 0;
+    }
+
+    if ( vm.count( "page" ) ) {
+        // read only specific page of slave_io
+        std::ifstream in( vm[ "device" ].as< std::string >(), std::ios::binary | std::ios::in );
+        if ( in.is_open() ) {
+            auto page = vm[ "page" ].as< int >();
+            auto data = dgmod().read( page );
+            for ( size_t i = 0; i < data.size(); ++i ) {
+                std::cout <<
+                    boost::format( "%d.%d\t0x%016x" )
+                    % page
+                    % i
+                    % data.at( i )
+                          << std::endl;
+            }
+        }
         return 0;
     }
 

@@ -63,9 +63,36 @@ $ git clone https://github.com/qtplatz/socfpga_modules
 $ cd socfpga_modules
 $ cross_target=armhf ./bootstrap.sh
 ```
-Above command-set will create a build directory under `~/build-armhf/socfpga_modules.release/`; contineu following commands.
+Above command-set will create a build directory under `~/build-armhf/socfpga_modules.release/`; continue following commands.
 
 ```bash
 $ cd ~/src/build-armhf/socfpga_modules.release
 $ make -j package
+$ cp *.deb <target-ip>:
 ```
+
+### 6. qtplatz core library for ARM SoC
+
+```bash
+$ cd ~/src/qtplatz
+$ cross_target=armhf ./bootstran
+$ cd ~/src/build-armhf/qtplatz.release
+$ make -j4
+$ make -j4 package
+$ cp *.deb <target-ip>:
+```
+
+### Install deb packages and test
+
+Install .deb packaged on the target device; dkms packages first, then other packages.
+```bash
+nano # dpkg -i <package-name>.deb
+```
+
+### Quick test
+Following command read 12bit A/D converter on DE0-nano-SoC device, and display values for 999 replicates.
+```bash
+nano $ adc -c 999
+```
+
+

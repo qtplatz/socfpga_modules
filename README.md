@@ -63,9 +63,39 @@ $ git clone https://github.com/qtplatz/socfpga_modules
 $ cd socfpga_modules
 $ cross_target=armhf ./bootstrap.sh
 ```
-Above command-set will create a build directory under `~/build-armhf/socfpga_modules.release/`; contineu following commands.
+Above command-set will create a build directory under `~/build-armhf/socfpga_modules.release/`; continue following commands.
 
 ```bash
 $ cd ~/src/build-armhf/socfpga_modules.release
 $ make -j package
+$ cp *.deb <target-ip>:
 ```
+
+### 6. qtplatz core library for ARM SoC
+
+```bash
+$ cd ~/src/qtplatz
+$ cross_target=armhf ./bootstran
+$ cd ~/src/build-armhf/qtplatz.release
+$ make -j4
+$ make -j4 package
+$ cp *.deb <target-ip>:
+```
+
+### Install deb packages and test
+
+Install .deb packaged on the target device; dkms packages first, then other packages.
+```bash
+nano # dpkg -i <package-name>.deb
+```
+
+### Quick test (Read data from A/D converter)
+Following command read 12bit A/D converter on DE0-nano-SoC device, and display values for 999 replicates.
+```bash
+nano $ adc -c 999
+```
+The kernel driver to read A/D converter is `/dev/adc-fifo0`, which crate `/proc/adc-fifo` device file as well.  Try cat /proc/adc-fifo, to find a diagnostic info for mSGDMA.
+
+### DGMOD delay generator
+
+Both `/dev/dgmod0` and `/proc/dgmod` are delay pulse generator interface.  The dgmod driver has long been used for controlling TOF timing since the time of the Helio board.   For this version, the code and FPGA interface has been refactored.  The old DGMOD uses three Slave Template IP cores combined with several PIO for interrupt handling.  The kernel driver API was based on IOCTL, which is complex and inefficient for reusability.  A new implementation reduces to two Slave Template IP cores without using IOCTL for the kernel API.  It uses simple read/write to the `/dev/dgmod0` device to implement all functionality as before.

@@ -635,26 +635,6 @@ set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[10] -
 set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[6] -to auto_signaltap_0|gnd -section_id auto_signaltap_0
 set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[8] -to auto_signaltap_0|vcc -section_id auto_signaltap_0
 set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[2] -to auto_signaltap_0|gnd -section_id auto_signaltap_0
-set_global_assignment -name SDC_FILE soc_system.sdc
-set_global_assignment -name VERILOG_FILE ip/intr_capturer/intr_capturer.v
-set_global_assignment -name VERILOG_FILE ip/edge_detect/altera_edge_detector.v
-set_global_assignment -name VERILOG_FILE ip/debounce/debounce.v
-set_global_assignment -name QIP_FILE ip/altsource_probe/hps_reset.qip
-set_global_assignment -name QIP_FILE soc_system/synthesis/soc_system.qip
-set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/cdc/async_edge_cross_domain.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/cdc/edge_cross_domain.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/clocks/clock_divider.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/dma/msgdma_fetch.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/dma/msgdma_commit.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/evbox/evbox_out.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/evbox/evbox_in.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/misc/adc_ltc2308.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/misc/adc_fifo.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/misc/adc_adder.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/delay_pulse/delay_pulse.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/delay_pulse/delay_pulse_generator.sv
-set_global_assignment -name SYSTEMVERILOG_FILE system_top.sv
-set_global_assignment -name SIGNALTAP_FILE stp2.stp
 set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_INVERSION_MASK=000000000000000000000000" -section_id auto_signaltap_0
 set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_INVERSION_MASK_LENGTH=24" -section_id auto_signaltap_0
 set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_SEGMENT_SIZE=1024" -section_id auto_signaltap_0
@@ -765,5 +745,26 @@ set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[73] -t
 set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_data_in[74] -to "soc_system:u0|soc_system_adc_fifo_0:adc_fifo_0|st_sink_startofpacket" -section_id auto_signaltap_0
 set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_DATA_BITS=75" -section_id auto_signaltap_0
 set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_STORAGE_QUALIFIER_BITS=75" -section_id auto_signaltap_0
+set_global_assignment -name SDC_FILE soc_system.sdc
+set_global_assignment -name VERILOG_FILE ip/intr_capturer/intr_capturer.v
+set_global_assignment -name VERILOG_FILE ip/edge_detect/altera_edge_detector.v
+set_global_assignment -name VERILOG_FILE ip/debounce/debounce.v
+set_global_assignment -name QIP_FILE ip/altsource_probe/hps_reset.qip
+set_global_assignment -name QIP_FILE soc_system/synthesis/soc_system.qip
+set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/cdc/async_edge_cross_domain.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/cdc/edge_cross_domain.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/clocks/clock_divider.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/delay_pulse/delay_pulse.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/delay_pulse/delay_pulse_generator.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/dma/msgdma_fetch.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/dma/msgdma_commit.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/evbox/evbox_out.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/evbox/evbox_in.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/misc/adc_ltc2308.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/misc/adc_fifo.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/misc/adc_adder.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/spi/spi_master.sv
+set_global_assignment -name SYSTEMVERILOG_FILE system_top.sv
+set_global_assignment -name SIGNALTAP_FILE stp2.stp
 set_global_assignment -name SLD_FILE db/stp2_auto_stripped.stp
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

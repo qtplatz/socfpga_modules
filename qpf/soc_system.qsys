@@ -379,6 +379,38 @@
          type = "String";
       }
    }
+   element tsensor_data
+   {
+      datum _sortIndex
+      {
+         value = "20";
+         type = "int";
+      }
+   }
+   element tsensor_data.s0
+   {
+      datum baseAddress
+      {
+         value = "67584";
+         type = "String";
+      }
+   }
+   element tsensor_sync
+   {
+      datum _sortIndex
+      {
+         value = "19";
+         type = "int";
+      }
+   }
+   element tsensor_sync.s1
+   {
+      datum baseAddress
+      {
+         value = "65552";
+         type = "String";
+      }
+   }
 }
 ]]></parameter>
  <parameter name="clockCrossingAdapter" value="HANDSHAKE" />
@@ -484,6 +516,16 @@
  <interface
    name="slave_io_0_user_interface"
    internal="slave_io_0.user_interface"
+   type="conduit"
+   dir="end" />
+ <interface
+   name="tsensor_data_user_interface"
+   internal="tsensor_data.user_interface"
+   type="conduit"
+   dir="end" />
+ <interface
+   name="tsensor_sync_external_connection"
+   internal="tsensor_sync.external_connection"
    type="conduit"
    dir="end" />
  <module name="adc_fifo_0" kind="altera_msgdma" version="20.1" enabled="1">
@@ -1489,6 +1531,47 @@
    enabled="1">
   <parameter name="id" value="-1395322110" />
  </module>
+ <module name="tsensor_data" kind="slave_io" version="2.0" enabled="1">
+  <parameter name="AUTO_CLOCK_RESET_CLOCK_RATE" value="100000000" />
+  <parameter name="AUTO_DEVICE_FAMILY" value="Cyclone V" />
+  <parameter name="DATA_WIDTH" value="32" />
+  <parameter name="ENABLE_SYNC_SIGNALS" value="1" />
+  <parameter name="IRQ_EN" value="0" />
+  <parameter name="MODE_0" value="2" />
+  <parameter name="MODE_1" value="2" />
+  <parameter name="MODE_10" value="2" />
+  <parameter name="MODE_11" value="2" />
+  <parameter name="MODE_12" value="2" />
+  <parameter name="MODE_13" value="2" />
+  <parameter name="MODE_14" value="2" />
+  <parameter name="MODE_15" value="2" />
+  <parameter name="MODE_2" value="2" />
+  <parameter name="MODE_3" value="2" />
+  <parameter name="MODE_4" value="2" />
+  <parameter name="MODE_5" value="2" />
+  <parameter name="MODE_6" value="2" />
+  <parameter name="MODE_7" value="2" />
+  <parameter name="MODE_8" value="2" />
+  <parameter name="MODE_9" value="2" />
+ </module>
+ <module
+   name="tsensor_sync"
+   kind="altera_avalon_pio"
+   version="20.1"
+   enabled="1">
+  <parameter name="bitClearingEdgeCapReg" value="true" />
+  <parameter name="bitModifyingOutReg" value="false" />
+  <parameter name="captureEdge" value="true" />
+  <parameter name="clockRate" value="100000000" />
+  <parameter name="direction" value="Input" />
+  <parameter name="edgeType" value="RISING" />
+  <parameter name="generateIRQ" value="true" />
+  <parameter name="irqType" value="EDGE" />
+  <parameter name="resetValue" value="0" />
+  <parameter name="simDoTestBenchWiring" value="false" />
+  <parameter name="simDrivenValue" value="0" />
+  <parameter name="width" value="1" />
+ </module>
  <connection
    kind="avalon"
    version="20.1"
@@ -1529,6 +1612,15 @@
    kind="avalon"
    version="20.1"
    start="hps_0.h2f_axi_master"
+   end="tsensor_data.s0">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x00010800" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="20.1"
+   start="hps_0.h2f_axi_master"
    end="onchip_memory2_0.s1">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0000" />
@@ -1559,6 +1651,15 @@
    end="pio_out.s1">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x00010040" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="20.1"
+   start="hps_0.h2f_axi_master"
+   end="tsensor_sync.s1">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x00010010" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection
@@ -1750,7 +1851,17 @@
    kind="clock"
    version="20.1"
    start="pll_0.outclk0"
+   end="tsensor_sync.clk" />
+ <connection
+   kind="clock"
+   version="20.1"
+   start="pll_0.outclk0"
    end="slave_io_0.clock_reset" />
+ <connection
+   kind="clock"
+   version="20.1"
+   start="pll_0.outclk0"
+   end="tsensor_data.clock_reset" />
  <connection
    kind="clock"
    version="20.1"
@@ -1801,6 +1912,13 @@
  <connection
    kind="interrupt"
    version="20.1"
+   start="hps_0.f2h_irq0"
+   end="tsensor_sync.irq">
+  <parameter name="irqNumber" value="6" />
+ </connection>
+ <connection
+   kind="interrupt"
+   version="20.1"
    start="intr_capturer_0.interrupt_receiver"
    end="jtag_uart.irq">
   <parameter name="irqNumber" value="2" />
@@ -1841,6 +1959,11 @@
    version="20.1"
    start="clk_0.clk_reset"
    end="slave_io_0.clock_reset_reset" />
+ <connection
+   kind="reset"
+   version="20.1"
+   start="clk_0.clk_reset"
+   end="tsensor_data.clock_reset_reset" />
  <connection
    kind="reset"
    version="20.1"
@@ -1887,6 +2010,11 @@
    version="20.1"
    start="clk_0.clk_reset"
    end="pio_dg.reset" />
+ <connection
+   kind="reset"
+   version="20.1"
+   start="clk_0.clk_reset"
+   end="tsensor_sync.reset" />
  <connection
    kind="reset"
    version="20.1"

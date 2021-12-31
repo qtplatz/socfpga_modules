@@ -122,7 +122,44 @@ module soc_system (
 	slave_io_0_user_interface_write,
 	slave_io_0_user_interface_read,
 	slave_io_0_user_interface_chipselect,
-	slave_io_0_user_interface_byteenable);	
+	slave_io_0_user_interface_byteenable,
+	tsensor_sync_external_connection_export,
+	tsensor_data_user_interface_dataout_0,
+	tsensor_data_user_interface_dataout_1,
+	tsensor_data_user_interface_dataout_2,
+	tsensor_data_user_interface_dataout_3,
+	tsensor_data_user_interface_dataout_4,
+	tsensor_data_user_interface_dataout_5,
+	tsensor_data_user_interface_dataout_6,
+	tsensor_data_user_interface_dataout_7,
+	tsensor_data_user_interface_dataout_8,
+	tsensor_data_user_interface_dataout_9,
+	tsensor_data_user_interface_dataout_10,
+	tsensor_data_user_interface_dataout_11,
+	tsensor_data_user_interface_dataout_12,
+	tsensor_data_user_interface_dataout_13,
+	tsensor_data_user_interface_dataout_14,
+	tsensor_data_user_interface_dataout_15,
+	tsensor_data_user_interface_datain_0,
+	tsensor_data_user_interface_datain_1,
+	tsensor_data_user_interface_datain_2,
+	tsensor_data_user_interface_datain_3,
+	tsensor_data_user_interface_datain_4,
+	tsensor_data_user_interface_datain_5,
+	tsensor_data_user_interface_datain_6,
+	tsensor_data_user_interface_datain_7,
+	tsensor_data_user_interface_datain_8,
+	tsensor_data_user_interface_datain_9,
+	tsensor_data_user_interface_datain_10,
+	tsensor_data_user_interface_datain_11,
+	tsensor_data_user_interface_datain_12,
+	tsensor_data_user_interface_datain_13,
+	tsensor_data_user_interface_datain_14,
+	tsensor_data_user_interface_datain_15,
+	tsensor_data_user_interface_write,
+	tsensor_data_user_interface_read,
+	tsensor_data_user_interface_chipselect,
+	tsensor_data_user_interface_byteenable);	
 
 	input	[511:0]	adc_fifo_0_st_sink_data;
 	input		adc_fifo_0_st_sink_valid;
@@ -247,4 +284,41 @@ module soc_system (
 	output		slave_io_0_user_interface_read;
 	output	[15:0]	slave_io_0_user_interface_chipselect;
 	output	[7:0]	slave_io_0_user_interface_byteenable;
+	input		tsensor_sync_external_connection_export;
+	output	[31:0]	tsensor_data_user_interface_dataout_0;
+	output	[31:0]	tsensor_data_user_interface_dataout_1;
+	output	[31:0]	tsensor_data_user_interface_dataout_2;
+	output	[31:0]	tsensor_data_user_interface_dataout_3;
+	output	[31:0]	tsensor_data_user_interface_dataout_4;
+	output	[31:0]	tsensor_data_user_interface_dataout_5;
+	output	[31:0]	tsensor_data_user_interface_dataout_6;
+	output	[31:0]	tsensor_data_user_interface_dataout_7;
+	output	[31:0]	tsensor_data_user_interface_dataout_8;
+	output	[31:0]	tsensor_data_user_interface_dataout_9;
+	output	[31:0]	tsensor_data_user_interface_dataout_10;
+	output	[31:0]	tsensor_data_user_interface_dataout_11;
+	output	[31:0]	tsensor_data_user_interface_dataout_12;
+	output	[31:0]	tsensor_data_user_interface_dataout_13;
+	output	[31:0]	tsensor_data_user_interface_dataout_14;
+	output	[31:0]	tsensor_data_user_interface_dataout_15;
+	input	[31:0]	tsensor_data_user_interface_datain_0;
+	input	[31:0]	tsensor_data_user_interface_datain_1;
+	input	[31:0]	tsensor_data_user_interface_datain_2;
+	input	[31:0]	tsensor_data_user_interface_datain_3;
+	input	[31:0]	tsensor_data_user_interface_datain_4;
+	input	[31:0]	tsensor_data_user_interface_datain_5;
+	input	[31:0]	tsensor_data_user_interface_datain_6;
+	input	[31:0]	tsensor_data_user_interface_datain_7;
+	input	[31:0]	tsensor_data_user_interface_datain_8;
+	input	[31:0]	tsensor_data_user_interface_datain_9;
+	input	[31:0]	tsensor_data_user_interface_datain_10;
+	input	[31:0]	tsensor_data_user_interface_datain_11;
+	input	[31:0]	tsensor_data_user_interface_datain_12;
+	input	[31:0]	tsensor_data_user_interface_datain_13;
+	input	[31:0]	tsensor_data_user_interface_datain_14;
+	input	[31:0]	tsensor_data_user_interface_datain_15;
+	output		tsensor_data_user_interface_write;
+	output		tsensor_data_user_interface_read;
+	output	[15:0]	tsensor_data_user_interface_chipselect;
+	output	[3:0]	tsensor_data_user_interface_byteenable;
 endmodule

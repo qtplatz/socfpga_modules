@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 MS-Chrminformatics LLC
+ * Copyright (C) 2021-2022 MS-Chrminformatics LLC
  * Heavily modified for getting to work on de0-nano-soc.
 */
 
@@ -103,19 +103,21 @@
 			#address-cells = <2>;
 			#size-cells = <1>;
 			ranges =
-			<0x00000000 0x00011000 0xc0011000 0x00000020>, // HPS_0_ADC_FIFO_0_CSR_BASE
-			<0x00000000 0x00011020 0xc0011020 0x00000010>, // HPS_0_ADC_FIFO_0_DESCRIPTOR_SLAVE_BASE
-			<0x00000000 0x00011040 0xc0011040 0x00000008>, // HPS_0_ADC_FIFO_0_RESPONSE_BASE
-			<0x00000000 0x00012000 0xc0012000 0x00001000>, // HPS_0_SLAVE_IO_0_BASE 0x12000
-			<0x00000000 0x00000000 0xc0000000 0x00010000>,
-			<0x00000000 0x00010000 0xc0010000 0x00000010>, // HPS_0_PIO_DG_BASE 0x10000
-			<0x00000000 0x00010020 0xc0010020 0x00000010>, // HPS_0_PIO_IN_BASE 0x10020
-			<0x00000000 0x00010040 0xc0010040 0x00000010>, // HPS_0_PIO_OUT_BASE 0x10040
-			<0x00000001 0x00020000 0xff220000 0x00000008>, // HPS_0_JTAG_UART_BASE
-			<0x00000001 0x00010000 0xff210000 0x00000008>, // HPS_0_ARM_A9_0_SYSID_QSYS_BASE
-			<0x00000001 0x00010040 0xff210040 0x00000010>, // LED
-			<0x00000001 0x00010080 0xff210080 0x00000010>, // DIPSW
-			<0x00000001 0x000100c0 0xff2100c0 0x00000010>; // BUTTON
+			<0x00000000 0x00011000 0xc0011000 0x00000020>, // adc_fifo_0 0
+			<0x00000000 0x00010080 0xc0010080 0x00000040>, // i2c_master_0
+			<0x00000000 0x00011020 0xc0011020 0x00000010>, // adc_fifo_0 1
+			<0x00000000 0x00011040 0xc0011040 0x00000008>, // adc_fifo_0 2
+			<0x00000000 0x00012000 0xc0012000 0x00001000>, // slave_io_0
+			<0x00000000 0x00000000 0xc0000000 0x00010000>, // onchip-memory
+			<0x00000000 0x00010000 0xc0010000 0x00000010>, // pio_dg
+			<0x00000000 0x00010020 0xc0010020 0x00000010>, // pio_in
+			<0x00000000 0x00010040 0xc0010040 0x00000010>, // pio_out
+			<0x00000000 0x00010010 0xc0010010 0x00000010>, // pio_tsensor_0
+			<0x00000001 0x00020000 0xff220000 0x00000008>, // jtag_uart
+			<0x00000001 0x00010000 0xff210000 0x00000008>, // sysid_qsys
+			<0x00000001 0x00010040 0xff210040 0x00000010>, // led_pio
+			<0x00000001 0x00010080 0xff210080 0x00000010>, // dipsw_pio
+			<0x00000001 0x000100c0 0xff2100c0 0x00000010>; // button_pio
 
 			adc_fifo_0: msgdma@11000 {
 				compatible = "altr,msgdma-20.1", "altr,msgdma-1.0";
@@ -127,6 +129,14 @@
 				interrupts = <0 44 4>;
 				clocks = <&clk_0>;
 			}; //end msgdma@000011000 (adc_fifo_0)
+
+			i2c_master_0: i2c@10080 {
+				compatible = "altr,softip-i2c-v1.0", "altr,i2c-master-20.1", "altr,i2c-master-1.0";
+				reg = <0x00000000 0x00010080 0x00000040>;
+				interrupt-parent = <&intc>;
+				interrupts = <0 46 4>;
+				clocks = <&pll_0 0>;
+			};
 
 			slave_io_0: slave_io@12000 {
 				compatible = "altr,avalon-mm-slave-2.0", "slave_io";
@@ -144,12 +154,11 @@
 				altr,gpio-bank-width = <1>;	/* embeddedsw.dts.params.altr,gpio-bank-width type NUMBER */
 				altr,interrupt-type = <1>;	/* embeddedsw.dts.params.altr,interrupt-type type NUMBER */
 				altr,interrupt_type = <1>;	/* embeddedsw.dts.params.altr,interrupt_type type NUMBER */
-				edge_type = <0>;	/* embeddedsw.dts.params.edge_type type NUMBER */
-				level_trigger = <0>;	/* embeddedsw.dts.params.level_trigger type NUMBER */
-				resetvalue = <0>;	/* embeddedsw.dts.params.resetvalue type NUMBER */
+				edge_type = <0>;	        /* embeddedsw.dts.params.edge_type type NUMBER */
+				level_trigger = <0>;	    /* embeddedsw.dts.params.level_trigger type NUMBER */
+				resetvalue = <0>;	        /* embeddedsw.dts.params.resetvalue type NUMBER */
 				#gpio-cells = <2>;
 				gpio-controller;
-				// gpios = <2016,1>
 			}; //end gpio@000010000 (pio_dg)
 
 			pio_in: gpio@10020 {
@@ -161,12 +170,11 @@
 				altr,gpio-bank-width = <2>;	/* embeddedsw.dts.params.altr,gpio-bank-width type NUMBER */
 				altr,interrupt-type = <2>;	/* embeddedsw.dts.params.altr,interrupt-type type NUMBER */
 				altr,interrupt_type = <2>;	/* embeddedsw.dts.params.altr,interrupt_type type NUMBER */
-				edge_type = <1>;	/* embeddedsw.dts.params.edge_type type NUMBER */
-				level_trigger = <0>;	/* embeddedsw.dts.params.level_trigger type NUMBER */
-				resetvalue = <0>;	/* embeddedsw.dts.params.resetvalue type NUMBER */
+				edge_type = <1>;	        /* embeddedsw.dts.params.edge_type type NUMBER */
+				level_trigger = <0>;	    /* embeddedsw.dts.params.level_trigger type NUMBER */
+				resetvalue = <0>;	        /* embeddedsw.dts.params.resetvalue type NUMBER */
 				#gpio-cells = <2>;
 				gpio-controller;
-				// gpios = <1984,2>
 			}; //end gpio@000010020 (pio_in)
 
 			pio_out: gpio@10040 {
@@ -174,11 +182,26 @@
 				reg = <0x00000000 0x00010040 0x00000010>;
 				clocks = <&clk_0>;
 				altr,gpio-bank-width = <4>;	/* embeddedsw.dts.params.altr,gpio-bank-width type NUMBER */
-				resetvalue = <15>;	/* embeddedsw.dts.params.resetvalue type NUMBER */
+				resetvalue = <15>;	        /* embeddedsw.dts.params.resetvalue type NUMBER */
 				#gpio-cells = <2>;
 				gpio-controller;
-				// gpios = <1952,2>
 			}; //end gpio@000010040 (pio_out)
+
+			pio_tsensor_0: gpio@10010 {
+				compatible = "altr,pio-20.1", "altr,pio-1.0";
+				reg = <0x00000000 0x00010010 0x00000010>;
+				interrupt-parent = <&intc>;
+				interrupts = <0 47 1>;
+				clocks = <&clk_0 0>;
+				altr,gpio-bank-width = <16>;	/* embeddedsw.dts.params.altr,gpio-bank-width type NUMBER */
+				altr,interrupt-type = <1>;	    /* embeddedsw.dts.params.altr,interrupt-type type NUMBER */
+				altr,interrupt_type = <1>;	    /* embeddedsw.dts.params.altr,interrupt_type type NUMBER */
+				edge_type = <0>;	            /* embeddedsw.dts.params.edge_type type NUMBER */
+				level_trigger = <0>;	        /* embeddedsw.dts.params.level_trigger type NUMBER */
+				resetvalue = <0>;	            /* embeddedsw.dts.params.resetvalue type NUMBER */
+				#gpio-cells = <2>;
+				gpio-controller;
+			}; //end gpio@000010010 (pio_tsensor_0)
 
 			jtag_uart: serial@100020000 {
 				compatible = "altr,juart-20.1", "altr,juart-1.0";
@@ -223,7 +246,6 @@
 				#gpio-cells = <2>;
 				gpio-controller;
 				label = "dipsw_pio";	/* appended from boardinfo */
-				// gpios = <1888,4>
 			}; //end gpio@100010080 (dipsw_pio)
 
 			button_pio: gpio@1000100c0 {
@@ -241,7 +263,6 @@
 				#gpio-cells = <2>;
 				gpio-controller;
 				label = "button_pio";	/* appended from boardinfo */
-				// gpios = <1856,4>
 			}; //end gpio@1000100c0 (button_pio)
 
 			cds_gpio {
@@ -250,6 +271,11 @@
 				inject_out-gpios = <&pio_out 1954 GPIO_ACTIVE_LOW>;  // 1952,1953,1954,1955
 				led-gpios = <&led_pio 1920 GPIO_ACTIVE_HIGH>;
 				// dipsw-gpios = <&dipsw_pio 1888 GPIO_ACTIVE_HIGH>;
+			};
+
+			tsensor_gpio {
+				compatible  = "altr,cds-pio"; // consumer
+				tsenser-gpios = <&pio_tsensor_0 1884 GPIO_ACTIVE_LOW>;    // 1984,1985
 			};
 
 		}; //end bridge@c0000000 (hps_0_bridges)

@@ -16,9 +16,10 @@ DTS_SOURCES = ${KERNEL_DIR}/arch/arm/boot/dts/${design_name}_overlay.dts \
 
 all:
 	@echo "	make header		-- generate ${design_name}/${design_name}.h"
-	@echo "	make copy_dts		-- generate ${design_name}_overlay.dts in ${KERNEL_DIR}/arch/arm/boot/dts"
-	@echo "	make dtbo		-- generate ${design_name}.dtbo"
 	@echo "	make dtb		-- generate ${design_name}.dtb"
+
+#       @echo "	make copy_dts		-- generate ${design_name}_overlay.dts in ${KERNEL_DIR}/arch/arm/boot/dts"
+#	@echo "	make dtbo		-- generate ${design_name}.dtbo"
 
 header: ${design_name}/${design_name}.h
 copy_dts: ${DTS_SOURCES} # ${KERNEL_DIR}/arch/arm/boot/dts/${design_name}.h

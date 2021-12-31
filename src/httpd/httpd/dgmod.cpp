@@ -53,8 +53,8 @@ namespace peripheral {
                 data[ 14 ] = uint64_t( tp.count() ) << 32;
                 }
               */
-            for ( size_t i = 0; i < 16; ++i )
-                ADTRACE() << boost::format( "0x%016x" ) % data.at( i );
+            // for ( size_t i = 0; i < 16; ++i )
+            //     ADTRACE() << boost::format( "0x%016x" ) % data.at( i );
             return data;
         }
 
@@ -68,7 +68,7 @@ namespace peripheral {
                     }
                 }
             };
-            ADTRACE() << boost::json::serialize( obj );
+            // ADTRACE() << boost::json::serialize( obj );
             facade::instance()->websock_forward( boost::json::serialize( obj ), "dgmod" );
         }
     };

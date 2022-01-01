@@ -139,14 +139,14 @@
 			};
 
 			slave_io_0: slave_io@12000 {
-				compatible = "altr,avalon-mm-slave-2.0", "slave_io";
+				compatible = "dgmod_data"; //, "altr,avalon-mm-slave-2.0";
 				reg = <0x00000000 HPS_0_SLAVE_IO_0_BASE HPS_0_SLAVE_IO_0_SPAN>; // <0x00000000 0x00012000 0x00001000>;
 				clocks = <&pll_0 0>;
 				dg-gpios = <&pio_dg 2016 GPIO_ACTIVE_HIGH>;
 			}; //end slave_io@000012000 (slave_io_0)
 
 			tsensor_data: slave_io@10800 {
-				compatible = "altr,avalon-mm-slave-2.0", "slave_io";
+				compatible = "tsensor_data"; //, "altr,avalon-mm-slave-2.0";
 				reg = <0x00000000 HPS_0_TSENSOR_DATA_BASE HPS_0_TSENSOR_DATA_SPAN>;
 				clocks = <&pll_0 0>;
 				tsensor_sync-gpios = <&tsensor_sync 1920 GPIO_ACTIVE_HIGH>;

@@ -617,7 +617,7 @@ dgmod_module_remove( struct platform_device * pdev )
 }
 
 static const struct of_device_id __dgmod_module_id [] = {
-    { .compatible = "altr,avalon-mm-slave-2.0" }
+    { .compatible = "dgmod_data" }
     , {}
 };
 

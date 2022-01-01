@@ -1,10 +1,13 @@
 # CMakeLists.txt
 
 if ( NOT APPLE )
-  add_subdirectory( tools )
   add_subdirectory( drivers )
 endif()
-add_subdirectory( httpd )
+
+if ( Boost_FOUND )
+  add_subdirectory( tools )
+  add_subdirectory( httpd )
+endif()
 
 
 set ( DKMS_PACKAGES ${DKMS_PACKAGES} PARENT_SCOPE )

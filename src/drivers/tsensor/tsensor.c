@@ -87,29 +87,10 @@ typedef struct slave_data {
     uint32_t resv[12];        //
 } slave_data;
 
-typedef struct slave_data64 {
-    uint64_t user_dataout;    // 0x00
-    uint64_t user_datain;     // 0x08
-    uint64_t irqmask;         // 0x10
-    uint64_t edge_capture;    // 0x18
-    uint64_t resv[12];        //
-} slave_data64;
-
-inline static volatile slave_data64 * __slave_data64( void __iomem * regs, u32 idx )
+inline static volatile slave_data * __slave_data( void __iomem * regs, u32 idx )
 {
-    return ((volatile slave_data64 *)(regs)) + idx;
+    return ((volatile slave_data *)(regs)) + idx;
 }
-
-inline static u32 __slave_get_flags( void __iomem * regs )
-{
-    return (u32)( __slave_data64( regs, 0 )->user_dataout >> 32 );
-}
-
-inline static void __slave_set_flags( void __iomem * regs, u32 flags )
-{
-    __slave_data64( regs, 15 )->user_datain = (u64)flags << 32;
-}
-
 
 static irqreturn_t
 handle_interrupt( int irq, void *dev_id )
@@ -132,27 +113,18 @@ tsensor_proc_read( struct seq_file * m, void * v )
         seq_printf( m, "proc_read irqCount=%d\n", drv->irqCount );
 
         // current page can read from [0]
-        u64 save_page = __slave_data64( drv->regs, 0 )->user_dataout & ~0x0ffffffffL;
-
-        u64 data[ 16 ][ 5 ];
-        volatile struct slave_data64 * user_flags = __slave_data64( drv->regs, 15 );
-
-        for ( size_t k = 0; k < 5; ++k ) {
-            __slave_set_flags( drv->regs, k );
-            for ( size_t i = 0; i < 16; ++i ) {
-                volatile struct slave_data64 * p = __slave_data64( drv->regs, i );
-                data[ i ][ k ] = p->user_dataout;
-            }
+        u32 data[ 16 ];
+        for ( size_t i = 0; i < 16; ++i ) {
+            volatile struct slave_data * p = __slave_data( drv->regs, i );
+            data[ i ] = p->user_dataout;
         }
 
-        seq_printf( m, "[id] <actuals (p0)>\t<setpoints (p1)>\n" );
+        seq_printf( m, "[id] <data>\n" );
         for ( size_t i = 0; i < 16; ++i ) {
             seq_printf( m, "[%2d] ", i );
-            for ( size_t k = 0; k < 5; ++k )
-                seq_printf( m, "%016llx\t", data[ i ][ k ] );
+            seq_printf( m, "%08x\t", data[ i ] );
             seq_printf( m, "\n" );
         }
-        user_flags->user_datain = save_page; // restore page
     }
 
     return 0;
@@ -175,43 +147,6 @@ tsensor_proc_write( struct file * filep, const char * user, size_t size, loff_t 
         return -EFAULT;
     readbuf[ size ] = '\0';
 
-    struct tsensor_driver * drv = platform_get_drvdata( __pdev );
-    if ( drv ) {
-        if ( strncmp( readbuf, "write", 5 ) == 0 ) {
-            u32 save_flags = __slave_get_flags( drv->regs );
-
-            __slave_data64( drv->regs,  0 )->user_datain = 100000LL;  // h32 = ro; l32 = interval = 1 ms
-
-            for ( int k = 0; k < 4; ++k ) {
-                __slave_set_flags( drv->regs, k ); // set page
-                // interval [31:0]
-                __slave_data64( drv->regs,  1 )->user_datain = (k + 0x10LL) << 32 | (0x100LL);  // p0
-                __slave_data64( drv->regs,  2 )->user_datain = (k + 0x20LL) << 32 | (0x100LL);  // p1
-                __slave_data64( drv->regs,  3 )->user_datain = (k + 0x30LL) << 32 | (0x100LL);  // p2
-                __slave_data64( drv->regs,  4 )->user_datain = (k + 0x40LL) << 32 | (0x100LL);  // p3
-                __slave_data64( drv->regs,  5 )->user_datain = (k + 0x50LL) << 32 | (0x100LL);  // p4
-                __slave_data64( drv->regs,  6 )->user_datain = (k + 0x60LL) << 32 | (0x100LL);  // p5
-                __slave_data64( drv->regs,  7 )->user_datain = (k + 0x70LL) << 32 | (0x100LL);  // p6
-                __slave_data64( drv->regs,  8 )->user_datain = (k + 0x80LL) << 32 | (0x100LL);  // p7
-                __slave_data64( drv->regs,  9 )->user_datain = (k + 0x90LL) << 32 | (0x100LL);  // p8 <-- last
-                __slave_data64( drv->regs, 10 )->user_datain = (k + 0xa0LL) << 32 | (0x100LL);  // --
-                __slave_data64( drv->regs, 11 )->user_datain = (k + 0xb0LL) << 32 | (0x100LL);  // --
-                __slave_data64( drv->regs, 12 )->user_datain = (k + 10);  // replicates
-                __slave_data64( drv->regs, 13 )->user_datain = (k + 0x130LL) << 32 | (0x100LL);  // p1  = 1 us, 1 us width
-                __slave_data64( drv->regs, 14 )->user_datain = k; // user protocol number
-            }
-            __slave_set_flags( drv->regs, save_flags );
-        }
-        else if ( strncmp( readbuf, "commit", 6 ) == 0 ) {
-            __slave_data64( drv->regs, 15 )->user_datain = 0x01;
-        }
-        else if ( strncmp( readbuf, "p1", 2 ) == 0 ) {
-            __slave_data64( drv->regs, 15 )->user_datain = 1LL << 32;
-        }
-        else if ( strncmp( readbuf, "p0", 2 ) == 0 ) {
-            __slave_data64( drv->regs, 15 )->user_datain = 0LL << 32;
-        }
-    }
     return size;
 }
 
@@ -286,34 +221,21 @@ static ssize_t tsensor_cdev_read(struct file *file, char __user *data, size_t si
         // 64 bit align
         *f_pos &= ~07;
 
-        const u32 save_flags = __slave_get_flags( drv->regs );
-
-        u32 pn = *f_pos / ( 16 * sizeof(u64) ); // page number
-        __slave_set_flags( drv->regs, pn );
-
         // dev_info(&__pdev->dev, "%s: pn = %x, f_pos=%llx, size=%ud\n", __func__, pn, *f_pos, size );
-        while ( ( *f_pos < private_data->size ) && (count + sizeof(u64)) <= size ) {
+        while ( ( *f_pos < private_data->size ) && (count + sizeof(u32)) <= size ) {
 
-            size_t idx = *f_pos / sizeof(u64);
-            u64 d = __slave_data64( drv->regs, idx % 16 )->user_dataout;
+            size_t idx = *f_pos / sizeof(u32);
+            u32 d = __slave_data( drv->regs, idx % 16 )->user_dataout;
             // dev_info(&__pdev->dev, "slave_io[%d] data=0x%016llx\tf_pos=%lld, page=%d\n", (idx%16), d, *f_pos, pn );
 
-            if ( copy_to_user( data, (const char *)&d, sizeof(u64) ) ) {
+            if ( copy_to_user( data, (const char *)&d, sizeof(u32) ) ) {
                 up( &__sem );
                 return -EFAULT;
             }
-            count += sizeof( u64 );
-            data += sizeof( u64 );
-            *f_pos += sizeof( u64 );
-
-            u32 pn_next = *f_pos / ( 16 * sizeof( u64 ) );
-            if ( pn_next != pn ) {
-                pn = pn_next;
-                __slave_set_flags( drv->regs, pn );
-            }
+            count += sizeof( u32 );
+            data += sizeof( u32 );
+            *f_pos += sizeof( u32 );
         }
-        // restore page number and flags
-        __slave_set_flags( drv->regs, save_flags );
         up( &__sem );
     }
     return count;
@@ -331,56 +253,25 @@ static ssize_t tsensor_cdev_write(struct file *file, const char __user *data, si
         // align (round up)
         *f_pos = ( *f_pos + sizeof(u64) - 1 ) & ~07;
         struct tsensor_cdev_private * private_data = file->private_data;
+
         while ( (*f_pos < private_data->size ) && size >= sizeof(u64) ) {
-            u64 d;
-            if ( copy_from_user( &d, data, sizeof(u64) ) ) {
+            u32 d;
+            if ( copy_from_user( &d, data, sizeof(u32) ) ) {
                 up( &__sem );
                 return -EFAULT;
             }
-            size_t idx = *f_pos / (16 * sizeof( u64 ) );
-            __slave_data64( drv->regs, idx % 16 )->user_dataout = d;
+            size_t idx = *f_pos / (16 * sizeof( u32 ) );
+            __slave_data( drv->regs, idx % 16 )->user_dataout = d;
 
-            *f_pos += sizeof( u64 );
-            count += sizeof( u64 );
-            size -= sizeof( u64 );
+            *f_pos += sizeof( u32 );
+            count += sizeof( u32 );
+            size -= sizeof( u32 );
         }
         up( &__sem );
     }
     return count;
 }
 
-
-static ssize_t
-tsensor_cdev_mmap( struct file * file, struct vm_area_struct * vma )
-{
-    int ret = (-1);
-
-    struct tsensor_driver * drv = platform_get_drvdata( __pdev );
-    if ( drv == 0  ) {
-        printk( KERN_CRIT "%s: Couldn't allocate shared memory for user space\n", __func__ );
-        return -1; // Error
-    }
-
-    // Map the allocated memory into the calling processes address space.
-    u32 size = vma->vm_end - vma->vm_start;
-    if ( size > drv->mem_resource->end - drv->mem_resource->start + 1 )
-        return -EINVAL;
-
-    dev_info( &__pdev->dev, "vma %lx, %lx, %u, pgoff=%lx\n", vma->vm_start, vma->vm_end, size, vma->vm_pgoff );
-    dev_info( &__pdev->dev, "----------- resource %x, %x, %x PAGE_SHIFT=%x\n"
-              , drv->mem_resource->start, drv->mem_resource->end
-              , drv->mem_resource->end - drv->mem_resource->start + 1, PAGE_SHIFT );
-
-    if ( ( ret = remap_pfn_range( vma
-                                  , vma->vm_start
-                                  , (drv->mem_resource->start >> PAGE_SHIFT)
-                                  , size
-                                  , vma->vm_page_prot ) ) ) {
-        dev_err(&__pdev->dev, "%s: remap of shared memory failed, %d\n", __func__, ret);
-        return ret;
-    }
-    return ret;
-}
 
 loff_t
 tsensor_cdev_llseek( struct file * file, loff_t offset, int orig )
@@ -416,7 +307,7 @@ static struct file_operations tsensor_cdev_fops = {
     , .unlocked_ioctl = tsensor_cdev_ioctl
     , .read    = tsensor_cdev_read
     , .write   = tsensor_cdev_write
-    , .mmap    = tsensor_cdev_mmap
+    , .mmap    = 0
 };
 
 static int tsensor_dev_uevent( struct device * dev, struct kobj_uevent_env * env )
@@ -552,26 +443,26 @@ tsensor_module_probe( struct platform_device * pdev )
     }
 
     //////
-    drv->tsensor_sync = devm_gpiod_get_optional( &pdev->dev, "dg", GPIOD_IN );
-    if ( drv->tsensor_sync && tsensor_perror( pdev, "dg", drv->tsensor_sync ) == -EPROBE_DEFER ) {
+    drv->tsensor_sync = devm_gpiod_get_optional( &pdev->dev, "tsensor_sync", GPIOD_IN );
+    if ( drv->tsensor_sync && tsensor_perror( pdev, "tsensor_sync", drv->tsensor_sync ) == -EPROBE_DEFER ) {
         u32 rcode;
         struct device_node * node = pdev->dev.of_node;
-        if ( of_property_read_u32_index( node, "dg-gpios", 1, &drv->legacy_gpio_number ) == 0 ) {
+        if ( of_property_read_u32_index( node, "tsensor_sync-gpios", 1, &drv->legacy_gpio_number ) == 0 ) {
             dev_info(&__pdev->dev, "tsensor_sync-gpios switch to legacy api: numberr %d", drv->legacy_gpio_number );
-            if ( ( rcode = devm_gpio_request( &pdev->dev, drv->legacy_gpio_number, "dg" ) ) == 0 ) {
+            if ( ( rcode = devm_gpio_request( &pdev->dev, drv->legacy_gpio_number, "tsensor_sync" ) ) == 0 ) {
                 gpio_direction_input( drv->legacy_gpio_number );
             }
         } else {
             dev_err( &pdev->dev, "legacy gpio tsensor_sync request failed: %d", rcode );
         }
     } else {
-        dev_err( &pdev->dev, "dg gpio get failed: %ld", PTR_ERR( drv->tsensor_sync ) );
+        dev_err( &pdev->dev, "tsensor_sync gpio get failed: %ld", PTR_ERR( drv->tsensor_sync ) );
     }
 
     // IRQ
     if ( drv->tsensor_sync && gpio_is_valid( drv->legacy_gpio_number ) ) {
         if ( (drv->irq = gpio_to_irq( drv->legacy_gpio_number ) ) > 0 ) {
-            dev_info(&pdev->dev, "\tdg gpio irq is %d", drv->irq );
+            dev_info(&pdev->dev, "\ttsensor_sync gpio irq is %d", drv->irq );
             u32 rcode;
             if ( (rcode = devm_request_irq( &pdev->dev
                                             , drv->irq
@@ -600,7 +491,7 @@ tsensor_module_remove( struct platform_device * pdev )
 }
 
 static const struct of_device_id __tsensor_module_id [] = {
-    { .compatible = "altr,avalon-mm-slave-2.0" }
+    { .compatible = "tsensor_data" }
     , {}
 };
 

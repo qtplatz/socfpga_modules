@@ -13,6 +13,9 @@ get_filename_component( BUILD_ROOT ${CMAKE_BINARY_DIR} DIRECTORY )
 list( APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules" )
 include ( version )
 
+execute_process( COMMAND uname -m OUTPUT_VARIABLE HOST_ARCH OUTPUT_STRIP_TRAILING_WHITESPACE )
+message( STATUS "## HOST_ARCH:   " ${HOST_ARCH} )
+
 if ( CMAKE_CROSSCOMPILING )
   message( STATUS "------------- CROSSCOMPILING -------------" )
   set ( VERBOSE TRUE )
@@ -66,7 +69,7 @@ include( version )
 set ( CMAKE_CXX_STANDARD 17 )
 message( STATUS "## version: " "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}.${VERSION_TWEAK}(${VERSION_HASH})" )
 
-find_package( Boost 1.75 REQUIRED COMPONENTS
+find_package( Boost 1.75 COMPONENTS
   date_time
   filesystem
   json
@@ -76,6 +79,8 @@ find_package( Boost 1.75 REQUIRED COMPONENTS
   thread
   log
   )
+
+message( STATUS "## Boost_FOUND:  " "${Boost_FOUND}" )
 
 set ( DKMS_PACKAGES ) # This variable will be filled via drivers/dkms/dkms.cmake
 set ( DKMS_PACKAGE_PREFIX "dkms-" )

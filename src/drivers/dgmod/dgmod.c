@@ -78,7 +78,6 @@ struct dgmod_cdev_private {
     void * mmap;
 };
 
-
 typedef struct slave_data {
     uint32_t user_dataout;    // 0x00
     uint32_t user_datain;     // 0x04
@@ -162,7 +161,7 @@ dgmod_proc_read( struct seq_file * m, void * v )
             }
         }
 
-        seq_printf( m, "[id] <actuals (p0)>\t<setpoints (p1)>\n" );
+        seq_printf( m, "[id] <setpoints (p0)>\t<setpoints (p1)>\t<setpoints (p2)>\t<setpoints (p3)>\t<actuals (p4)>\n" );
         for ( size_t i = 0; i < 16; ++i ) {
             seq_printf( m, "[%2d] ", i );
             for ( size_t k = 0; k < 5; ++k )
@@ -607,10 +606,11 @@ dgmod_module_probe( struct platform_device * pdev )
 static int
 dgmod_module_remove( struct platform_device * pdev )
 {
+    dev_info( &pdev->dev, "------------- module remove -------------" );
     struct dgmod_driver * drv = platform_get_drvdata( pdev );
     if ( drv && drv->irq ) {
         dev_info( &pdev->dev, "IRQ %d about to be freed\n", drv->irq );
-        devm_free_irq( &pdev->dev, drv->irq, 0 );
+        // devm_free_irq( &pdev->dev, drv->irq, 0 );
     }
     __pdev = 0;
     return 0;

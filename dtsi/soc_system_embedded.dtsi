@@ -130,14 +130,6 @@
 				clocks = <&clk_0>;
 			}; //end msgdma@000011000 (adc_fifo_0)
 
-			i2c_master_0: i2c@10080 {
-				compatible = "altr,softip-i2c-v1.0", "altr,i2c-master-20.1", "altr,i2c-master-1.0";
-				reg = <0x00000000 0x00010080 0x00000040>;
-				interrupt-parent = <&intc>;
-				interrupts = <0 46 4>;
-				clocks = <&pll_0 0>;
-			};
-
 			slave_io_0: slave_io@12000 {
 				compatible = "dgmod_data"; //, "altr,avalon-mm-slave-2.0";
 				reg = <0x00000000 HPS_0_SLAVE_IO_0_BASE HPS_0_SLAVE_IO_0_SPAN>; // <0x00000000 0x00012000 0x00001000>;
@@ -270,10 +262,8 @@
 
 			cds_gpio {
 				compatible  = "altr,cds-pio"; // consumer
-				inject_in-gpios = <&pio_in 1884 GPIO_ACTIVE_LOW>;    // 1984,1985
-				inject_out-gpios = <&pio_out 1954 GPIO_ACTIVE_LOW>;  // 1952,1953,1954,1955
-				led-gpios = <&led_pio 1920 GPIO_ACTIVE_HIGH>;
-				// dipsw-gpios = <&dipsw_pio 1888 GPIO_ACTIVE_HIGH>;
+				inject_in-gpios = <&pio_in 1984 GPIO_ACTIVE_LOW>;
+				inject_out-gpios = <&pio_out 1952 GPIO_ACTIVE_LOW>;
 			};
 
 		}; //end bridge@c0000000 (hps_0_bridges)

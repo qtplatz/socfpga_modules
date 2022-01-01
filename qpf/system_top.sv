@@ -622,7 +622,7 @@ module system_top(
    assign GPIO_1[ 4 ] = clk1;
    assign GPIO_1[ 5 ] = tsensor_0_valid[ 0 ] & ~tsensor_0_valid[ 1 ];
 
-   spi_master #(.DWIDTH(12), .CPOL(1), .CPHA(0) )
+   spi_master #( .DWIDTH(12), .CPOL(1), .CPHA(0) )
    tsensor_0 ( .clk        ( clk100 )
                , .reset_n  ( hps_fpga_reset_n )
                , .sclk     ( clk1 )     // 1 MHz

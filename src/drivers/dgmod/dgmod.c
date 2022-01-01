@@ -354,7 +354,7 @@ static ssize_t dgmod_cdev_write(struct file *file, const char __user *data, size
                 return -EFAULT;
             }
             size_t idx = *f_pos / (16 * sizeof( u64 ) );
-            __slave_data64( drv->regs, idx % 16 )->user_dataout = d;
+            __slave_data64( drv->regs, idx % 16 )->user_datain = d;
 
             *f_pos += sizeof( u64 );
             count += sizeof( u64 );

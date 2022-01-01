@@ -59,9 +59,6 @@ static struct platform_device *__pdev;
 static dev_t tsensor_dev_t = 0;
 static struct cdev * __tsensor_cdev;
 static struct class * __tsensor_class;
-static struct semaphore __sem;
-static wait_queue_head_t __queue;
-static int __queue_condition;
 
 struct tsensor_driver {
 	struct gpio_desc * tsensor_sync; // tsensor_sync; // t0 trigger
@@ -70,6 +67,9 @@ struct tsensor_driver {
     u32 irqCount;
     void __iomem * regs;
     struct resource * mem_resource;
+    wait_queue_head_t queue;
+    int queue_condition;
+    struct semaphore sem;
 };
 
 struct tsensor_cdev_private {
@@ -99,6 +99,8 @@ handle_interrupt( int irq, void *dev_id )
         struct tsensor_driver * drv = platform_get_drvdata( __pdev );
         if ( drv->irq == irq ) {
             drv->irqCount++;
+            drv->queue_condition++;
+            wake_up_interruptible( &drv->queue );
         }
     }
     return IRQ_HANDLED;
@@ -120,7 +122,7 @@ tsensor_proc_read( struct seq_file * m, void * v )
         }
 
         seq_printf( m, "[id] <data>\n" );
-        for ( size_t i = 0; i < 16; ++i ) {
+        for ( size_t i = 0; i < 2; ++i ) {
             seq_printf( m, "[%2d] ", i );
             seq_printf( m, "%08x\t", data[ i ] );
             if ( i == 1 ) {
@@ -187,7 +189,7 @@ static int tsensor_cdev_open(struct inode *inode, struct file *file)
                                      , GFP_KERNEL );
     if ( private_data ) {
         private_data->node =  MINOR( inode->i_rdev );
-        private_data->size = 5 * 16 * sizeof(u64); // 5 pages, 16 ddwords
+        private_data->size = 2 * sizeof(u32); // 2 dwords (set, act)
         private_data->mmap = 0;
         file->private_data = private_data;
     }
@@ -211,35 +213,36 @@ static long tsensor_cdev_ioctl( struct file* file, unsigned int code, unsigned l
 static ssize_t tsensor_cdev_read(struct file *file, char __user *data, size_t size, loff_t *f_pos )
 {
     ssize_t count = 0;
-    // dev_info( &__pdev->dev, "tsensor_cdev_read: fpos=%llx, size=%ud\n", *f_pos, size );
 
     struct tsensor_driver * drv = platform_get_drvdata( __pdev );
     if ( drv ) {
-        if ( down_interruptible( &__sem ) ) {
+        if ( down_interruptible( &drv->sem ) ) {
             dev_info(&__pdev->dev, "%s: down_interruptible for read faild\n", __func__ );
             return -ERESTARTSYS;
         }
 
         struct tsensor_cdev_private * private_data = file->private_data;
-        // 64 bit align
-        *f_pos &= ~07;
+        *f_pos &= ~03;        // 32 bit align
 
-        // dev_info(&__pdev->dev, "%s: pn = %x, f_pos=%llx, size=%ud\n", __func__, pn, *f_pos, size );
+        wait_event_interruptible( drv->queue, drv->queue_condition != 0 );
+        drv->queue_condition = 0;
+
         while ( ( *f_pos < private_data->size ) && (count + sizeof(u32)) <= size ) {
 
             size_t idx = *f_pos / sizeof(u32);
-            u32 d = __slave_data( drv->regs, idx % 16 )->user_dataout;
-            // dev_info(&__pdev->dev, "slave_io[%d] data=0x%016llx\tf_pos=%lld, page=%d\n", (idx%16), d, *f_pos, pn );
+            u32 d = ( idx == 1 ) ?
+                (__slave_data( drv->regs, idx )->user_dataout >> 3) & 0xfff
+                : __slave_data( drv->regs, idx )->user_dataout;
 
             if ( copy_to_user( data, (const char *)&d, sizeof(u32) ) ) {
-                up( &__sem );
+                up( &drv->sem );
                 return -EFAULT;
             }
             count += sizeof( u32 );
             data += sizeof( u32 );
             *f_pos += sizeof( u32 );
         }
-        up( &__sem );
+        up( &drv->sem );
     }
     return count;
 }
@@ -249,28 +252,28 @@ static ssize_t tsensor_cdev_write(struct file *file, const char __user *data, si
     ssize_t count = 0;
     struct tsensor_driver * drv = platform_get_drvdata( __pdev );
     if ( drv ) {
-        if ( down_interruptible( &__sem ) ) {
+        if ( down_interruptible( &drv->sem ) ) {
             dev_info(&__pdev->dev, "%s: down_interruptible for read faild\n", __func__ );
             return -ERESTARTSYS;
         }
         // align (round up)
-        *f_pos = ( *f_pos + sizeof(u64) - 1 ) & ~07;
+        *f_pos = ( *f_pos + sizeof(u32) - 1 ) & ~03;
         struct tsensor_cdev_private * private_data = file->private_data;
 
-        while ( (*f_pos < private_data->size ) && size >= sizeof(u64) ) {
+        while ( (*f_pos < private_data->size ) && size >= sizeof(u32) ) {
             u32 d;
             if ( copy_from_user( &d, data, sizeof(u32) ) ) {
-                up( &__sem );
+                up( &drv->sem );
                 return -EFAULT;
             }
             size_t idx = *f_pos / (16 * sizeof( u32 ) );
-            __slave_data( drv->regs, idx % 16 )->user_dataout = d;
+            __slave_data( drv->regs, idx % 16 )->user_datain = d;
 
             *f_pos += sizeof( u32 );
             count += sizeof( u32 );
             size -= sizeof( u32 );
         }
-        up( &__sem );
+        up( &drv->sem );
     }
     return count;
 }
@@ -383,10 +386,6 @@ tsensor_module_init( void )
 
     printk(KERN_INFO "" MODNAME " registered.\n" );
 
-    sema_init( &__sem, 1 );
-    init_waitqueue_head( &__queue );
-    __queue_condition = 0;
-
     return 0;
 }
 
@@ -434,6 +433,10 @@ tsensor_module_probe( struct platform_device * pdev )
         platform_set_drvdata( pdev, drv );
     }
     struct tsensor_driver * drv = platform_get_drvdata( pdev );
+
+    init_waitqueue_head( &drv->queue );
+    drv->queue_condition = 0;
+    sema_init( &drv->sem, 1 );
 
     for ( int i = 0; i < pdev->num_resources; ++i ) {
         struct resource * res = platform_get_resource( pdev, IORESOURCE_MEM, i );

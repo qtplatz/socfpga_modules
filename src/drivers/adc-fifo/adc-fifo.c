@@ -94,8 +94,6 @@ struct adc_fifo_cdev_reader {
     u32 node;
 };
 
-enum { dg_data_irq_mask = 2 };
-
 static int __debug_level__ = 0;
 
 void

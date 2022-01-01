@@ -123,6 +123,9 @@ tsensor_proc_read( struct seq_file * m, void * v )
         for ( size_t i = 0; i < 16; ++i ) {
             seq_printf( m, "[%2d] ", i );
             seq_printf( m, "%08x\t", data[ i ] );
+            if ( i == 1 ) {
+                seq_printf( m, "%08x\t%10d", data[ i ] >> 3, (( data[ i ] >> 3 ) & 0xfff) * 1024 / 0x1000 );
+            }
             seq_printf( m, "\n" );
         }
     }
@@ -484,7 +487,7 @@ tsensor_module_remove( struct platform_device * pdev )
     struct tsensor_driver * drv = platform_get_drvdata( pdev );
     if ( drv && drv->irq ) {
         dev_info( &pdev->dev, "IRQ %d about to be freed\n", drv->irq );
-        devm_free_irq( &pdev->dev, drv->irq, 0 );
+        // devm_free_irq( &pdev->dev, drv->irq, 0 );
     }
     __pdev = 0;
     return 0;

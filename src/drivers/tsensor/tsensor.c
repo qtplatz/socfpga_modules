@@ -126,7 +126,7 @@ tsensor_proc_read( struct seq_file * m, void * v )
             seq_printf( m, "[%2d] ", i );
             seq_printf( m, "%08x\t", data[ i ] );
             if ( i == 1 ) {
-                seq_printf( m, "%08x\t%10d", data[ i ] >> 3, (( data[ i ] >> 3 ) & 0xfff) * 1024 / 0x1000 );
+                seq_printf( m, "%08x\t%10d (degC)", data[ i ] >> 3, (( data[ i ] >> 3 ) & 0xfff) * 1024 / 0x1000 );
             }
             seq_printf( m, "\n" );
         }
@@ -230,9 +230,10 @@ static ssize_t tsensor_cdev_read(struct file *file, char __user *data, size_t si
         while ( ( *f_pos < private_data->size ) && (count + sizeof(u32)) <= size ) {
 
             size_t idx = *f_pos / sizeof(u32);
-            u32 d = ( idx == 1 ) ?
+            u32 d = ( idx == 0 ) ?
+                __slave_data( drv->regs, idx )->user_dataout :
                 (__slave_data( drv->regs, idx )->user_dataout >> 3) & 0xfff
-                : __slave_data( drv->regs, idx )->user_dataout;
+                ;
 
             if ( copy_to_user( data, (const char *)&d, sizeof(u32) ) ) {
                 up( &drv->sem );

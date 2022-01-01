@@ -218,6 +218,7 @@ module system_top(
    wire [7:0]              slave_io_0_user_interface_byteenable;
    wire                    slave_io_commit_valid;
 
+   // tsensor slave_io
    wire                    tsensor_data_user_interface_write;
    wire                    tsensor_data_user_interface_read;
    wire [15:0]             tsensor_data_user_interface_chipselect;
@@ -226,17 +227,20 @@ module system_top(
 
    // tsensor
    reg                     tsensor_0_clock;
+   reg [31:0]              tsensor_0_clock_counter;
    reg [1:0]               tsensor_0_valid;
    reg                     tsensor_0_ready;
-   reg [11:0]              tsensor_0_data;
+   reg [15:0]              tsensor_0_data;
    reg [11:0]              tsensor_0_setpt;
 
    wire                    tsensor_sync_external_connection_export;
 
    // connection of internal logics
-   assign LED[5:1]         = fpga_led_internal;
-   assign LED[7]           = evbox_pulse[1];
-   assign LED[6]           = evbox_pulse[0];
+   assign LED[ 0 ]         = pll_0_locked;
+   assign LED[ 1 ]         = tsensor_0_clock_counter[ 0 ]; //  fpga_led_internal;
+   assign LED[ 2 ]         = t0_counter[ 9 ]; //  fpga_led_internal;
+   assign LED[ 6 ]         = evbox_pulse[0];
+   assign LED[ 7 ]         = evbox_pulse[1];
    assign fpga_clk_50      = FPGA_CLK1_50;
    assign stm_hw_events    = {{15{1'b0}}, SW, fpga_led_internal, fpga_debounced_buttons};
 
@@ -249,7 +253,7 @@ module system_top(
    // assign GPIO_0[ 7:6] = ( dg_data_io_flags_l & 'h40 ) ? dg_protocol_number_gray : ~dg_protocol_number_gray;
 
    // output
-   assign GPIO_1[ 23: 0 ] = '0;
+   assign GPIO_1[ 23: 4 ] = '0;
    assign GPIO_1[ 27:24 ] = pio_out_external_connection_export[ 3:0];
    assign GPIO_1[ 31:28 ] = '0;
    assign GPIO_1[ 33:32 ] = evbox_pulse;                 // LOOP BACK
@@ -418,25 +422,25 @@ module system_top(
 		  , .tsensor_data_user_interface_dataout_8    ()
 		  , .tsensor_data_user_interface_dataout_9    ()
 		  , .tsensor_data_user_interface_dataout_10   ()
-		  , .tsensor_data_user_interface_dataout_11   ()  // output wire [63:0]                                .dataout_11
+		  , .tsensor_data_user_interface_dataout_11   ()
 		  , .tsensor_data_user_interface_dataout_12   ()
 		  , .tsensor_data_user_interface_dataout_13   ()
 		  , .tsensor_data_user_interface_dataout_14   ()
 		  , .tsensor_data_user_interface_dataout_15   ()
                   // fpga -> hps
 		  , .tsensor_data_user_interface_datain_0     ( tsensor_0_setpt ) // setpt
-		  , .tsensor_data_user_interface_datain_1     ( tsensor_0_data )  // actual
-                  , .tsensor_data_user_interface_datain_2     ()
-                  , .tsensor_data_user_interface_datain_3     ()
-                  , .tsensor_data_user_interface_datain_4     ()
-                  , .tsensor_data_user_interface_datain_5     ()
-                  , .tsensor_data_user_interface_datain_6     ()
-                  , .tsensor_data_user_interface_datain_7     ()
-                  , .tsensor_data_user_interface_datain_8     ()
-                  , .tsensor_data_user_interface_datain_9     ()
-                  , .tsensor_data_user_interface_datain_10    ()
-		  , .tsensor_data_user_interface_datain_11    ()   // input  wire [63:0]
-		  , .tsensor_data_user_interface_datain_12    ()
+		  , .tsensor_data_user_interface_datain_1     ( tsensor_0_data  )  // actual
+                  , .tsensor_data_user_interface_datain_2     ( 32'd2 )
+                  , .tsensor_data_user_interface_datain_3     ( 32'd3 )
+                  , .tsensor_data_user_interface_datain_4     ( 32'd4 )
+                  , .tsensor_data_user_interface_datain_5     ( 32'd5 )
+                  , .tsensor_data_user_interface_datain_6     ( 32'd6 )
+                  , .tsensor_data_user_interface_datain_7     ( 32'd7 )
+                  , .tsensor_data_user_interface_datain_8     ( 32'd8 )
+                  , .tsensor_data_user_interface_datain_9     ( 32'd9 )
+                  , .tsensor_data_user_interface_datain_10    ( 32'd10 )
+		  , .tsensor_data_user_interface_datain_11    ( 32'd11 )
+		  , .tsensor_data_user_interface_datain_12    ( tsensor_0_clock_counter )
 		  , .tsensor_data_user_interface_datain_13    ( t0_counter )
 		  , .tsensor_data_user_interface_datain_14    ( model_number )
 		  , .tsensor_data_user_interface_datain_15    ( revision_number )
@@ -526,8 +530,6 @@ module system_top(
                 );
 `endif
 
-   assign LED [ 0 ] = ~pll_0_locked;
-
    assign pio_dg_external_connection_export = dg_t0;
 
    delay_pulse_generator #(.NDELAY_CHANNELS( NDELAY_PAIRS ) )
@@ -610,19 +612,15 @@ module system_top(
    /********************************
     * Temperatur sensor
     *******************************/
-   clock_divider #( .COUNT( 500_000 ) )
+   clock_divider #( .COUNT( 50_000_000 ) ) // 1000 ms
    tsensor_0_clkgen( clk100, hps_fpga_reset_n, tsensor_0_clock );
 
-   always @* begin
-      if ( tsensor_0_ready ) begin
-         pio_tsensor_0_external_connection_in_port = tsensor_0_data;
-      end
-   end
+   clock_counter #( .COUNT( 32'hffffffff ) )
+   tsensor_counter( clk100, hps_fpga_reset_n, tsensor_0_clock_counter );
 
-   assign GPIO_1[ 4 ] = clk1;
-   assign GPIO_1[ 5 ] = tsensor_0_valid[ 0 ] & ~tsensor_0_valid[ 1 ];
+   assign tsensor_sync_external_connection_export = tsensor_0_clock;
 
-   spi_master #( .DWIDTH(12), .CPOL(1), .CPHA(0) )
+   spi_master #( .DWIDTH(16), .CPOL(0), .CPHA(0) )
    tsensor_0 ( .clk        ( clk100 )
                , .reset_n  ( hps_fpga_reset_n )
                , .sclk     ( clk1 )     // 1 MHz
@@ -637,6 +635,5 @@ module system_top(
                , .rx_data  ( tsensor_0_data )  // <-- spi
                , .tp()
                );
-
 
 endmodule

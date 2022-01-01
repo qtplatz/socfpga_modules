@@ -753,6 +753,7 @@ set_global_assignment -name QIP_FILE ip/altsource_probe/hps_reset.qip
 set_global_assignment -name QIP_FILE soc_system/synthesis/soc_system.qip
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/cdc/async_edge_cross_domain.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/cdc/edge_cross_domain.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/clocks/clock_counter.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/clocks/clock_divider.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/delay_pulse/delay_pulse.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/delay_pulse/delay_pulse_generator.sv

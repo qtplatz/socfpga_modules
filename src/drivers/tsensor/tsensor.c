@@ -189,7 +189,7 @@ static int tsensor_cdev_open(struct inode *inode, struct file *file)
                                      , GFP_KERNEL );
     if ( private_data ) {
         private_data->node =  MINOR( inode->i_rdev );
-        private_data->size = 2 * sizeof(u32); // 2 dwords (set, act)
+        private_data->size = 3 * sizeof(u32); // 2 dwords (set, act, sw)
         private_data->mmap = 0;
         file->private_data = private_data;
     }

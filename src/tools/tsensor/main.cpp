@@ -89,13 +89,14 @@ main( int argc, char * argv [] )
     file.open( tsensor_device, std::ios::in | std::ios::binary );
 
     if ( file.is_open() ) {
-        uint32_t data[ 2 ]; // setpt, actual
+        uint32_t data[ 3 ]; // setpt, actual, sw
 
         while ( count-- ) {
             if ( file.read( reinterpret_cast< char * >(data), sizeof( data ) ) ) {
                 std::cout << boost::format( "%04x, %04x\t%.1f\t%.1f (degC)\t" )
                     % data[ 0 ] % data[ 1 ] % data[ 0 ] % ( data[ 1 ] * 1023.75 / 0xfff )
                           << std::bitset< 12 >( data[ 1 ] ).to_string()
+                          << "\t" << std::bitset< 2 >( data[ 2 ] ).to_string()
                           << std::endl;
                 file.seekg( 0 ); // rewind
             }

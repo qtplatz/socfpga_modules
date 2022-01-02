@@ -122,7 +122,7 @@ tsensor_proc_read( struct seq_file * m, void * v )
         }
 
         seq_printf( m, "[id] <data>\n" );
-        for ( size_t i = 0; i < 2; ++i ) {
+        for ( size_t i = 0; i < 3; ++i ) {
             seq_printf( m, "[%2d] ", i );
             seq_printf( m, "%08x\t", data[ i ] );
             if ( i == 1 ) {

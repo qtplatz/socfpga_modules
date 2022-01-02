@@ -223,22 +223,27 @@ module system_top(
    wire                    tsensor_data_user_interface_read;
    wire [15:0]             tsensor_data_user_interface_chipselect;
    wire [7:0]              tsensor_data_user_interface_byteenable;
-   wire                    tsensor_data_commit_valid;
 
    // tsensor
    reg                     tsensor_0_clock;
    reg [31:0]              tsensor_0_clock_counter;
-   reg [1:0]               tsensor_0_valid;
+   reg [ 1:0]              tsensor_0_valid;
    reg                     tsensor_0_ready;
    reg [15:0]              tsensor_0_data;
-   reg [11:0]              tsensor_0_setpt;
 
    wire                    tsensor_sync_external_connection_export;
+   //
+   reg [11:0]              act_celsius_0_setpt;
+   reg [11:0]              user_celsius_0_setpt; // slave_io user_datain
+   reg                     user_peltier_master_control; // slave_io datain
+   reg                     act_peltier_thermo_control;
+   reg                     act_peltier_master_control;
 
    // connection of internal logics
    assign LED[ 0 ]         = pll_0_locked;
-   assign LED[ 1 ]         = tsensor_0_clock_counter[ 0 ]; //  fpga_led_internal;
-   assign LED[ 2 ]         = t0_counter[ 9 ]; //  fpga_led_internal;
+   assign LED[ 1 ]         = tsensor_0_clock;
+   assign LED[ 2 ]         = act_peltier_master_control;
+   assign LED[ 3 ]         = act_peltier_thermo_control;
    assign LED[ 6 ]         = evbox_pulse[0];
    assign LED[ 7 ]         = evbox_pulse[1];
    assign fpga_clk_50      = FPGA_CLK1_50;
@@ -253,7 +258,10 @@ module system_top(
    // assign GPIO_0[ 7:6] = ( dg_data_io_flags_l & 'h40 ) ? dg_protocol_number_gray : ~dg_protocol_number_gray;
 
    // output
-   assign GPIO_1[ 23: 4 ] = '0;
+   // GPIO_1[ 3:0] = TSENSOR SPI
+   assign GPIO_1[ 4 ] = act_peltier_thermo_control & act_peltier_master_control;
+   assign GPIO_1[ 5 ] = clk1; // debug
+   assign GPIO_1[ 23: 6 ] = '0;
    assign GPIO_1[ 27:24 ] = pio_out_external_connection_export[ 3:0];
    assign GPIO_1[ 31:28 ] = '0;
    assign GPIO_1[ 33:32 ] = evbox_pulse;                 // LOOP BACK
@@ -411,8 +419,8 @@ module system_top(
 		  , .slave_io_0_user_interface_chipselect   ( slave_io_0_user_interface_chipselect )  // output wire [15:0]
 		  , .slave_io_0_user_interface_byteenable   ( slave_io_0_user_interface_byteenable )  // output wire [7:0]
                   //
-                  , .tsensor_data_user_interface_dataout_0    ( tsensor_0_setpt )   // input  wire [31:0]
-		  , .tsensor_data_user_interface_dataout_1    ()
+                  , .tsensor_data_user_interface_dataout_0    ( user_celsius_0_setpt )   // input  wire [31:0]
+		  , .tsensor_data_user_interface_dataout_1    ( { user_peltier_master_control, 1'b0 } )
 		  , .tsensor_data_user_interface_dataout_2    ()
 		  , .tsensor_data_user_interface_dataout_3    ()
 		  , .tsensor_data_user_interface_dataout_4    ()
@@ -428,9 +436,9 @@ module system_top(
 		  , .tsensor_data_user_interface_dataout_14   ()
 		  , .tsensor_data_user_interface_dataout_15   ()
                   // fpga -> hps
-		  , .tsensor_data_user_interface_datain_0     ( tsensor_0_setpt ) // setpt
-		  , .tsensor_data_user_interface_datain_1     ( tsensor_0_data  )  // actual
-                  , .tsensor_data_user_interface_datain_2     ( 32'd2 )
+		  , .tsensor_data_user_interface_datain_0     ( act_celsius_0_setpt ) // setpt
+		  , .tsensor_data_user_interface_datain_1     ( tsensor_0_data  ) // actual
+                  , .tsensor_data_user_interface_datain_2     ( { 30'd0, act_peltier_master_control, act_peltier_thermo_control } )
                   , .tsensor_data_user_interface_datain_3     ( 32'd3 )
                   , .tsensor_data_user_interface_datain_4     ( 32'd4 )
                   , .tsensor_data_user_interface_datain_5     ( 32'd5 )
@@ -440,18 +448,17 @@ module system_top(
                   , .tsensor_data_user_interface_datain_9     ( 32'd9 )
                   , .tsensor_data_user_interface_datain_10    ( 32'd10 )
 		  , .tsensor_data_user_interface_datain_11    ( 32'd11 )
-		  , .tsensor_data_user_interface_datain_12    ( tsensor_0_clock_counter )
-		  , .tsensor_data_user_interface_datain_13    ( t0_counter )
+		  , .tsensor_data_user_interface_datain_12    ( 32'd12 )
+		  , .tsensor_data_user_interface_datain_13    ( tsensor_0_clock_counter )
 		  , .tsensor_data_user_interface_datain_14    ( model_number )
 		  , .tsensor_data_user_interface_datain_15    ( revision_number )
                   //
-                  , .tsensor_data_user_interface_write()
-                  , .tsensor_data_user_interface_read()
-                  , .tsensor_data_user_interface_chipselect()
-                  , .tsensor_data_user_interface_byteenable()
-                  , .tsensor_data_commit_valid()
+                  , .tsensor_data_user_interface_write        ( tsensor_data_user_interface_write )
+                  , .tsensor_data_user_interface_read         ( tsensor_data_user_interface_read )
+                  , .tsensor_data_user_interface_chipselect   ( tsensor_data_user_interface_chipselect )
+                  , .tsensor_data_user_interface_byteenable   ( tsensor_data_user_interface_byteenable )
                   //
-                  , .tsensor_sync_external_connection_export( tsensor_sync_external_connection_export )
+                  , .tsensor_sync_external_connection_export  ( tsensor_sync_external_connection_export )
                   );
 
    // Debounce logic to clean out glitches within 1ms
@@ -635,5 +642,30 @@ module system_top(
                , .rx_data  ( tsensor_0_data )  // <-- spi
                , .tp()
                );
+
+   /********************************
+    * Peltier control
+    *******************************/
+   always @( posedge tsensor_0_clock ) begin
+      act_peltier_thermo_control <= ( tsensor_0_data[ 14:3 ] > act_celsius_0_setpt );
+   end
+
+   always @* begin
+      if ( ~hps_fpga_reset_n ) begin
+         act_peltier_master_control = 1'b0;
+         act_celsius_0_setpt = 12'd10 * 4; // 10 degC default
+      end
+      if ( tsensor_data_user_interface_write & tsensor_data_user_interface_chipselect[ 0 ] ) begin
+         act_celsius_0_setpt = user_celsius_0_setpt;
+      end
+      if ( tsensor_data_user_interface_write & tsensor_data_user_interface_chipselect[ 2 ] ) begin
+         act_peltier_master_control = user_peltier_master_control & SW[ 0 ];
+      end
+      if ( SW[ 3 ] ) begin
+         act_peltier_master_control = 1'b1;
+      end else begin
+         act_peltier_master_control = 1'b0;
+      end
+   end
 
 endmodule

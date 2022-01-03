@@ -284,8 +284,8 @@ base_fpga_region/c0000000.bridge/ff2100c0.gpio/gpio/gpiochip1824 // button_pio
 base_fpga_region/c0000000.bridge/ff210080.gpio/gpio/gpiochip1856 // dipsw_pio
 base_fpga_region/c0000000.bridge/ff210040.gpio/gpio/gpiochip1888 // led_pio
 
-base_fpga_region/c0000000.bridge/c0010000.gpio/gpio/gpiochip2016 // pio_dg
 base_fpga_region/c0000000.bridge/c0010010.gpio/gpio/gpiochip1920 // tsensor_sync
-base_fpga_region/c0000000.bridge/c0010020.gpio/gpio/gpiochip1984 // pio_in
 base_fpga_region/c0000000.bridge/c0010040.gpio/gpio/gpiochip1952 // pio_out
+base_fpga_region/c0000000.bridge/c0010020.gpio/gpio/gpiochip1984 // pio_in
+base_fpga_region/c0000000.bridge/c0010000.gpio/gpio/gpiochip2016 // pio_dg
 */

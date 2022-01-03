@@ -681,10 +681,6 @@ module system_top(
    end // always @ *
 
    //////// OLED //////////////
-   //assign i2c0_scl_in = GPIO_1[ 34 ];
-   //assign GPIO_1[ 34 ] = i2c0_scl_oe ? 1'b0 : 1'bz;
-   //assign i2c0_sda_in = GPIO_1[ 35 ];
-   //assign GPIO_1[ 35 ] = i2c0_sda_oe ? 1'b0 : 1'bz;
    ALT_IOBUF scl_iobuf (.i(1'b0), .oe(oled_i2c_scl_oe), .o(oled_i2c_scl_in), .io( GPIO_1[ I2C_OLED_CLK ] ) );
    ALT_IOBUF sda_iobuf (.i(1'b0), .oe(oled_i2c_sda_oe), .o(oled_i2c_sda_in), .io( GPIO_1[ I2C_OLED_SDA ] ) );
 

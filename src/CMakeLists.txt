@@ -7,6 +7,7 @@ endif()
 if ( Boost_FOUND )
   add_subdirectory( tools )
   add_subdirectory( httpd )
+  add_subdirectory( libs )
 endif()
 
 

@@ -123,7 +123,6 @@ module soc_system (
 	slave_io_0_user_interface_read,
 	slave_io_0_user_interface_chipselect,
 	slave_io_0_user_interface_byteenable,
-	tsensor_sync_external_connection_export,
 	tsensor_data_user_interface_dataout_0,
 	tsensor_data_user_interface_dataout_1,
 	tsensor_data_user_interface_dataout_2,
@@ -159,7 +158,12 @@ module soc_system (
 	tsensor_data_user_interface_write,
 	tsensor_data_user_interface_read,
 	tsensor_data_user_interface_chipselect,
-	tsensor_data_user_interface_byteenable);	
+	tsensor_data_user_interface_byteenable,
+	tsensor_sync_external_connection_export,
+	oled_i2c_serial_sda_in,
+	oled_i2c_serial_scl_in,
+	oled_i2c_serial_sda_oe,
+	oled_i2c_serial_scl_oe);	
 
 	input	[511:0]	adc_fifo_0_st_sink_data;
 	input		adc_fifo_0_st_sink_valid;
@@ -284,7 +288,6 @@ module soc_system (
 	output		slave_io_0_user_interface_read;
 	output	[15:0]	slave_io_0_user_interface_chipselect;
 	output	[7:0]	slave_io_0_user_interface_byteenable;
-	input		tsensor_sync_external_connection_export;
 	output	[31:0]	tsensor_data_user_interface_dataout_0;
 	output	[31:0]	tsensor_data_user_interface_dataout_1;
 	output	[31:0]	tsensor_data_user_interface_dataout_2;
@@ -321,4 +324,9 @@ module soc_system (
 	output		tsensor_data_user_interface_read;
 	output	[15:0]	tsensor_data_user_interface_chipselect;
 	output	[3:0]	tsensor_data_user_interface_byteenable;
+	input		tsensor_sync_external_connection_export;
+	input		oled_i2c_serial_sda_in;
+	input		oled_i2c_serial_scl_in;
+	output		oled_i2c_serial_sda_oe;
+	output		oled_i2c_serial_scl_oe;
 endmodule

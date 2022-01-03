@@ -104,6 +104,7 @@
 			#size-cells = <1>;
 			ranges =
 			<0x00000000 0x00011000 0xc0011000 0x00000020>, // adc_fifo_0 0
+			<0x00000000 0x00010080 0xc0010080 0x00000040>, // oled i2c
 			<0x00000000 0x00011020 0xc0011020 0x00000010>, // adc_fifo_0 1
 			<0x00000000 0x00011040 0xc0011040 0x00000008>, // adc_fifo_0 2
 			<0x00000000 0x00012000 0xc0012000 0x00001000>, // slave_io_0
@@ -129,6 +130,14 @@
 				interrupts = <0 44 4>;
 				clocks = <&clk_0>;
 			}; //end msgdma@000011000 (adc_fifo_0)
+
+			oled: i2c@10080 {
+				compatible = "altr,softip-i2c-v1.0", "altr,i2c-master-20.1", "altr,i2c-master-1.0";
+				reg = <0x00000000 HPS_0_OLED_BASE HPS_0_OLED_SPAN>;
+				interrupt-parent = <&intc>;
+				interrupts = <0 47 4>;
+				clocks = <&pll_0 0>;
+			}; //end i2c@000010080 (oled)
 
 			slave_io_0: slave_io@12000 {
 				compatible = "dgmod_data"; //, "altr,avalon-mm-slave-2.0";

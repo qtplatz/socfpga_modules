@@ -232,6 +232,22 @@
          type = "String";
       }
    }
+   element oled
+   {
+      datum _sortIndex
+      {
+         value = "21";
+         type = "int";
+      }
+   }
+   element oled.csr
+   {
+      datum baseAddress
+      {
+         value = "65664";
+         type = "String";
+      }
+   }
    element onchip_memory2_0
    {
       datum _sortIndex
@@ -389,6 +405,11 @@
    }
    element tsensor_data.s0
    {
+      datum _lockedAddress
+      {
+         value = "1";
+         type = "boolean";
+      }
       datum baseAddress
       {
          value = "67584";
@@ -405,6 +426,11 @@
    }
    element tsensor_sync.s1
    {
+      datum _lockedAddress
+      {
+         value = "1";
+         type = "boolean";
+      }
       datum baseAddress
       {
          value = "65552";
@@ -486,6 +512,11 @@
    type="conduit"
    dir="end" />
  <interface name="memory" internal="hps_0.memory" type="conduit" dir="end" />
+ <interface
+   name="oled_i2c_serial"
+   internal="oled.i2c_serial"
+   type="conduit"
+   dir="end" />
  <interface
    name="pio_0_external_connection"
    internal="pio_out.external_connection"
@@ -1213,6 +1244,11 @@
   <parameter name="simDrivenValue" value="0" />
   <parameter name="width" value="8" />
  </module>
+ <module name="oled" kind="altera_avalon_i2c" version="20.1" enabled="1">
+  <parameter name="FIFO_DEPTH" value="4" />
+  <parameter name="USE_AV_ST" value="0" />
+  <parameter name="clockRate" value="100000000" />
+ </module>
  <module
    name="onchip_memory2_0"
    kind="altera_avalon_onchip_memory2"
@@ -1585,6 +1621,15 @@
    kind="avalon"
    version="20.1"
    start="hps_0.h2f_axi_master"
+   end="oled.csr">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x00010080" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="20.1"
+   start="hps_0.h2f_axi_master"
    end="adc_fifo_0.descriptor_slave">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x00011020" />
@@ -1852,6 +1897,7 @@
    version="20.1"
    start="pll_0.outclk0"
    end="tsensor_sync.clk" />
+ <connection kind="clock" version="20.1" start="pll_0.outclk0" end="oled.clock" />
  <connection
    kind="clock"
    version="20.1"
@@ -1873,6 +1919,13 @@
    start="hps_0.f2h_irq0"
    end="adc_fifo_0.csr_irq">
   <parameter name="irqNumber" value="4" />
+ </connection>
+ <connection
+   kind="interrupt"
+   version="20.1"
+   start="hps_0.f2h_irq0"
+   end="oled.interrupt_sender">
+  <parameter name="irqNumber" value="7" />
  </connection>
  <connection
    kind="interrupt"
@@ -2030,6 +2083,11 @@
    version="20.1"
    start="clk_0.clk_reset"
    end="intr_capturer_0.reset_sink" />
+ <connection
+   kind="reset"
+   version="20.1"
+   start="clk_0.clk_reset"
+   end="oled.reset_sink" />
  <interconnectRequirement for="$system" name="qsys_mm.clockCrossingAdapter" value="HANDSHAKE" />
  <interconnectRequirement for="$system" name="qsys_mm.maxAdditionalLatency" value="1" />
 </system>

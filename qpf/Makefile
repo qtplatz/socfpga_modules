@@ -20,7 +20,7 @@ ${project_name}.sof: ${SOURCES} ${output_dir}/synthesis/${qsys_name}.qip ${qsys_
 ${output_dir}/synthesis/${qsys_name}.qip: ${qsys_name}.qsys revision.v ${project_name}.qsf
 	${qsys-generate} ${qsys_name}.qsys --synthesis=VERILOG --output-directory=${output_dir} --family="Cyclone V" --part=5CSEMA4U23C6
 
-${output_dir}/socfpga-tmc.bsf: ${qsys_name}.qsys
+${output_dir}/${qsys_name}.bsf: ${qsys_name}.qsys
 	${qsys-generate} ${qsys_name}.qsys --block-symbol-file --output-directory=${output_dir} --family="Cyclone V" --part=5CSEMA4U23C6
 
 ${qsys_name}.sopcinfo: ${output_dir}/synthesis/${qsys_name}.qip

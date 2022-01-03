@@ -122,7 +122,6 @@
 		.slave_io_0_user_interface_read          (<connected-to-slave_io_0_user_interface_read>),          //                                 .read
 		.slave_io_0_user_interface_chipselect    (<connected-to-slave_io_0_user_interface_chipselect>),    //                                 .chipselect
 		.slave_io_0_user_interface_byteenable    (<connected-to-slave_io_0_user_interface_byteenable>),    //                                 .byteenable
-		.tsensor_sync_external_connection_export (<connected-to-tsensor_sync_external_connection_export>), // tsensor_sync_external_connection.export
 		.tsensor_data_user_interface_dataout_0   (<connected-to-tsensor_data_user_interface_dataout_0>),   //      tsensor_data_user_interface.dataout_0
 		.tsensor_data_user_interface_dataout_1   (<connected-to-tsensor_data_user_interface_dataout_1>),   //                                 .dataout_1
 		.tsensor_data_user_interface_dataout_2   (<connected-to-tsensor_data_user_interface_dataout_2>),   //                                 .dataout_2
@@ -158,6 +157,11 @@
 		.tsensor_data_user_interface_write       (<connected-to-tsensor_data_user_interface_write>),       //                                 .write
 		.tsensor_data_user_interface_read        (<connected-to-tsensor_data_user_interface_read>),        //                                 .read
 		.tsensor_data_user_interface_chipselect  (<connected-to-tsensor_data_user_interface_chipselect>),  //                                 .chipselect
-		.tsensor_data_user_interface_byteenable  (<connected-to-tsensor_data_user_interface_byteenable>)   //                                 .byteenable
+		.tsensor_data_user_interface_byteenable  (<connected-to-tsensor_data_user_interface_byteenable>),  //                                 .byteenable
+		.tsensor_sync_external_connection_export (<connected-to-tsensor_sync_external_connection_export>), // tsensor_sync_external_connection.export
+		.oled_i2c_serial_sda_in                  (<connected-to-oled_i2c_serial_sda_in>),                  //                  oled_i2c_serial.sda_in
+		.oled_i2c_serial_scl_in                  (<connected-to-oled_i2c_serial_scl_in>),                  //                                 .scl_in
+		.oled_i2c_serial_sda_oe                  (<connected-to-oled_i2c_serial_sda_oe>),                  //                                 .sda_oe
+		.oled_i2c_serial_scl_oe                  (<connected-to-oled_i2c_serial_scl_oe>)                   //                                 .scl_oe
 	);
 

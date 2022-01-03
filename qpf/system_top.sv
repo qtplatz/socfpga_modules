@@ -239,6 +239,12 @@ module system_top(
    reg                     act_peltier_thermo_control;
    reg                     act_peltier_master_control;
 
+   // OLED I2C
+   wire                    oled_i2c_sda_in;
+   wire                    oled_i2c_scl_in;
+   wire                    oled_i2c_sda_oe;
+   wire                    oled_i2c_scl_oe;
+
    // connection of internal logics
    assign LED[ 0 ]         = pll_0_locked;
    assign LED[ 1 ]         = tsensor_0_clock;
@@ -263,7 +269,8 @@ module system_top(
    assign GPIO_1[ 5 ] = clk1; // debug
    assign GPIO_1[ 23: 6 ] = '0;
    assign GPIO_1[ 27:24 ] = pio_out_external_connection_export[ 3:0];
-   assign GPIO_1[ 31:28 ] = '0;
+   assign GPIO_1[ 29:28 ] = '0;
+   // assign GPIO_1[ 31:30 ] = '0; I2C OLED
    assign GPIO_1[ 33:32 ] = evbox_pulse;                 // LOOP BACK
 
    // input
@@ -439,17 +446,17 @@ module system_top(
 		  , .tsensor_data_user_interface_datain_0     ( act_celsius_0_setpt ) // setpt
 		  , .tsensor_data_user_interface_datain_1     ( tsensor_0_data  ) // actual
                   , .tsensor_data_user_interface_datain_2     ( { 30'd0, act_peltier_master_control, act_peltier_thermo_control } )
-                  , .tsensor_data_user_interface_datain_3     ( 32'd3 )
-                  , .tsensor_data_user_interface_datain_4     ( 32'd4 )
-                  , .tsensor_data_user_interface_datain_5     ( 32'd5 )
-                  , .tsensor_data_user_interface_datain_6     ( 32'd6 )
-                  , .tsensor_data_user_interface_datain_7     ( 32'd7 )
-                  , .tsensor_data_user_interface_datain_8     ( 32'd8 )
-                  , .tsensor_data_user_interface_datain_9     ( 32'd9 )
-                  , .tsensor_data_user_interface_datain_10    ( 32'd10 )
-		  , .tsensor_data_user_interface_datain_11    ( 32'd11 )
-		  , .tsensor_data_user_interface_datain_12    ( 32'd12 )
-		  , .tsensor_data_user_interface_datain_13    ( tsensor_0_clock_counter )
+                  , .tsensor_data_user_interface_datain_3     ( tsensor_0_clock_counter )
+                  , .tsensor_data_user_interface_datain_4     ( 32'd0 )
+                  , .tsensor_data_user_interface_datain_5     ( 32'd0 )
+                  , .tsensor_data_user_interface_datain_6     ( 32'd0 )
+                  , .tsensor_data_user_interface_datain_7     ( 32'd0 )
+                  , .tsensor_data_user_interface_datain_8     ( 32'd0 )
+                  , .tsensor_data_user_interface_datain_9     ( 32'd0 )
+                  , .tsensor_data_user_interface_datain_10    ( 32'd0 )
+		  , .tsensor_data_user_interface_datain_11    ( 32'd0 )
+		  , .tsensor_data_user_interface_datain_12    ( 32'd0 )
+		  , .tsensor_data_user_interface_datain_13    ( 32'd0 )
 		  , .tsensor_data_user_interface_datain_14    ( model_number )
 		  , .tsensor_data_user_interface_datain_15    ( revision_number )
                   //
@@ -459,6 +466,11 @@ module system_top(
                   , .tsensor_data_user_interface_byteenable   ( tsensor_data_user_interface_byteenable )
                   //
                   , .tsensor_sync_external_connection_export  ( tsensor_sync_external_connection_export )
+                  //
+		  , .oled_i2c_serial_sda_in                   ( oled_i2c_sda_in )    //  input wire       i2c_master_0.sda_in
+		  , .oled_i2c_serial_scl_in                   ( oled_i2c_scl_in )    //  input wire                   .scl_in
+		  , .oled_i2c_serial_sda_oe                   ( oled_i2c_sda_oe )    //  output wire                  .sda_oe
+		  , .oled_i2c_serial_scl_oe                   ( oled_i2c_scl_oe )    //  output wire                  .scl_oe
                   );
 
    // Debounce logic to clean out glitches within 1ms
@@ -619,11 +631,11 @@ module system_top(
    /********************************
     * Temperatur sensor
     *******************************/
-   clock_divider #( .COUNT( 50_000_000 ) ) // 1000 ms
+   clock_divider #( .COUNT( 100_000_000 ) ) // 2000 ms
    tsensor_0_clkgen( clk100, hps_fpga_reset_n, tsensor_0_clock );
 
-   clock_counter #( .COUNT( 32'hffffffff ) )
-   tsensor_counter( clk100, hps_fpga_reset_n, tsensor_0_clock_counter );
+   clock_counter #( .WIDTH( $bits( tsensor_0_clock_counter ) ), .PIPELINE( 4 ) )
+   tsensor_clock_counter_0( .clk( clk100 ), .reset_n( hps_fpga_reset_n), .sclk( tsensor_0_clock ), .count( tsensor_0_clock_counter ) );
 
    assign tsensor_sync_external_connection_export = tsensor_0_clock;
 
@@ -666,6 +678,14 @@ module system_top(
       end else begin
          act_peltier_master_control = 1'b0;
       end
-   end
+   end // always @ *
+
+   //////// OLED //////////////
+   //assign i2c0_scl_in = GPIO_1[ 34 ];
+   //assign GPIO_1[ 34 ] = i2c0_scl_oe ? 1'b0 : 1'bz;
+   //assign i2c0_sda_in = GPIO_1[ 35 ];
+   //assign GPIO_1[ 35 ] = i2c0_sda_oe ? 1'b0 : 1'bz;
+   ALT_IOBUF scl_iobuf (.i(1'b0), .oe(oled_i2c_scl_oe), .o(oled_i2c_scl_in), .io( GPIO_1[ I2C_OLED_CLK ] ) );
+   ALT_IOBUF sda_iobuf (.i(1'b0), .oe(oled_i2c_sda_oe), .o(oled_i2c_sda_in), .io( GPIO_1[ I2C_OLED_SDA ] ) );
 
 endmodule

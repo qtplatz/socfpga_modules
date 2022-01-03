@@ -189,7 +189,7 @@ static int tsensor_cdev_open(struct inode *inode, struct file *file)
                                      , GFP_KERNEL );
     if ( private_data ) {
         private_data->node =  MINOR( inode->i_rdev );
-        private_data->size = 3 * sizeof(u32); // 2 dwords (set, act, sw)
+        private_data->size = 4 * sizeof(u32); // 2 dwords (set, act, sw)
         private_data->mmap = 0;
         file->private_data = private_data;
     }
@@ -230,9 +230,8 @@ static ssize_t tsensor_cdev_read(struct file *file, char __user *data, size_t si
         while ( ( *f_pos < private_data->size ) && (count + sizeof(u32)) <= size ) {
 
             size_t idx = *f_pos / sizeof(u32);
-            u32 d = ( idx == 0 ) ?
-                __slave_data( drv->regs, idx )->user_dataout :
-                (__slave_data( drv->regs, idx )->user_dataout >> 3) & 0xfff
+            u32 d = ( idx == 1 ) ? (__slave_data( drv->regs, idx )->user_dataout >> 3) & 0xfff
+                : __slave_data( drv->regs, idx )->user_dataout
                 ;
 
             if ( copy_to_user( data, (const char *)&d, sizeof(u32) ) ) {

@@ -7,27 +7,28 @@
 
 `default_nettype none
 
-module clock_counter ( input clk, input reset_n, output wire pulse );
+module clock_counter ( input wire clk
+                       , input wire reset_n
+                       , input wire sclk
+                       , output wire [WIDTH-1:0] count );
 
-   parameter COUNT = 25;
-
-   reg [$clog2(COUNT)-1:0] clock_counter = 0;
-
-   assign pulse = clock_counter == 0; // single clock pulse
+   parameter WIDTH = 32;
+   parameter PIPELINE = 4;
+   reg [PIPELINE-1:0] sclk_reg = 0;
+   reg [WIDTH-1:0]    clock_counter = 0;
 
    always @(posedge clk) begin
-
       if ( ~reset_n ) begin
          clock_counter <= 0;
+         sclk_reg <= 0;
       end
       else begin
-         if ( clock_counter == COUNT-1 ) begin
-            clock_counter <= 0;
-         end
-         else begin
-            clock_counter <= clock_counter + 1'b1;
-         end
+         sclk_reg <= { sclk_reg[ $bits( sclk_reg ) - 2 : 0], sclk };
+         if ( sclk_reg[ $bits( sclk_reg ) - 1 : $bits( sclk_reg ) - 2 ] == 2'b01 )
+           clock_counter <= clock_counter + 1;
       end
    end
+
+   assign count = clock_counter;
 
 endmodule

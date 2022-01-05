@@ -55,16 +55,18 @@ typedef struct {
 } protocol_t;
 
 enum {
-      TSENSOR_0_SCLK    = 0
-      , CLK1_DEBUG_OUT  = 1
-      , TSENSOR_0_SS_n  = 2 // 1
-      , TSENSOR_0_MOSI  = 3
-      , TSENSOR_0_MISO  = 4 // 2
+      TSENSOR_0_SCLK           = 0
+      , CLK1_DEBUG_OUT         = 1
+      , TSENSOR_0_SS_n         = 2 // 1
+      , TSENSOR_0_MOSI         = 3
+      , TSENSOR_0_MISO         = 4 // 2
       , PELTIER_THERMO_CONTROL = 5
-      , I2C_OLED_CLK    = 30
-      , I2C_OLED_SDA    = 31
-      , INJECT_IN_0     = 34
-      , INJECT_IN_1     = 35
+      // [27:24] <-- pio_out[3:0]
+      , I2C_OLED_CLK           = 30
+      , I2C_OLED_SDA           = 31
+      // [33:32] = INJECT_IN->OUT LOOPBACK
+      , INJECT_IN_0            = 34
+      , INJECT_IN_1            = 35
       } gpio_1;
 
 module system_top(
@@ -267,7 +269,7 @@ module system_top(
 
    // output
    // GPIO_1[ 3:0] = TSENSOR SPI
-   assign GPIO_1[ 4 ] = act_peltier_thermo_control & act_peltier_master_control;
+   assign GPIO_1[ PELTIER_THERMO_CONTROL ] = act_peltier_thermo_control & act_peltier_master_control;
    assign GPIO_1[ CLK1_DEBUG_OUT ] = clk1; // debug
    assign GPIO_1[ 23: 6 ] = '0;
    assign GPIO_1[ 27:24 ] = pio_out_external_connection_export[ 3:0];
@@ -276,7 +278,7 @@ module system_top(
    assign GPIO_1[ 33:32 ] = evbox_pulse;                 // LOOP BACK
 
    // input
-   assign async_inject_in[ 1:0 ] = GPIO_1[ 35:34 ];             // external inject in
+   assign async_inject_in[ 1:0 ] = GPIO_1[ INJECT_IN_1 : INJECT_IN_0 ];             // external inject in
 
    assign pio_in_external_connection_export[1:0] = evbox_pulse[1:0];
 

@@ -663,13 +663,16 @@ module system_top(
     * Peltier control
     *******************************/
    always @( posedge tsensor_0_clock ) begin
-      act_peltier_thermo_control <= ( tsensor_0_data[ 14:3 ] > act_celsius_0_setpt );
+      if ( ~act_peltier_thermo_control ) // off
+        act_peltier_thermo_control <= ( tsensor_0_data[ 14:3 ] > act_celsius_0_setpt );  // 8 degC or high then on
+      else                               // on
+        act_peltier_thermo_control <= ( (tsensor_0_data[ 14:3 ] + 'd4) > act_celsius_0_setpt ); // 9 degC or low then off
    end
 
    always @* begin
       if ( ~hps_fpga_reset_n ) begin
          act_peltier_master_control = 1'b0;
-         act_celsius_0_setpt = 12'd10 * 4; // 10 degC default
+         act_celsius_0_setpt = 12'd8 * 4; // 8 degC default
       end
       if ( tsensor_data_user_interface_write & tsensor_data_user_interface_chipselect[ 0 ] ) begin
          act_celsius_0_setpt = user_celsius_0_setpt;

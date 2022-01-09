@@ -62,11 +62,13 @@ enum {
       , TSENSOR_0_MISO         = 4 // 2
       , PELTIER_THERMO_CONTROL = 5
       // [27:24] <-- pio_out[3:0]
-      , I2C_OLED_CLK           = 30
-      , I2C_OLED_SDA           = 31
-      // [33:32] = INJECT_IN->OUT LOOPBACK
+      , I2C_SDO                = 29
+      , INJECT_OUT_0           = 30
+      , I2C_CSB                = 31
+      // 32
+      , I2C_SDA                = 33
       , INJECT_IN_0            = 34
-      , INJECT_IN_1            = 35
+      , I2C_SCL                = 35
       } gpio_1;
 
 module system_top(
@@ -273,12 +275,11 @@ module system_top(
    assign GPIO_1[ CLK1_DEBUG_OUT ] = clk1; // debug
    assign GPIO_1[ 23: 6 ] = '0;
    assign GPIO_1[ 27:24 ] = pio_out_external_connection_export[ 3:0];
-   assign GPIO_1[ 29:28 ] = '0;
-   // assign GPIO_1[ 31:30 ] = '0; I2C OLED
-   assign GPIO_1[ 33:32 ] = evbox_pulse;                 // LOOP BACK
+   assign GPIO_1[ INJECT_OUT_0 ] = evbox_pulse[ 0 ];                 // LOOP BACK
+   // 27,31,33,35 == BMP280
 
    // input
-   assign async_inject_in[ 1:0 ] = GPIO_1[ INJECT_IN_1 : INJECT_IN_0 ];             // external inject in
+   assign async_inject_in[ 1:0 ] = { 1'b1, GPIO_1[ INJECT_IN_0 ] };             // external inject in
 
    assign pio_in_external_connection_export[1:0] = evbox_pulse[1:0];
 
@@ -687,8 +688,10 @@ module system_top(
       end
    end // always @ *
 
-   //////// OLED //////////////
-   ALT_IOBUF scl_iobuf (.i(1'b0), .oe(oled_i2c_scl_oe), .o(oled_i2c_scl_in), .io( GPIO_1[ I2C_OLED_CLK ] ) );
-   ALT_IOBUF sda_iobuf (.i(1'b0), .oe(oled_i2c_sda_oe), .o(oled_i2c_sda_in), .io( GPIO_1[ I2C_OLED_SDA ] ) );
+   //////// OLED & bmp280 /////////////
+   assign GPIO_1[ I2C_SDO ] = 1'b0; // bmp280 sdo
+   assign GPIO_1[ I2C_CSB ] = 1'b1; // bmp280 csb
+   ALT_IOBUF scl_iobuf (.i(1'b0), .oe(oled_i2c_scl_oe), .o(oled_i2c_scl_in), .io( GPIO_1[ I2C_SCL ] ) );
+   ALT_IOBUF sda_iobuf (.i(1'b0), .oe(oled_i2c_sda_oe), .o(oled_i2c_sda_in), .io( GPIO_1[ I2C_SDA ] ) );
 
 endmodule

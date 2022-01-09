@@ -126,18 +126,18 @@ tsensor_proc_read( struct seq_file * m, void * v )
             seq_printf( m, "[%2d] ", i );
             seq_printf( m, "%08x\t", data[ i ] );
             if ( i == 0 ) {
-                seq_printf( m, "%08x\tsetpointt%10d (degC)", data[ i ], (( data[ i ] ) & 0xfff) * 1024 / 0x1000 );
+                seq_printf( m, "%08x\tsetpt\t%10d (degC)", data[ i ], (( data[ i ] ) & 0xfff) * 1024 / 0x1000 );
             }
             if ( i == 1 ) {
                 seq_printf( m, "%08x\tactual\t%10d (degC)", data[ i ] >> 3, (( data[ i ] >> 3 ) & 0xfff) * 1024 / 0x1000 );
             }
             if ( i == 2 ) {
-                seq_printf( m, "\tpeltier control %s\tmaster switch: %s"
+                seq_printf( m, "\t\tmaster switch: %s\tpeltier control: %s"
                             , (data[ i ] & 0x02 ? "on" : "off")
                             , (data[ i ] & 0x01 ? "on" : "off") );
             }
             if ( i == 3 ) {
-                seq_printf( m, "%d tsensor count", data[ i ] );
+                seq_printf( m, "%d\t(tsensor count)", data[ i ] );
             }
             seq_printf( m, "\n" );
         }

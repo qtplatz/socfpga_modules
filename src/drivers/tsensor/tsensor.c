@@ -125,8 +125,19 @@ tsensor_proc_read( struct seq_file * m, void * v )
         for ( size_t i = 0; i < 16; ++i ) {
             seq_printf( m, "[%2d] ", i );
             seq_printf( m, "%08x\t", data[ i ] );
+            if ( i == 0 ) {
+                seq_printf( m, "%08x\tsetpointt%10d (degC)", data[ i ], (( data[ i ] ) & 0xfff) * 1024 / 0x1000 );
+            }
             if ( i == 1 ) {
-                seq_printf( m, "%08x\t%10d (degC)", data[ i ] >> 3, (( data[ i ] >> 3 ) & 0xfff) * 1024 / 0x1000 );
+                seq_printf( m, "%08x\tactual\t%10d (degC)", data[ i ] >> 3, (( data[ i ] >> 3 ) & 0xfff) * 1024 / 0x1000 );
+            }
+            if ( i == 2 ) {
+                seq_printf( m, "\tpeltier control %s\tmaster switch: %s"
+                            , (data[ i ] & 0x02 ? "on" : "off")
+                            , (data[ i ] & 0x01 ? "on" : "off") );
+            }
+            if ( i == 3 ) {
+                seq_printf( m, "%d tsensor count", data[ i ] );
             }
             seq_printf( m, "\n" );
         }
@@ -154,11 +165,13 @@ tsensor_proc_write( struct file * filep, const char * user, size_t size, loff_t 
     struct tsensor_driver * drv = platform_get_drvdata( __pdev );
 
     if ( strncmp( readbuf, "off", 3 ) == 0 ) {
-        __slave_data( drv->regs, 2 )->user_datain = __slave_data( drv->regs, 2 )->user_dataout | 0x02;
-        dev_info(&__pdev->dev, "tsensor_proc_write command off 0x%x", __slave_data( drv->regs, 2 )->user_dataout );
+        u32 d = __slave_data( drv->regs, 2 )->user_dataout & ~0x02;
+        __slave_data( drv->regs, 2 )->user_datain = d;
+        dev_info(&__pdev->dev, "tsensor_proc_write %x d command off 0x%x", d, __slave_data( drv->regs, 2 )->user_dataout );
     } else if ( strncmp( readbuf, "on", 2 ) == 0 ) {
-        __slave_data( drv->regs, 2 )->user_datain = __slave_data( drv->regs, 2 )->user_dataout & ~0x02;
-        dev_info(&__pdev->dev, "tsensor_proc_write command on 0x%x", __slave_data( drv->regs, 2 )->user_dataout );
+        u32 d = __slave_data( drv->regs, 2 )->user_dataout | 0x02;
+        __slave_data( drv->regs, 2 )->user_datain = d;
+        dev_info(&__pdev->dev, "tsensor_proc_write %x command on 0x%x", d, __slave_data( drv->regs, 2 )->user_dataout );
     }
 
     readbuf[ size ] = '\0';

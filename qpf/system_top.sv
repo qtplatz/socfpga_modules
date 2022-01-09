@@ -432,8 +432,8 @@ module system_top(
 		  , .slave_io_0_user_interface_byteenable   ( slave_io_0_user_interface_byteenable )  // output wire [7:0]
                   //
                   , .tsensor_data_user_interface_dataout_0    ( user_celsius_0_setpt )   // input  wire [31:0]
-		  , .tsensor_data_user_interface_dataout_1    ( { user_peltier_master_control, 1'b0 } )
-		  , .tsensor_data_user_interface_dataout_2    ()
+		  , .tsensor_data_user_interface_dataout_1    ()
+		  , .tsensor_data_user_interface_dataout_2    ( { user_peltier_master_control, 1'b0 } )
 		  , .tsensor_data_user_interface_dataout_3    ()
 		  , .tsensor_data_user_interface_dataout_4    ()
 		  , .tsensor_data_user_interface_dataout_5    ()
@@ -679,7 +679,7 @@ module system_top(
          act_celsius_0_setpt = user_celsius_0_setpt;
       end
       if ( tsensor_data_user_interface_write & tsensor_data_user_interface_chipselect[ 2 ] ) begin
-         act_peltier_master_control = user_peltier_master_control & SW[ 0 ];
+         act_peltier_master_control = user_peltier_master_control;
       end
       if ( SW[ 3 ] ) begin
          act_peltier_master_control = 1'b1;

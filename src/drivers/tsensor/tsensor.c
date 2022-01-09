@@ -122,7 +122,7 @@ tsensor_proc_read( struct seq_file * m, void * v )
         }
 
         seq_printf( m, "[id] <data>\n" );
-        for ( size_t i = 0; i < 3; ++i ) {
+        for ( size_t i = 0; i < 16; ++i ) {
             seq_printf( m, "[%2d] ", i );
             seq_printf( m, "%08x\t", data[ i ] );
             if ( i == 1 ) {
@@ -150,6 +150,17 @@ tsensor_proc_write( struct file * filep, const char * user, size_t size, loff_t 
 
     if ( copy_from_user( readbuf, user, size ) )
         return -EFAULT;
+
+    struct tsensor_driver * drv = platform_get_drvdata( __pdev );
+
+    if ( strncmp( readbuf, "off", 3 ) == 0 ) {
+        __slave_data( drv->regs, 2 )->user_datain = __slave_data( drv->regs, 2 )->user_dataout | 0x02;
+        dev_info(&__pdev->dev, "tsensor_proc_write command off 0x%x", __slave_data( drv->regs, 2 )->user_dataout );
+    } else if ( strncmp( readbuf, "on", 2 ) == 0 ) {
+        __slave_data( drv->regs, 2 )->user_datain = __slave_data( drv->regs, 2 )->user_dataout & ~0x02;
+        dev_info(&__pdev->dev, "tsensor_proc_write command on 0x%x", __slave_data( drv->regs, 2 )->user_dataout );
+    }
+
     readbuf[ size ] = '\0';
 
     return size;

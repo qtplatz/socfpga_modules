@@ -290,9 +290,10 @@ static ssize_t tsensor_cdev_write(struct file *file, const char __user *data, si
                 up( &drv->sem );
                 return -EFAULT;
             }
-            size_t idx = *f_pos / (16 * sizeof( u32 ) );
+            size_t idx = *f_pos / sizeof( u32 );
             __slave_data( drv->regs, idx % 16 )->user_datain = d;
-
+            dev_info(&__pdev->dev, "%s: [%d] = 0x%x\t-->\t0x%x\n"
+                     , __func__, idx, d, __slave_data( drv->regs, idx % 16 )->user_dataout );
             *f_pos += sizeof( u32 );
             count += sizeof( u32 );
             size -= sizeof( u32 );

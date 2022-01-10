@@ -56,7 +56,6 @@ module spi_master ( input clk
    // CPHA = 0
    generate
       if ( CPOL == 1 ) begin  // SPI Mode 2  (TI DAC80004)
-         // read data on sclk falling edge
          always @* begin
             if ( state[ POS ] & state[ NEG ] ) // b11
               spi_sclk_reg = sclk;
@@ -65,13 +64,13 @@ module spi_master ( input clk
             spi_ss_n = ~state[ POS ];
          end
       end
-      if ( CPOL == 0 ) begin  // SPI Mode 1 (read data on falling edge) (ex. LTC2308)
+      if ( CPOL == 0 ) begin  // SPI Mode 1 (read data on raising edge) (ex. LTC2308)
          always @* begin
             if ( state == 2'b01 || state == 2'b11 ) // half clock forward
               spi_sclk_reg = ~sclk;
             else
               spi_sclk_reg = 0;
-            spi_ss_n = ~state[ POS ];
+            spi_ss_n = spi_ss_n ? ~state[ NEG ] : ~state[ POS ]; // assert SS_n half clock earlier than data
          end
       end
    endgenerate

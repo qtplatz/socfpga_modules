@@ -108,7 +108,6 @@ main( int argc, char *argv[] )
     std::make_shared< listener >( ioc
                                   , endpoint // tcp::endpoint{ address, port_number }
                                   , facade::make_shared_state( doc_root ) )->run();
-                                  // , std::make_shared< shared_state >( doc_root ) )->run();
 
     // Capture SIGINT and SIGTERM to perform a clean shutdown
     net::signal_set signals( ioc, SIGINT, SIGTERM );

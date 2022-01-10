@@ -59,7 +59,8 @@ main( int argc, char * argv [] )
             ( "help,h",    "Display this help message" )
             ( "device,d",  po::value< std::string >()->default_value( __tsensor_device ), "dma device name '/dev/tsensor0'" )
             ( "count,c",   po::value< std::string >(), "count" )
-            ( "set",       po::value< int >(), "temp setpoint" )
+            ( "set",       po::value< double >(),      "temp setpoint, in celsius" )
+            ( "sw",        po::value< std::string >(), "master control switch on, off, or any value in binary (dec, hex)" )
             ;
         po::store( po::command_line_parser( argc, argv ).options( description ).run(), vm );
         po::notify(vm);
@@ -75,14 +76,39 @@ main( int argc, char * argv [] )
     if ( vm.count("count") )
         count = std::strtol( vm["count"].as< std::string >().c_str(), 0, 0 );
 
-    if ( vm.count( "set" ) ) {
-        int32_t setpt = vm[ "set" ].as< int >();
-        std::cerr << "setpoint: " << setpt << std::endl;
+    if ( vm.count( "sw" ) || vm.count( "set" ) ) {
         std::ofstream outf;
         outf.open( tsensor_device, std::ios::out | std::ios::binary );
-        if ( outf.is_open() ) {
-            outf.write( reinterpret_cast< const char * >( &setpt ), sizeof( setpt ));
+        if ( ! outf.is_open() ) {
+            std::cerr << "device: " << tsensor_device << " cannot be opened\n";
+            return 1;
         }
+        if ( vm.count( "set" ) ) {
+            double setpt = vm[ "set" ].as< double >();
+            if ( setpt < 0 || setpt >= 1024.0 ) {
+                std::cerr << "invalid temperature raange (0 .. 1024)" << std::endl;
+                return 1;
+            }
+            uint32_t device_value = setpt * 4096.0 / 1024.0;
+            std::cerr << "setpoint: " << setpt << "\tstoring device value of " << boost::format( "0x%x" ) % device_value << std::endl;
+            outf.seekp( 0 * sizeof(device_value) );
+            outf.write( reinterpret_cast< const char * >( &device_value ), sizeof( device_value ));
+        }
+        if ( vm.count( "sw" ) ) {
+            uint32_t device_value(0);
+            if ( vm[ "sw" ].as< std::string >() == "off" ) {
+                device_value = 0x0;
+            } else if ( vm[ "sw" ].as< std::string >() == "on" ) {
+                device_value = 0x02;
+            } else {
+                device_value = std::strtol( vm[ "sw" ].as< std::string >().c_str(), 0, 0 );
+            }
+            std::cerr << "switch set to : " << boost::format( "%x" ) % device_value << std::endl;
+            outf.seekp( 2 * sizeof(device_value) );
+            outf.write( reinterpret_cast< const char * >( &device_value ), sizeof( device_value ));
+        }
+        if ( !vm.count( "count" ) )
+            return 0;
     }
 
     std::ifstream file;
@@ -94,7 +120,11 @@ main( int argc, char * argv [] )
         while ( count-- ) {
             if ( file.read( reinterpret_cast< char * >(data), sizeof( data ) ) ) {
                 std::cout << boost::format( "[%d]\t%04x, %04x\t%.1f\t%.1f (degC)\t" )
-                    % data[ 3 ] %  data[ 0 ] % data[ 1 ] % data[ 0 ] % ( data[ 1 ] * 1024.0 / 4096.0 )
+                    % data[ 3 ]
+                    % data[ 0 ]
+                    % data[ 1 ]
+                    % ( data[ 0 ] * 1024.0 / 4096.0 )
+                    % ( data[ 1 ] * 1024.0 / 4096.0 )
                           << std::bitset< 12 >( data[ 1 ] ).to_string()
                           << "\t" << std::bitset< 2 >( data[ 2 ] ).to_string()
                           << std::endl;

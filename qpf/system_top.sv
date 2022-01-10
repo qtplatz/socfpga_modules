@@ -228,9 +228,10 @@ module system_top(
    wire                    tsensor_data_user_interface_write;
    wire                    tsensor_data_user_interface_read;
    wire [15:0]             tsensor_data_user_interface_chipselect;
-   wire [7:0]              tsensor_data_user_interface_byteenable;
+   wire [3:0]              tsensor_data_user_interface_byteenable;
 
    // tsensor
+   reg [31:0]              tsensor_user_data[ 16 ];
    reg                     tsensor_0_clock;
    reg [31:0]              tsensor_0_clock_counter;
    reg [ 1:0]              tsensor_0_valid;
@@ -239,11 +240,11 @@ module system_top(
 
    wire                    tsensor_sync_external_connection_export;
    //
-   reg [11:0]              act_celsius_0_setpt;
-   reg [11:0]              user_celsius_0_setpt; // slave_io user_datain
-   reg                     user_peltier_master_control; // slave_io datain
+   reg [11:0]              act_peltier_0_setpt;
    reg                     act_peltier_thermo_control;
    reg                     act_peltier_master_control;
+   wire [11:0]             user_peltier_0_setpt = tsensor_user_data[ 0 ][ 11 : 0 ]; // slave_io user_datain
+   wire                    user_peltier_master_control = tsensor_user_data[ 2 ][ 1 ];
 
    // OLED I2C
    wire                    oled_i2c_sda_in;
@@ -431,37 +432,38 @@ module system_top(
 		  , .slave_io_0_user_interface_chipselect   ( slave_io_0_user_interface_chipselect )  // output wire [15:0]
 		  , .slave_io_0_user_interface_byteenable   ( slave_io_0_user_interface_byteenable )  // output wire [7:0]
                   //
-                  , .tsensor_data_user_interface_dataout_0    ( user_celsius_0_setpt )   // input  wire [31:0]
-		  , .tsensor_data_user_interface_dataout_1    ()
-		  , .tsensor_data_user_interface_dataout_2    ( { user_peltier_master_control, 1'b0 } )
-		  , .tsensor_data_user_interface_dataout_3    ()
-		  , .tsensor_data_user_interface_dataout_4    ()
-		  , .tsensor_data_user_interface_dataout_5    ()
-		  , .tsensor_data_user_interface_dataout_6    ()
-		  , .tsensor_data_user_interface_dataout_7    ()
-		  , .tsensor_data_user_interface_dataout_8    ()
-		  , .tsensor_data_user_interface_dataout_9    ()
-		  , .tsensor_data_user_interface_dataout_10   ()
-		  , .tsensor_data_user_interface_dataout_11   ()
-		  , .tsensor_data_user_interface_dataout_12   ()
-		  , .tsensor_data_user_interface_dataout_13   ()
-		  , .tsensor_data_user_interface_dataout_14   ()
-		  , .tsensor_data_user_interface_dataout_15   ()
+                  // hps -> fpga
+                  , .tsensor_data_user_interface_dataout_0    ( tsensor_user_data[  0 ] ) // user_peltier_0_setpt )   // input  wire [31:0]
+		  , .tsensor_data_user_interface_dataout_1    ( tsensor_user_data[  1 ] )
+		  , .tsensor_data_user_interface_dataout_2    ( tsensor_user_data[  2 ] ) // { user_peltier_master_control, 1'b0 } )
+		  , .tsensor_data_user_interface_dataout_3    ( tsensor_user_data[  3 ] )
+		  , .tsensor_data_user_interface_dataout_4    ( tsensor_user_data[  4 ] )
+		  , .tsensor_data_user_interface_dataout_5    ( tsensor_user_data[  5 ] )
+		  , .tsensor_data_user_interface_dataout_6    ( tsensor_user_data[  6 ] )
+		  , .tsensor_data_user_interface_dataout_7    ( tsensor_user_data[  7 ] )
+		  , .tsensor_data_user_interface_dataout_8    ( tsensor_user_data[  8 ] )
+		  , .tsensor_data_user_interface_dataout_9    ( tsensor_user_data[  9 ] )
+		  , .tsensor_data_user_interface_dataout_10   ( tsensor_user_data[ 10 ] )
+		  , .tsensor_data_user_interface_dataout_11   ( tsensor_user_data[ 11 ] )
+		  , .tsensor_data_user_interface_dataout_12   ( tsensor_user_data[ 12 ] )
+		  , .tsensor_data_user_interface_dataout_13   ( tsensor_user_data[ 13 ] )
+		  , .tsensor_data_user_interface_dataout_14   ( tsensor_user_data[ 14 ] )
+		  , .tsensor_data_user_interface_dataout_15   ( tsensor_user_data[ 15 ] )
                   // fpga -> hps
-		  , .tsensor_data_user_interface_datain_0     ( act_celsius_0_setpt ) // setpt
-		  , .tsensor_data_user_interface_datain_1     ( tsensor_0_data  ) // actual
+		  , .tsensor_data_user_interface_datain_0     ( { 20'd0, act_peltier_0_setpt } ) // setpt
+		  , .tsensor_data_user_interface_datain_1     ( { 16'd0, tsensor_0_data }      ) // actual
                   , .tsensor_data_user_interface_datain_2     ( { 30'd0, act_peltier_master_control, act_peltier_thermo_control } )
                   , .tsensor_data_user_interface_datain_3     ( tsensor_0_clock_counter )
-                  , .tsensor_data_user_interface_datain_4     ( 32'd0 )
-                  , .tsensor_data_user_interface_datain_5     ( 32'd0 )
-                  , .tsensor_data_user_interface_datain_6     ( 32'd0 )
-                  , .tsensor_data_user_interface_datain_7     ( 32'd0 )
-                  , .tsensor_data_user_interface_datain_8     ( 32'd0 )
-                  , .tsensor_data_user_interface_datain_9     ( 32'd0 )
-                  , .tsensor_data_user_interface_datain_10    ( 32'd0 )
-		  , .tsensor_data_user_interface_datain_11    ( 32'd0 )
-		  , .tsensor_data_user_interface_datain_12    ( 32'd0 )
-		  , .tsensor_data_user_interface_datain_13    ( 32'd0 )
+                  , .tsensor_data_user_interface_datain_4     ( tsensor_user_data[  0 ] ) // debug
+                  , .tsensor_data_user_interface_datain_5     ( tsensor_user_data[  1 ] ) // debug
+                  , .tsensor_data_user_interface_datain_6     ( tsensor_user_data[  2 ] ) // debug
+                  , .tsensor_data_user_interface_datain_7     ( tsensor_user_data[  3 ] ) // debug
+                  , .tsensor_data_user_interface_datain_8     ( tsensor_user_data[  4 ] ) // debug
+                  , .tsensor_data_user_interface_datain_9     ( tsensor_user_data[  5 ] ) // debug
+                  , .tsensor_data_user_interface_datain_10    ( tsensor_user_data[  6 ] ) // debug
+		  , .tsensor_data_user_interface_datain_11    ( tsensor_user_data[  7 ] ) // debug
+		  , .tsensor_data_user_interface_datain_12    ( tsensor_user_data[  8 ] ) // debug
+		  , .tsensor_data_user_interface_datain_13    ( tsensor_user_data[  9 ] ) // debug
 		  , .tsensor_data_user_interface_datain_14    ( model_number )
 		  , .tsensor_data_user_interface_datain_15    ( revision_number )
                   //
@@ -665,26 +667,21 @@ module system_top(
     *******************************/
    always @( posedge tsensor_0_clock ) begin
       if ( ~act_peltier_thermo_control ) // off
-        act_peltier_thermo_control <= ( tsensor_0_data[ 14:3 ] > act_celsius_0_setpt );  // 8 degC or high then on
+        act_peltier_thermo_control <= ( tsensor_0_data[ 14:3 ] > act_peltier_0_setpt );  // 8 degC or high then on
       else                               // on
-        act_peltier_thermo_control <= ( (tsensor_0_data[ 14:3 ] + 'd4) > act_celsius_0_setpt ); // 9 degC or low then off
+        act_peltier_thermo_control <= ( (tsensor_0_data[ 14:3 ] + 'd4) > act_peltier_0_setpt ); // 9 degC or low then off
    end
 
    always @* begin
       if ( ~hps_fpga_reset_n ) begin
-         act_peltier_master_control = 1'b0;
-         act_celsius_0_setpt = 12'd8 * 4; // 8 degC default
-      end
-      if ( tsensor_data_user_interface_write & tsensor_data_user_interface_chipselect[ 0 ] ) begin
-         act_celsius_0_setpt = user_celsius_0_setpt;
-      end
-      if ( tsensor_data_user_interface_write & tsensor_data_user_interface_chipselect[ 2 ] ) begin
-         act_peltier_master_control = user_peltier_master_control;
-      end
-      if ( SW[ 3 ] ) begin
          act_peltier_master_control = 1'b1;
-      end else begin
-         act_peltier_master_control = 1'b0;
+         act_peltier_0_setpt = 12'd8 * 4; // 8 degC default
+      end
+      else if ( tsensor_data_user_interface_write ) begin
+         casex ( tsensor_data_user_interface_chipselect )
+            16'bxxxx_xxxx_xxxx_xxx1:  act_peltier_0_setpt = user_peltier_0_setpt;
+            16'bxxxx_xxxx_xxxx_x1xx:  act_peltier_master_control = user_peltier_master_control;
+         endcase
       end
    end // always @ *
 

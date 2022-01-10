@@ -14,8 +14,8 @@ module clock_divider ( input wire clk
    parameter COUNT = 50_000_000;
    parameter WIDTH = $clog2(COUNT);
 
-   reg [WIDTH-1:0] clock_counter;
-   reg             clock_reg;
+   reg [WIDTH-1:0] clock_counter = 0;
+   reg             clock_reg = 0;
 `ifdef XILINX
    BUFG clk_bufg_i( .I( clock_reg ), .O( clock ) );
 `else

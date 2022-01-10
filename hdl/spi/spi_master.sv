@@ -38,7 +38,7 @@ module spi_master ( input clk
    reg [1:0] 		    latch_d = 0;  // edge {neg,pos}
    reg [1:0] 		    state   = 0;  // edge {neg,pos}
    reg 			    state_d = 0;
-   reg 			    spi_sclk_reg = 0;
+   reg 			    spi_sclk_reg = CPOL;
 
    assign spi_sclk = spi_sclk_reg;
 
@@ -58,10 +58,10 @@ module spi_master ( input clk
       if ( CPOL == 1 ) begin  // SPI Mode 2  (TI DAC80004)
          // read data on sclk falling edge
          always @* begin
-            if ( state[ POS ] & state[ NEG ] )
+            if ( state[ POS ] & state[ NEG ] ) // b11
               spi_sclk_reg = sclk;
             else
-              spi_sclk_reg = 0;
+              spi_sclk_reg = 1;
             spi_ss_n = ~state[ POS ];
          end
       end
@@ -87,7 +87,7 @@ module spi_master ( input clk
          txd <= tx_data;
       end
 
-      state_d <= state[ POS ];
+      state_d <= state[ POS ]; // state[0]
       if ( state_d && ~state[ POS ] ) begin // 1 -> 0
          tx_ready <= 1;     //
          rx_valid <= 1;      // dma will take over rxd

@@ -67,6 +67,9 @@ set ( CPACK_PACKAGING_INSTALL_PREFIX "/" ) # <-- must be root for "/lib/module/4
 
 include( version )
 set ( CMAKE_CXX_STANDARD 17 )
+set ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fext-numeric-literals -Wno-psabi" )
+add_definitions( -DBOOST_ALLOW_DEPRECATED_HEADERS=1 )
+
 message( STATUS "## version: " "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}.${VERSION_TWEAK}(${VERSION_HASH})" )
 
 find_package( Boost 1.75 COMPONENTS
@@ -139,3 +142,6 @@ endforeach()
 #---------------------------------
 
 include( CPack )
+
+message( STATUS "# Boost_VERSION         : " ${Boost_MAJOR_VERSION}.${Boost_MINOR_VERSION}.${Boost_SUBMINOR_VERSION} )
+message( STATUS "# BOOST_ROOT            : " ${BOOST_ROOT} )

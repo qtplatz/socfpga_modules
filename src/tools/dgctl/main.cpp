@@ -35,6 +35,7 @@
 #include <iostream>
 #include <iomanip>
 #include <memory>
+#include <ratio>
 
 #include <sys/types.h>
 #include <sys/stat.h>

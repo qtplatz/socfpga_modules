@@ -638,7 +638,7 @@ module system_top(
    /********************************
     * Temperatur sensor
     *******************************/
-   clock_divider #( .COUNT( 50_000_000 ) ) // 1000 ms (1Hz)
+   clock_divider #( .COUNT( 150_000_000 ) ) // 3000 ms (1Hz)
    tsensor_0_clkgen( clk100, hps_fpga_reset_n, tsensor_0_clock );
 
    clock_counter #( .WIDTH( $bits( tsensor_0_clock_counter ) ), .PIPELINE( 4 ) )

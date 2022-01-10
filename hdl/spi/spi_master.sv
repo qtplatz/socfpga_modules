@@ -33,11 +33,12 @@ module spi_master ( input clk
    enum { POS, NEG } state_index;
 
    reg [$clog2(DWIDTH)-1:0] spi_tx_counts;
-   reg [DWIDTH-1:0] 	    txd = 0;//, rxd = 0;
+   reg [DWIDTH-1:0]         txd = 0;//, rxd = 0;
    wire 		    latch;
    reg [1:0] 		    latch_d = 0;  // edge {neg,pos}
    reg [1:0] 		    state   = 0;  // edge {neg,pos}
    reg 			    state_d = 0;
+   reg 			    state_neg_d = 0;
    reg 			    spi_sclk_reg = CPOL;
 
    assign spi_sclk = spi_sclk_reg;
@@ -70,7 +71,9 @@ module spi_master ( input clk
               spi_sclk_reg = ~sclk;
             else
               spi_sclk_reg = 0;
-            spi_ss_n = spi_ss_n ? ~state[ NEG ] : ~state[ POS ]; // assert SS_n half clock earlier than data
+            spi_ss_n = ~state[ POS ]; // assert SS_n half clock earlier than data (original code)
+            // spi_ss_n = ~(state[ POS ] | state_neg_d); // assert SS_n half clock later than last clock (workaround for max6675)
+            // spi_ss_n = spi_ss_n ? ~state[ NEG ] : ~state[ POS ]; // assert SS_n half clock earlier than initial clock (this does not help)
          end
       end
    endgenerate
@@ -125,7 +128,7 @@ module spi_master ( input clk
       latch_d[ NEG ] <= latch;
       if ( ~latch_d[ NEG ] && latch ) // 0 -> 1
         state[ NEG ] <= 1;
-
+      state_neg_d <= state[ NEG ];
       if ( state[ NEG ] & state[ POS ] ) begin  // <--
          rx_data [ DWIDTH-1:0 ] <= { rx_data[ DWIDTH-2:0 ], spi_miso };     // read
          state[ NEG ] <= spi_tx_counts != 0;

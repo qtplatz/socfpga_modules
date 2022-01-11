@@ -22,10 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 **************************************************************************/
 
-#include <date/date.h>
 #include <boost/format.hpp>
 #include <boost/program_options.hpp>
-#include <condition_variable>
 #include <bitset>
 #include <chrono>
 #include <cstdlib>

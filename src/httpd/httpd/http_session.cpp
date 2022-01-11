@@ -220,8 +220,9 @@ http_session::fail( beast::error_code ec, char const *what )
     // Don't report on canceled operations
     if ( ec == net::error::operation_aborted )
         return;
-
-    ADERROR() << what << ": " << ec.message();
+    if ( ec == boost::beast::errc::timed_out )
+        return;
+    ADERROR() << what << ": " << ec.message() << ", " << ec.value();
 }
 
 void

@@ -26,10 +26,13 @@
 #pragma once
 
 #include "facade.hpp"
+#include <memory>
+
+class websocket_session;
 
 namespace peripheral {
 
-    class dgmod {
+    class dgmod : public std::enable_shared_from_this< dgmod > {
     public:
         dgmod();
         ~dgmod();
@@ -37,6 +40,9 @@ namespace peripheral {
         std::optional< facade::response_type >
         handle_request( const boost::beast::http::request<boost::beast::http::string_body>& req );
 
+        bool handle_websock_message( const std::string& msg, websocket_session * );
+
+        constexpr static const char * const subprotocol = "dgmod";
         constexpr static const char * const prefix = "/fpga/dgmod/";
         constexpr static const size_t prefix_size = sizeof( "/fpga/dgmod/" ) - 1;
     private:

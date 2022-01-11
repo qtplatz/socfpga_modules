@@ -26,6 +26,7 @@
 #include "facade.hpp"
 #include "jsonhelper.hpp"
 #include "version.h"
+#include "websocket_session.hpp"
 #include <adlog/logger.hpp>
 #include <boost/format.hpp>
 #include <boost/json.hpp>
@@ -35,9 +36,8 @@
 namespace peripheral {
 
     class dgmod::impl {
-        dgmod& dgmod_;
     public:
-        impl( dgmod& d ) : dgmod_( d ) {}
+        impl( dgmod& d ) {}
 
         std::array< uint64_t, 16 > read( uint32_t page ) const {
             std::array< uint64_t, 16 > data = { 0 };
@@ -90,6 +90,7 @@ dgmod::~dgmod()
 std::optional< facade::response_type >
 dgmod::handle_request( const boost::beast::http::request<boost::beast::http::string_body>& req )
 {
+    ADTRACE() << "### handle_request ### " << req.target().to_string() << "\n";
     auto method = req.method(); // _string().to_string();
     std::string request_path = req.target().to_string();
     // auto local_request = request_path.substr( prefix_size );
@@ -142,7 +143,7 @@ dgmod::GET_revision() const
 {
     uint32_t rev = 0x0000'0000; // default, use in case of debug on non arm linux platform.
 
-    std::array< uint64_t, 16 > data[ 2 ] = { 0 };
+    std::array< uint64_t, 16 > data[ 2 ] = {{0}};
     std::pair< size_t, size_t > sz; // read twice -- driver change io page by seek
     do {
         std::ifstream in( "/dev/dgmod0", std::ios::binary | std::ios::in );
@@ -163,7 +164,7 @@ dgmod::GET_revision() const
 std::string
 dgmod::GET_status() const
 {
-    std::array< uint64_t, 16 > data[ 2 ] = { 0 };
+    std::array< uint64_t, 16 > data[ 2 ] = {{ 0 }};
     std::pair< size_t, size_t > sz; // read twice -- driver change io page by seek
     do {
         std::ifstream in( "/dev/dgmod0", std::ios::binary | std::ios::in );
@@ -212,7 +213,7 @@ dgmod::POST_commit( const std::string& body ) const
         std::array< proto, 4 > proto_;
     };
 
-    data data = { 0, { 0 }};
+    data data( { 0, {0} } );
 
     auto jobj = boost::json::parse( body, ec );
     if ( !ec ) {
@@ -240,4 +241,11 @@ dgmod::POST_commit( const std::string& body ) const
     }
 
     return boost::json::serialize( boost::json::object{{ "status", "ERROR" }} );
+}
+
+
+bool
+dgmod::handle_websock_message( const std::string& msg, websocket_session * ws )
+{
+    return ws->subprotocol() == this->subprotocol;
 }

@@ -25,7 +25,7 @@
 #pragma once
 
 #include "shared_state.hpp"
-#include <boost/asio.hpp>
+#include <boost/asio/io_context.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/version.hpp>
@@ -54,6 +54,8 @@ public:
 
     void websock_onread( std::string&&, websocket_session * );
     void websock_forward( std::string&&, const std::string& protocol );
+
+    boost::asio::io_context& io_context();
 
     typedef boost::beast::http::response<boost::beast::http::string_body> response_type;
     std::optional< response_type > handle_request( const boost::beast::http::request<boost::beast::http::string_body>& req );

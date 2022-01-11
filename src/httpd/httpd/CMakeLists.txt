@@ -72,6 +72,13 @@ else()
     facade.hpp
     dgmod.cpp
     dgmod.hpp
+    tsensor.cpp
+    tsensor.hpp
+    bmp280.cpp
+    bmp280.hpp
+    json_helper.cpp
+    json_helper.hpp
+    json_extract.hpp
     )
 endif()
 

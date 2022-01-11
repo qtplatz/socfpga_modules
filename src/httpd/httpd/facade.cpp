@@ -1,6 +1,6 @@
 // -*- C++ -*-
 /**************************************************************************
-** Copyright (C) 2021 MS-Cheminformatics LLC
+** Copyright (C) 2021-2022 MS-Cheminformatics LLC
 *
 ** Contact: toshi.hondo@qtplatz.com
 **
@@ -25,6 +25,8 @@
 #include "facade.hpp"
 #include "shared_state.hpp"
 #include "dgmod.hpp"
+#include "tsensor.hpp"
+#include "bmp280.hpp"
 #include "websocket_session.hpp"
 #include <adlog/logger.hpp>
 #include <adportable/date_time.hpp>
@@ -39,25 +41,38 @@ namespace {
     struct null_t {};
     template< typename ... T > struct peripheral_list_t {};
 
+    // terminal
     template< typename last >
     struct peripheral_list_t< last > {
-        static std::optional< facade::response_type > // bool
-        do_handle( const boost::beast::http::request<boost::beast::http::string_body>& ) {
-            return {};
-        }
+        static std::optional< facade::response_type >
+        do_handle( const boost::beast::http::request<boost::beast::http::string_body>& ) { return {}; }
+
+        static bool
+        handle_websock_message( const std::string& msg, websocket_session * ws ) { return false; }
     };
 
     template< typename first, typename ... args >
     struct peripheral_list_t< first, args ... > {
         static std::optional< facade::response_type > // bool
         do_handle( const boost::beast::http::request<boost::beast::http::string_body>& req ) {
-            if ( req.target().compare( 0, first::prefix_size, first::prefix ) == 0 )
-                return first().handle_request( req );
+            if ( req.target().compare( 0, first::prefix_size, first::prefix ) == 0 ) {
+                return std::make_shared< first >()->handle_request( req );
+            }
             return peripheral_list_t< args ... >::do_handle( req );
+        }
+
+        static bool
+        handle_websock_message( const std::string& msg, websocket_session * ws ) {
+            if ( std::make_shared< first >()->handle_websock_message( msg, ws ) )
+                return true;
+            return peripheral_list_t< args ... >::handle_websock_message( msg, ws );
         }
     };
 
-    using peripheral_list = peripheral_list_t< peripheral::dgmod, null_t >;
+    using peripheral_list = peripheral_list_t< peripheral::dgmod
+                                               , peripheral::bmp280
+                                               , peripheral::tsensor
+                                               , null_t >;
 }
 
 using namespace std::chrono_literals;
@@ -76,12 +91,6 @@ public:
 
     void start_timer() {
         auto tpi = std::chrono::floor< std::chrono::seconds >( std::chrono::steady_clock::now() ) + 5s;
-        // auto tp = std::chrono::steady_clock::time_point(
-        //     std::chrono::seconds( ( tpi.time_since_epoch().count() / 5 ) * 5 ) );
-
-        // auto t = std::chrono::steady_clock::time_point( std::chrono::seconds( tp.time_since_epoch().count() + 1 ) );
-        // auto tp0 = std::chrono::steady_clock::now();
-        // auto tp = std::chrono::time_point_cast< std::chrono::seconds >( tp0 ) + 3s;
         _1s_timer_.expires_at ( tpi ); //std::chrono::milliseconds( 1000 ) );
         _1s_timer_.async_wait( [this]( const boost::system::error_code& ec ){ on_timer(ec); } );
     };
@@ -178,5 +187,13 @@ facade::websock_forward( std::string&& msg, const std::string& subprotocol )
 void
 facade::websock_onread( std::string&& msg, websocket_session * ws )
 {
-    impl_->__websock_forward( std::move( msg ), ws->subprotocol() );
+    if ( ! peripheral_list::handle_websock_message( msg, ws ) ) {
+        impl_->__websock_forward( std::move( msg ), ws->subprotocol() );
+    }
+}
+
+boost::asio::io_context&
+facade::io_context()
+{
+    return impl_->ioc_;
 }

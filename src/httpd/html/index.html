@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <link rel="icon" type="image/png" href="/favicon.png">
-    <title>Timing &amp; Event Controller</title>
+    <title>SFC Pump Cooling Control</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -22,12 +22,19 @@
 
     <!-- <script type="text/javascript" src="showhint.js"></script> -->
     <script type="text/javascript" src="chat.js"></script>
+    <script type="text/javascript" src="websock.js"></script>
     <script type="text/javascript" src="loadbanner.js"></script>
   </head>
 
   <body>
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
-      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <button class="navbar-toggler"
+              type="button"
+              data-toggle="collapse"
+              data-target="#navbarNav"
+              aria-controls="navbarNav"
+              aria-expanded="false"
+              aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
@@ -39,8 +46,7 @@
     </nav>
 
     <div class="jumbotron text-center">
-      <h1>Timing &amp; Event Controller Log &amp; Chat</h1>
-      <p>Rapid protocol switing, HV and finite-state-machine controller</p>
+      <h1>SFC Pump Cooling Control</h1>
     </div>
 
     <div class="container">
@@ -57,7 +63,8 @@
               Your Name: <input class="draw-border" id="userName" size=30 style="margin-bottom: 5px;"><br>
           </div>
           <div style="margin-bottom: 2px;margin-left:5px;">
-            <pre id="messages" style="width: 600px; height: 400px; white-space: normal; overflow: auto; border: solid 1px #cccccc; margin-bottom: 5px;"></pre>
+            <pre id="messages"
+                 style="width: 600px; height: 400px; white-space: normal; overflow: auto; border: solid 1px #cccccc; margin-bottom: 5px;"></pre>
           </div>
           <div style="margin-bottom: 5px;margin-left:5px;">
             Message<br>
@@ -65,11 +72,6 @@
             <button class="echo-button" id="send">Send</button>
           </div>
         </div> <!-- col-xs-6 -->
-        <div class="col-4" style="padding: 200px;">
-          <p>
-	    <img src="multi-turn-mode.png" height=250 />
-          </p>
-        </div>
       </div> <!-- row -->
     </div> <!-- container -->
     <div id="banner"><h2>DG-PR $Id$</h2></div>

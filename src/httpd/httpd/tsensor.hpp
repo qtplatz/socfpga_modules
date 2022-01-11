@@ -45,9 +45,6 @@ namespace peripheral {
         constexpr static const char * const subprotocol = "tsensor";
         constexpr static const char * const prefix = "/fpga/tsensor/";
         constexpr static const size_t prefix_size = sizeof( "/fpga/tsensor/" ) - 1;
-    private:
-        class impl;
-        impl * impl_;
     };
 
 };

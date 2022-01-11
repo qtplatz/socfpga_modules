@@ -90,7 +90,7 @@ dgmod::~dgmod()
 std::optional< facade::response_type >
 dgmod::handle_request( const boost::beast::http::request<boost::beast::http::string_body>& req )
 {
-    ADTRACE() << "### handle_request ### " << req.target().to_string() << "\n";
+    // ADTRACE() << "### handle_request ### " << req.target().to_string() << "\n";
     auto method = req.method(); // _string().to_string();
     std::string request_path = req.target().to_string();
     // auto local_request = request_path.substr( prefix_size );
@@ -154,7 +154,7 @@ dgmod::GET_revision() const
     } while ( 0 );
 
     std::ostringstream o;
-    o << "<h5>Delay Generator V" << PACKAGE_VERSION;
+    o << "<h5>" << PACKAGE_VERSION;
     o << boost::format(" FPGA Rev. %d.%d.%d-%d")
         % ( ( rev >> 24 ) & 0xff ) % ( ( rev >> 16 ) & 0xff ) % ( ( rev >> 8 ) & 0xff ) % ( rev & 0xff ) << "</h5>";
 

@@ -28,6 +28,8 @@ SOFTWARE.
 #include "json_helper.hpp"
 #include "websocket_session.hpp"
 #include <adlog/logger.hpp>
+#include <adportable/date_time.hpp>
+#include <adportable/iso8601.hpp>
 #include <boost/format.hpp>
 #include <boost/json.hpp>
 #include <bitset>
@@ -40,14 +42,15 @@ extern bool __simulate__;
 
 namespace peripheral {
 
+    static std::atomic_int32_t atomic_counter = 0;
     static const char *__tsensor_device = "/dev/tsensor0";
 
     uint32_t temp_device( double temp ) { return temp * 4096.0 / 1024.0; };
 
     class tsensor::impl {
-        std::mutex mutex_;
+        static std::once_flag once_flag_;
+        static std::mutex mutex_;
         std::ifstream file_;
-        std::once_flag once_flag_;
         uint32_t data_[ 4 ];
         std::atomic_int32_t error_count_;
     public:
@@ -109,16 +112,24 @@ namespace peripheral {
 
     private:
         void async_read( std::shared_ptr< tsensor > me ) {
-            ADTRACE() << "tsensor::async_read";
+            auto dt = adportable::date_time::to_iso< std::chrono::microseconds >( std::chrono::steady_clock::now(), true );
             if ( auto tdata = read_tsensor() ) {
                 auto [ actual, setpt, temp_control, master_control, read_count ] = *tdata;
                 auto jv = boost::json::value{
-                    { "tsensor",
-                      { { "act",      actual }
-                        , { "set",    setpt }
-                        , { "flag",   temp_control }
-                        , { "enable", master_control }
-                        , { "id",     read_count } }
+                    { "tsensor", {
+                            { "data", {
+                                    { "act",    actual         }
+                                    , { "set",    setpt          }
+                                    , { "flag",   temp_control   }
+                                    , { "enable", master_control }
+                                    , { "id",     read_count     }
+                                }
+                            }
+                            , { "tick", {
+                                    { "tp", dt }
+                                }
+                            }
+                        }
                     }
                 };
                 ADTRACE() << boost::json::serialize( jv );
@@ -141,19 +152,22 @@ namespace peripheral {
 
     };
 
+    std::once_flag tsensor::impl::once_flag_;
+    std::mutex tsensor::impl::mutex_;
 };
+
 
 using namespace peripheral;
 
 tsensor::tsensor() : impl_( new impl )
 {
     // facade::instance()->register_tick_handler( *impl_ );
-    ADTRACE() << "### tsensor CTOR ###";
+    ADTRACE() << "### tsensor CTOR ### " << atomic_counter++;
 }
 
 tsensor::~tsensor()
 {
-    ADTRACE() << "### tsensor DTOR ###";
+    ADTRACE() << "### tsensor DTOR ### " << --atomic_counter;
     delete impl_;
 }
 

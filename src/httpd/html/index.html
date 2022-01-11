@@ -21,8 +21,7 @@
     <script src="/node_modules/bootstrap-toggle/js/bootstrap-toggle.min.js"></script>
 
     <!-- <script type="text/javascript" src="showhint.js"></script> -->
-    <script type="text/javascript" src="chat.js"></script>
-    <script type="text/javascript" src="websock.js"></script>
+    <script type="text/javascript" src="websock_tsensor.js"></script>
     <script type="text/javascript" src="loadbanner.js"></script>
   </head>
 
@@ -46,30 +45,19 @@
     </nav>
 
     <div class="jumbotron text-center">
-      <h1>SFC Pump Cooling Control</h1>
+      <h1>SFC pump cooling status</h1>
     </div>
 
     <div class="container">
       <div class="row">
-        <div class="col-6">
+        <div class="col-12">
           <div>
             <div id="timestamp" style="display: inline">2021</div>
           </div>
           <div style="margin-bottom: 2px;margin-left:5px;">
-            URI: <input class="draw-border" id="uri" size="30" value="ws://localhost:8080" style="margin-bottom: 5px;">
-	    <input type="checkbox" id="websock-connect" data-toggle="toggle"
-		   data-offstyle="primary" data-on="disconnect" data-off="connect" />
-            <p>
-              Your Name: <input class="draw-border" id="userName" size=30 style="margin-bottom: 5px;"><br>
-          </div>
-          <div style="margin-bottom: 2px;margin-left:5px;">
             <pre id="messages"
-                 style="width: 600px; height: 400px; white-space: normal; overflow: auto; border: solid 1px #cccccc; margin-bottom: 5px;"></pre>
-          </div>
-          <div style="margin-bottom: 5px;margin-left:5px;">
-            Message<br>
-            <input class="draw-border" id="sendMessage" size="74" value="">
-            <button class="echo-button" id="send">Send</button>
+                 style="height: 200px; white-space: normal;
+                        overflow: auto; border: solid 1px #cccccc; margin-bottom: 5px;"></pre>
           </div>
         </div> <!-- col-xs-6 -->
       </div> <!-- row -->

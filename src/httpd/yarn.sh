@@ -24,5 +24,6 @@ cd html
 [ ! -d "node_modules/jquery-ui" ]           && yarn add jquery-ui
 [ ! -d "node_modules/jquery.terminal" ]     && yarn add jquery.terminal
 [ ! -d "node_modules/jsgrid" ]              && yarn add js-grid
-[ ! -d "node_modules/plotlyjs" ]            && yarn add plotly
-[ ! -d "node_modules/sprintf" ]				&& yarn add sprintf
+[ ! -d "node_modules/plotly.js-dist" ]      && yarn add plotly.js-dist
+[ ! -d "node_modules/sprintf-js" ]			&& yarn add sprintf-js
+[ ! -d "node_modules/moment" ]			    && yarn add moment

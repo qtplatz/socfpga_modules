@@ -113,6 +113,9 @@ namespace peripheral {
     private:
         void async_read( std::shared_ptr< tsensor > me ) {
             auto dt = adportable::date_time::to_iso< std::chrono::microseconds >( std::chrono::steady_clock::now(), true );
+            using namespace std::chrono;
+            uint64_t tp = duration_cast< milliseconds >( std::chrono::system_clock::now().time_since_epoch() ).count();
+
             if ( auto tdata = read_tsensor() ) {
                 auto [ actual, setpt, temp_control, master_control, read_count ] = *tdata;
                 auto jv = boost::json::value{
@@ -126,7 +129,8 @@ namespace peripheral {
                                 }
                             }
                             , { "tick", {
-                                    { "tp", dt }
+                                    { "iso8601", dt }
+                                    , { "tp", tp }
                                 }
                             }
                         }

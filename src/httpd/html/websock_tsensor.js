@@ -47,8 +47,7 @@ function tsensor_message(msg) {
 
 $( document ).ready( function() {
 
-    Plotly.newPlot( 'plot', plot_data, layout );
-
+    // Plotly.newPlot( 'plot', plot_data, layout );
     var uri = "ws://" + window.location.host;
     $("#uri").val( uri );
     ws = new WebSocket( uri, 'tsensor' )
@@ -70,7 +69,7 @@ $( document ).ready( function() {
         $("#timestamp").html( d );
 
         temp.time.push( d );
-        temp.celsius.push( data.id );
+        temp.celsius.push( data.act );
         console.log( temp_trace );
         if ( temp.time.length >= 2 )  {
             Plotly.newPlot( 'plot', [ temp_trace ], temp_layout );

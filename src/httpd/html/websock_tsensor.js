@@ -1,13 +1,10 @@
 var ws = null
 
-x = [100, 200, 300, 400, 500],
-y = [10, 20, 30, 20, 10],
-
 plot_data = [ {
-    x:x,
-    y:y,
+    x: [0,0,0],
+    y: [1,2,3],
     type:'scatter',
-    mode:'markers', marker:{size:20}
+    mode:'markers', marker:{size:5}
 }],
 
 layout = {
@@ -15,19 +12,20 @@ layout = {
     title:'Click on Points'
 };
 
-var temp = {
+var tsensor_data = {
     time: []
     , celsius: []
     , type: 'scatter'
+    , mode:'markers', marker:{size:5}
 };
 
-var temp_trace = {
-    x: temp.time
-    , y: temp.celsius
+var tsensor_trace = {
+    x: tsensor_data.time
+    , y: tsensor_data.celsius
     , type: 'scatter'
 };
 
-var temp_layout = {
+var tsensor_layout = {
     title: 'Temperature'
     , xaxis: {
         title: 'Elapsed time'
@@ -47,7 +45,8 @@ function tsensor_message(msg) {
 
 $( document ).ready( function() {
 
-    // Plotly.newPlot( 'plot', plot_data, layout );
+    Plotly.newPlot( 'plot', plot_data, layout ); // draw inital axes
+
     var uri = "ws://" + window.location.host;
     $("#uri").val( uri );
     ws = new WebSocket( uri, 'tsensor' )
@@ -61,21 +60,24 @@ $( document ).ready( function() {
 
     ws.onmessage = function( ev ) {
         obj = JSON.parse( ev.data );
-        data = obj.tsensor.data;
-        tick = obj.tsensor.tick;
-        tsensor_message( JSON.stringify( data ) );
+        console.log( obj );
+        if ( Object.prototype.toString.call( obj ) === '[object Array]' ) {
+            tsensor_data.time = obj.filter( function(datum){ return new Date( datum.tick.tp ); } )
+            tsensor_data.celsius = obj.filter( function(datum){ return datum.act; } );
+        } else {
+            d = new Date( obj.tsensor.data.tick.tp );
+            $("#timestamp").html( d );
 
-        d = new Date( tick.tp );
-        $("#timestamp").html( d );
+            tsensor_data.time.push( d );
+            tsensor_data.celsius.push( obj.tsensor.data.act );
 
-        temp.time.push( d );
-        temp.celsius.push( data.act );
-        console.log( temp_trace );
-        if ( temp.time.length >= 2 )  {
-            Plotly.newPlot( 'plot', [ temp_trace ], temp_layout );
+            while ( tsensor_data.time.length > 3600 ) {
+                tsensor_data.time.shift();
+                tsensor_data.celsius.shift();
+            }
         }
-        console.log( temp );
-
-
+        if ( tsensor_data.time.length >= 2 )  {
+            Plotly.newPlot( 'plot', [ tsensor_trace ], tsensor_layout );
+        }
     };
 });

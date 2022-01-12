@@ -68,32 +68,27 @@ namespace peripheral {
 
     void
     tag_invoke( boost::json::value_from_tag, boost::json::value& jv, const tsensor_datum& t ) {
-        jv = boost::json::object{{ "tsensor", {
-                    { "data", {
-                            { "act",      t.actual }
-                            , { "set",    t.setpt }
-                            , { "flag",   t.relay }
-                            , { "enable", t.enable }
-                            , { "id", t.id } }
-                    }
-                    , { "tick", {{ "tp",  t.tp }}
-                    }
-                }
-            }};
+        jv = boost::json::object{
+            {   "act",    t.actual }
+            , { "set",    t.setpt  }
+            , { "flag",   t.relay  }
+            , { "enable", t.enable }
+            , { "id",     t.id     }
+            , { "tick", {{ "tp",  t.tp }}
+            }
+        };
     }
 
     tsensor_datum
     tag_invoke( boost::json::value_to_tag< tsensor_datum >&, const boost::json::value& jv ) {
         tsensor_datum t;
-        if ( auto dt = json_helper::find( jv, "tsensor.data" ) ) {
-            auto obj = dt->as_object();
-            json_extract( obj, t.actual, "act" );
-            json_extract( obj, t.setpt,  "set" );
-            json_extract( obj, t.relay,  "flag" );
-            json_extract( obj, t.enable, "enable" );
-            json_extract( obj, t.id,     "id" );
-        }
-        if ( auto tick = json_helper::find( jv, "tsensor.tick" ) ) {
+        auto obj = jv.as_object();
+        json_extract( obj, t.actual, "act" );
+        json_extract( obj, t.setpt,  "set" );
+        json_extract( obj, t.relay,  "flag" );
+        json_extract( obj, t.enable, "enable" );
+        json_extract( obj, t.id,     "id" );
+        if ( auto tick = json_helper::find( jv, "tick" ) ) {
             json_extract( tick->as_object(), t.tp, "tp" );
         }
         return t;
@@ -109,8 +104,8 @@ namespace peripheral {
             std::vector< tsensor_datum > tsensor_data_;
 
             singleton() : file_( __tsensor_device, std::ios_base::in )
-                   , data_{ 0 }
-                   , error_count_( 0 ) {
+                        , data_{ 0 }
+                        , error_count_( 0 ) {
             }
         public:
             static singleton * instance() {
@@ -165,13 +160,13 @@ namespace peripheral {
             std::shared_ptr< std::string >
             async_read_start( std::shared_ptr< tsensor > me ) {
                 std::call_once( once_flag_, [this,me]{
-                    ADTRACE() << "tsensor::async_read start";
                     facade::instance()->io_context().post( [this,me]{ async_read( me ); } );
                 });
                 std::scoped_lock< std::mutex > lock( mutex_ );
-                if ( tsensor_data_.empty() )
-                    return nullptr;
-                return std::make_shared< std::string >( boost::json::serialize( boost::json::value_from( tsensor_data_ ) ) );
+                auto jv = boost::json::value{{ "tsensor", {{ "data", boost::json::value_from( tsensor_data_ ) }} }};
+                if ( !tsensor_data_.empty() )
+                    return std::make_shared< std::string >( boost::json::serialize( boost::json::value_from( tsensor_data_ ) ) );
+                return nullptr;
             }
 
         private:
@@ -184,8 +179,9 @@ namespace peripheral {
                     tsensor_data_.emplace_back( actual, setpt, temp_control, master_control, read_count, tp );
                     if ( tsensor_data_.size() > 4800 ) // 4 hours
                         tsensor_data_.erase( tsensor_data_.begin(), tsensor_data_.begin() + 1200 ); // reduce to 3 hrs
-                    auto jv = boost::json::value_from( tsensor_data_.back() );
+                    auto jv = boost::json::value{{ "tsensor", {{ "data", boost::json::value_from( tsensor_data_.back() ) }} }};
                     facade::instance()->websock_forward( boost::json::serialize( jv ), "tsensor" );
+                    // ADTRACE() << jv;
                 } else {
                     auto jv = boost::json::value{{ "tsensor",
                                                    {{ "error",    "device read error" }

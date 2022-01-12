@@ -47,6 +47,9 @@ namespace peripheral {
     static std::atomic_int32_t atomic_counter = 0;
     static const char *__tsensor_device = "/dev/tsensor0";
 
+    static constexpr const size_t cache_size_upper = 1800; // about one and half hour
+    static constexpr const size_t cache_size_lower = 1200; // about an hour
+
     uint32_t temp_device( double temp ) { return temp * 4096.0 / 1024.0; };
 
     struct tsensor_datum {
@@ -149,6 +152,7 @@ namespace peripheral {
                     std::bitset< 2 > flags( data_[ 2 ] );
                     return {{ to_celsius( data_[ 1 ] ), to_celsius( data_[ 0 ] ), flags[0], flags[1], data_[ 3 ] }};
                 } else if ( __simulate__ ) {
+                    data_[ 1 ]++;
                     data_[ 3 ]++;
                     using namespace std::chrono_literals;
                     std::this_thread::sleep_for( 3s );
@@ -157,16 +161,20 @@ namespace peripheral {
                 return {};
             }
 
-            std::shared_ptr< std::string >
+            std::shared_ptr< const std::string > fetch() const {
+                std::scoped_lock< std::mutex > lock( mutex_ );
+                auto jv = boost::json::value{{ "tsensor", {{ "data", boost::json::value_from( tsensor_data_ ) }} }};
+                if ( !tsensor_data_.empty() ) {
+                    return std::make_shared< std::string >( boost::json::serialize( boost::json::value_from( tsensor_data_ ) ) );
+                }
+                return nullptr;
+            }
+
+            void
             async_read_start( std::shared_ptr< tsensor > me ) {
                 std::call_once( once_flag_, [this,me]{
                     facade::instance()->io_context().post( [this,me]{ async_read( me ); } );
                 });
-                std::scoped_lock< std::mutex > lock( mutex_ );
-                auto jv = boost::json::value{{ "tsensor", {{ "data", boost::json::value_from( tsensor_data_ ) }} }};
-                if ( !tsensor_data_.empty() )
-                    return std::make_shared< std::string >( boost::json::serialize( boost::json::value_from( tsensor_data_ ) ) );
-                return nullptr;
             }
 
         private:
@@ -177,8 +185,11 @@ namespace peripheral {
                 if ( auto tdata = read_tsensor() ) {
                     auto [ actual, setpt, temp_control, master_control, read_count ] = *tdata;
                     tsensor_data_.emplace_back( actual, setpt, temp_control, master_control, read_count, tp );
-                    if ( tsensor_data_.size() > 4800 ) // 4 hours
-                        tsensor_data_.erase( tsensor_data_.begin(), tsensor_data_.begin() + 1200 ); // reduce to 3 hrs
+                    if ( tsensor_data_.size() > cache_size_upper ) { // 1 hour
+                        tsensor_data_.erase( tsensor_data_.begin()
+                                             , tsensor_data_.begin() + (cache_size_upper - cache_size_lower) );
+                    }
+
                     auto jv = boost::json::value{{ "tsensor", {{ "data", boost::json::value_from( tsensor_data_.back() ) }} }};
                     facade::instance()->websock_forward( boost::json::serialize( jv ), "tsensor" );
                     // ADTRACE() << jv;
@@ -232,15 +243,17 @@ tsensor::handle_websock_message( const std::string& msg, websocket_session * ws 
             if ( auto top = json_helper::find( *jv, "tsensor" ) ) {
                 if ( auto msg = json_helper::value_to< std::string >( *top, "msg" ) ) {
                     if ( *msg == "hello" ) {
-                        if ( auto ss = singleton::instance()->async_read_start( this->shared_from_this() ) ) {
+                        singleton::instance()->async_read_start( this->shared_from_this() );
+                    }
+                    if ( *msg == "fetch" ) {
+                        if ( auto ss = singleton::instance()->fetch() )
                             ws->send( ss );
-                        }
                     }
                 }
                 if ( auto setpt = json_helper::value_to< double >( *top, "set" ) ) {
                     singleton::instance()->set_temperature( *setpt );
                 }
-                if ( auto enable = json_helper::value_to< double >( *top, "enable" ) ) {
+                if ( auto enable = json_helper::value_to< bool >( *top, "enable" ) ) {
                     singleton::instance()->set_onoff( *enable );
                 }
             }

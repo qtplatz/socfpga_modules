@@ -83,6 +83,12 @@ $( document ).ready( function() {
             $('#server-control-flag').html( "Control: " + obj.tsensor.data.flag);
             $('#server-setpt').html(  "Head temp (set): " + obj.tsensor.data.set );
             $('#server-actual').html( "Head temp (act): " + obj.tsensor.data.act );
+            terror = Math.abs( obj.tsensor.data.set - obj.tsensor.data.act );
+            if ( terror > 5 ) {
+                $('#server-values').css("background-color", "pink");
+            } else {
+                $('#server-values').css("background-color", "springgreen");
+            }
         }
     };
 
